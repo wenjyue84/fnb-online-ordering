@@ -21,7 +21,7 @@ export function RestaurantJsonLd() {
     alternateName: [CAFE.name.ms, CAFE.name.zh],
     description:
       "Thai-Malaysian fusion cafe in Skudai, Johor. No Pork, No Lard, Halal-friendly.",
-    url: process.env.NEXT_PUBLIC_SITE_URL || "https://makanmoments.cafe",
+    url: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031",
     telephone: "+60127088789",
     address: {
       "@type": "PostalAddress",
@@ -55,7 +55,7 @@ export function RestaurantJsonLd() {
     paymentAccepted: "Cash, Touch n Go, GrabPay, DuitNow QR",
     currenciesAccepted: "MYR",
     image:
-      (process.env.NEXT_PUBLIC_SITE_URL || "https://makanmoments.cafe") +
+      (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031") +
       "/images/og-image.jpg",
     sameAs: [
       CAFE.social.facebook,
@@ -65,7 +65,7 @@ export function RestaurantJsonLd() {
     hasMenu: {
       "@type": "Menu",
       url:
-        (process.env.NEXT_PUBLIC_SITE_URL || "https://makanmoments.cafe") +
+        (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031") +
         "/en/menu",
       hasMenuSection: [
         {
@@ -107,7 +107,7 @@ export function MenuPageJsonLd() {
     name: "Makan Moments Cafe Menu",
     description: "384+ Thai-Malaysian fusion dishes",
     url:
-      (process.env.NEXT_PUBLIC_SITE_URL || "https://makanmoments.cafe") +
+      (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031") +
       "/en/menu",
     mainEntity: {
       "@type": "Restaurant",
@@ -145,7 +145,7 @@ export function BlogPostJsonLd({
     publisher: {
       "@type": "Organization",
       name: CAFE.name.en,
-      url: process.env.NEXT_PUBLIC_SITE_URL || "https://makanmoments.cafe",
+      url: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031",
     },
     ...(image && { image }),
   };

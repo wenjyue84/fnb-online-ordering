@@ -59,7 +59,7 @@ export function generateMetadata({
     const tagline =
       CAFE.tagline[locale as keyof typeof CAFE.tagline] || CAFE.tagline.en;
     const siteUrl =
-      process.env.NEXT_PUBLIC_SITE_URL || "https://makanmoments.cafe";
+      process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031";
 
     return {
       title: {

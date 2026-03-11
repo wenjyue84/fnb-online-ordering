@@ -54,7 +54,7 @@ export default async function BlogPostPage({
   const token = cookieStore.get(COOKIE_NAME)?.value;
   const isAdmin = token ? await verifyAdminToken(token) : false;
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://makanmoments.cafe";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031";
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-12">

@@ -1,5 +1,5 @@
 /** @type {import('next-sitemap').IConfig} */
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://makanmoments.cafe";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031";
 
 module.exports = {
   siteUrl,
