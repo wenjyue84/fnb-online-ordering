@@ -155,18 +155,18 @@
       "description": "Confirm /admin/login works, admin can log in, and all admin tabs load correctly on the clone. This is a verification-only story — curl the admin API endpoints to confirm they respond.",
       "acceptanceCriteria": [
         "curl http://localhost:3031/admin/login returns 200",
-        "POST /api/admin/verify with correct credentials returns a JWT",
+        "POST /api/admin/login with correct credentials returns a JWT cookie",
         "GET /api/admin/menu with JWT returns menu items",
         "GET /api/admin/orders with JWT returns orders array"
       ],
       "technicalNotes": [
         "Use curl to test endpoints — no browser needed",
-        "Admin credentials are in .env.local: ADMIN_USERNAME=admin, ADMIN_PASSWORD=admin123",
-        "Login endpoint: POST /api/admin/verify with JSON body {username, password}"
+        "Admin credentials checked against admin_users table in Neon DB",
+        "Login endpoint: POST /api/admin/login with JSON body {username, password} — returns JWT as httpOnly cookie"
       ],
       "dependencies": ["US-004"],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-010",
@@ -187,7 +187,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-011",

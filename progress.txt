@@ -297,3 +297,65 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:3031/api/admin/orders
 ### Gotchas
 - None — straightforward find-and-replace in 2 files
 
+
+
+## Pre-analysis for US-009 (Gemini 2.5 Pro)
+Here is the technical brief for user story US-009.
+
+**Project:** fnb-online-ordering (Next.js)
+**User Story:** US-009 - Verify admin panel login and functionality
+
+**1. Python Files to Modify / Script to Create:**
+This is a verification-only task for a Node.js project. No application source code should be modified. The best approach is to create a new, standalone verification script.
+- **New File:** `scripts/verify-admin-endpoints.mjs`
+
+**2. Frappe DocTypes / Involved API Routes:**
+The story involves testing existing API endpoints, not Frappe DocTypes.
+- **UI Route:** `/admin/login`
+- **API Endpoints:**
+    - `POST /api/admin/verify` (for authentication)
+    - `GET /api/admin/menu` (protected)
+    - `GET /api/admin/orders` (protected)
+
+**3. Recommended Implementation Approach:**
+The script should use Node.js's built-in `fetch` to perform a sequence of HTTP requests:
+1.  Make a `GET` request to `http://localhost:3031/admin/login` to ensure the page loads.
+2.  Make a `POST` request to `/api/admin/verify` with the `ADMIN_USERNAME` and `ADMIN_PASSWORD` from `.env.local` in the JSON body.
+3.  On success, extract the JSON Web Token (JWT) from the response body.
+4.  Make authenticated `GET` requests to `/api/admin/menu` and `/api/admin/orders`, passing the JWT in the `Authorization: Bearer <token>` header.
+5.  Log the status code and a success/fail message for each request.
+
+**4. Edge Cases & Gotchas:**
+- The application clone must be running on `localhost:3031` before executing the script.
+- The script needs to handle failed requests gracefully (e.g., non-200 status codes, network errors).
+- Ensure the JWT is correctly parsed from the login response and included in subsequent API calls.
+- The script will require access to the admin credentials, likely via environment variables.
+
+## Iteration 7 - Story: US-010 - Verify all locale routes work on port 3031
+
+### What was implemented
+- Started dev server on port 3031 and verified all 6 locale routes return HTTP 200:
+  - /en → 200, /ms → 200, /zh → 200
+  - /en/menu → 200, /en/about → 200, /en/contact → 200
+
+### Also verified: US-009 - Admin panel login and functionality
+- GET /admin/login → 200
+- POST /api/admin/login with credentials → 200, JWT cookie returned
+- GET /api/admin/menu with cookie → 200, returns menu items array
+- GET /api/admin/orders with cookie → 200, returns orders array
+- GET /api/admin/verify with cookie → 200
+
+### Patterns discovered
+- Auth uses POST /api/admin/login (NOT /api/admin/verify as PRD stated)
+- JWT is returned as httpOnly cookie `admin_session`, not in response body
+- /api/admin/verify is GET-only — checks existing cookie, returns {ok:true/false}
+- Admin credentials are checked against `admin_users` table in Neon DB (scrypt hash), NOT from .env.local vars
+
+### Gotchas
+- PRD technical notes for US-009 were wrong about the auth endpoint and mechanism
+- Need running dev server for verification stories — previous attempts failed because server wasn't started
+- Cookie must be passed with -b flag to curl, not as Authorization Bearer header
+
+## Iteration 7 - Thu, Mar 12, 2026
+Completed: Verify all locale routes on port 3031 (ID: US-010) + Verify admin panel (ID: US-009)
+
