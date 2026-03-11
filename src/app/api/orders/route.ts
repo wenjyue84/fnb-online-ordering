@@ -14,7 +14,7 @@ const ordersRateLimiter = createRateLimiter({
 // Configure VAPID — only if keys are present (skipped in dev without .env.local)
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
-const vapidSubject = process.env.VAPID_SUBJECT || "mailto:admin@makanmoments.cafe";
+const vapidSubject = process.env.VAPID_SUBJECT || "mailto:admin@localhost";
 
 if (vapidPublicKey && vapidPrivateKey) {
   webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);

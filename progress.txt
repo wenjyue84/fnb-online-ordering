@@ -233,3 +233,67 @@ This user story is for a Next.js/Node.js project, not Frappe/Python. It focuses 
 
 ## Iteration 5 - Thu, Mar 12, 2026
 Completed: Update hardcoded port 3030 in CDP scripts (ID: US-003)
+## Iteration 5 - Thu, Mar 12, 2026  2:03:47 AM
+Incomplete: Verify admin panel login and functionality on port 3031 (ID: US-009) — attempt 2/3
+
+
+## Pre-analysis for US-009 (Gemini 2.5 Pro)
+This user story appears to be for a Next.js web application, not a Frappe/Python app. The technical notes reference `curl`, JWTs, `localhost:3031`, and API endpoints like `/api/admin/verify`, which are characteristic of a Node.js backend, matching the file structure of your project.
+
+Therefore, a brief for a Frappe implementation would be incorrect. Here is the appropriate technical brief for verifying the story against the actual Next.js application.
+
+***
+
+### Technical Brief: US-009 Verification (Next.js)
+
+**1. Relevant API Route Handlers (for inspection, not modification):**
+*   `src/app/api/admin/verify/route.ts`: Handles the `POST` request, validates credentials against environment variables, and issues a JWT.
+*   `src/app/api/admin/menu/route.ts`: The `GET` handler that returns menu data.
+*   `src/app/api/admin/orders/route.ts`: The `GET` handler that returns order data.
+*   `middleware.ts`: This file is the most likely location for the JWT validation logic that protects the `/api/admin/*` routes (excluding the login/verify endpoint itself).
+
+**2. Involved Technologies (Not Frappe):**
+*   **Framework:** Next.js App Router
+*   **Authentication:** A custom JWT-based strategy. Credentials are not stored in a database but are likely read directly from `.env.local` via `process.env`.
+*   **Data Fetching:** API routes fetch data, likely from a database or static JSON files, to serve to the admin frontend.
+
+**3. Recommended Verification Approach:**
+This is a verification-only task. The approach is to run a sequence of `curl` commands from the terminal to simulate an admin logging in and accessing data.
+
+```bash
+# 1. Verify login page is accessible
+curl -I http://localhost:3031/admin/login
+
+# 2. Authenticate and capture the JWT (requires `jq` to be installed)
+TOKEN=$(curl -s -X POST -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "admin123"}' \
+  http://localhost:3031/api/admin/verify | jq -r .token)
+
+# 3. Verify the token was captured
+echo "Token: $TOKEN"
+
+# 4. Use the JWT to access protected admin routes
+curl -H "Authorization: Bearer $TOKEN" http://localhost:3031/api/admin/menu
+curl -H "Authorization: Bearer $TOKEN" http://localhost:3031/api/admin/orders
+```
+
+**4. Edge Cases & Gotchas:**
+*   Ensure the cloned application is running on port `3031` as specified, not the default `3000`.
+*   The `.env.local` file must contain the correct `ADMIN_USERNAME` and `ADMIN_PASSWORD` values.
+*   If `jq` is not available, the token must be copied manually from the output of the authentication `curl` command.
+*   If protected routes return a `401 Unauthorized` error, the issue likely lies with how the Bearer token is being passed in the header or validated by the `middleware.ts`.
+
+## Iteration 6 - Story: US-006 - Update VAPID subject mailto fallback
+
+### What was implemented
+- Replaced `mailto:admin@makanmoments.cafe` → `mailto:admin@localhost` in 2 files:
+  - src/app/api/orders/route.ts (line 17)
+  - src/lib/tools/orders.ts (line 8)
+
+### Patterns discovered
+- Both files have identical VAPID setup blocks (vapidPublicKey, vapidPrivateKey, vapidSubject)
+- The fallback only applies when VAPID_SUBJECT env var is not set
+
+### Gotchas
+- None — straightforward find-and-replace in 2 files
+
