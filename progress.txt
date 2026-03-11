@@ -92,3 +92,45 @@ Here is the correct technical brief based on the story's content:
 *   This change only affects the local development environment. Ensure production build pipelines use the correct live domain name.
 *   After changing the variable, the Next.js development server must be restarted for the new value to take effect.
 
+## Iteration 2 - Thu, Mar 12, 2026  1:52:41 AM
+Completed: Update NEXT_PUBLIC_SITE_URL in .env.local (ID: US-004) in 3m
+
+
+## Pre-analysis for US-005 (Gemini 2.5 Pro)
+This user story appears to be for a TypeScript/React frontend, but the request is for a Frappe/Python context. This brief translates the story's intent into a likely Frappe implementation.
+
+**Technical Brief for US-005 (Frappe/Python Implementation)**
+
+**1. Python Files to Modify:**
+The hardcoded URL is likely in a server-side Python script that generates notifications.
+- Start by running a `grep` for "makanmoments.cafe" in the `lhdn_payroll_integration` app folder.
+- Likely candidates are utility files (e.g., `lhdn_payroll_integration/utils/notifications.py`) or API endpoint files.
+
+**2. Frappe DocTypes & Hooks:**
+- The setting would be managed in a Singleton DocType, such as "LHDN Settings" or another central configuration DocType.
+- Check the `hooks.py` file for `doc_events` or custom API calls that trigger the notification logic where this message is used.
+
+**3. Recommended Implementation Approach:**
+1. Locate the Python function generating the hardcoded message.
+2. Replace `"makanmoments.cafe"` with the generic phrase `"this site"`.
+3. For a more robust, future-proof solution, retrieve the site's URL dynamically using `frappe.utils.get_url()` and extract the hostname.
+
+**4. Edge Cases & Gotchas:**
+- Ensure `frappe.utils.get_url()` returns the public-facing hostname, especially if the instance is behind a reverse proxy.
+- After patching the file, a `bench clear-cache` and `bench restart` will be required to load the changes.
+
+## Iteration 3 - Story: US-005 - Replace hardcoded makanmoments.cafe in admin push settings
+
+### What was implemented
+- Replaced `makanmoments.cafe` → `this site` in the browser notification denied message (line 112)
+- File: src/components/admin/admin-push-settings.tsx
+
+### Patterns discovered
+- Only 1 occurrence of makanmoments.cafe in this file (in the denied-state UI message)
+
+### Gotchas
+- None — straightforward string replacement
+
+## Iteration 3 - Thu, Mar 12, 2026
+Completed: Replace hardcoded makanmoments.cafe in admin push settings (ID: US-005)
+
