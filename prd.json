@@ -200,12 +200,13 @@
       ],
       "technicalNotes": [
         "Use curl to POST to http://localhost:3031/api/chat",
-        "Send body: {\"messages\":[{\"role\":\"user\",\"content\":\"hello\"}]}",
-        "Response should be SSE stream starting with event: start"
+        "Send body in UIMessage format: {\"messages\":[{\"role\":\"user\",\"parts\":[{\"type\":\"text\",\"text\":\"hello\"}],\"id\":\"test1\"}]}",
+        "Response is SSE stream: start → start-step → text-start → text-delta tokens",
+        "NOTE: Plain {content:\"hello\"} format does NOT work — route expects UIMessage with parts array"
       ],
       "dependencies": [],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-099",

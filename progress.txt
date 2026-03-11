@@ -429,3 +429,61 @@ This user story is for a **Next.js/TypeScript** application, not Frappe/Python. 
 ## Iteration 9 - Thu, Mar 12, 2026
 Completed: Update hardcoded absolute paths in compress script (ID: US-007)
 
+## Iteration 8 - Thu, Mar 12, 2026  2:18:54 AM
+Incomplete: Verify AI waiter chat endpoint works on port 3031 (ID: US-011) — attempt 1/3
+
+## Iteration 10 - Story: US-011 - Verify AI waiter chat endpoint works on port 3031
+
+### What was implemented
+- Verified POST /api/chat returns HTTP 200 with streaming SSE response
+- Groq API key confirmed working (tested directly: llama-3.3-70b-versatile responds)
+- Chat endpoint streams text deltas with actual AI waiter content ("Selamat datang! Welcome to...")
+
+### Key discovery: UIMessage format required
+- The route expects UIMessage format with `parts` array, NOT plain `content` field
+- WRONG: `{"messages":[{"role":"user","content":"hello"}]}` → stream hangs (empty modelMessages after filter)
+- RIGHT: `{"messages":[{"role":"user","parts":[{"type":"text","text":"hello"}],"id":"test1"}]}` → works perfectly
+- Root cause: `msg.parts?.filter(isTextUIPart)` returns empty when parts is undefined, resulting in empty content, which is then filtered out by `.filter((m) => m.content.trim() !== "")` — so streamText receives zero messages and hangs
+
+### Patterns discovered
+- AI SDK v6 uses UIMessage format (parts array), not plain OpenAI chat format
+- The streaming pipeline: server emits start → strips model's start → pipes start-step + text-start + text-delta events
+- Fallback: if Groq fails with error event, switches to OpenRouter automatically
+- System prompt loads 364 menu items from Neon DB + knowledge/*.md files
+
+### Gotchas
+- PRD technical notes had wrong message format — always check the actual route handler for expected input shape
+- Previous attempts failed because they sent plain content format, causing the stream to hang silently (no error)
+- The dev server must be running for verification stories
+
+
+## Pre-analysis for US-011 (Gemini 2.5 Pro)
+Here is the technical brief for user story US-011.
+
+**Project:** AI Waiter Chat Endpoint (Next.js/TypeScript)
+**Story:** US-011 - Verify AI waiter chat endpoint works on port 3031
+
+**Project Stack Clarification:**
+This is a Next.js/TypeScript project, not a Frappe/Python application. The verification will involve Node.js scripts and interacting with a Next.js API route.
+
+**1. Files to Modify / Create:**
+*   **Create New Script:** `scripts/verify-chat-endpoint.mjs`. This aligns with existing verification scripts in the project.
+*   **Relevant Application Files (for context, not modification):**
+    *   `src/app/api/chat/route.ts`: This is the likely location of the Next.js API route handler for the `/api/chat` endpoint.
+    *   `backend/src/ai.ts`: This file probably contains the core AI logic, including interaction with Groq/OpenRouter APIs.
+
+**2. Frappe DocTypes / Hooks:**
+*   None. This story does not involve the Frappe framework.
+
+**3. Recommended Implementation Approach:**
+*   The goal is to create an automated test script (`verify-chat-endpoint.mjs`) to validate the endpoint.
+*   Use a Node.js HTTP client like `node-fetch`.
+*   The script should send a `POST` request to `http://localhost:3031/api/chat` with the body: `{"messages":[{"role":"user","content":"hello"}]}`.
+*   It must be able to process a Server-Sent Events (SSE) stream to verify the `event: start` message is received first.
+*   The script should assert that the HTTP response code is 200 and that no API key-related error messages are present in the stream.
+
+**4. Edge Cases & Gotchas:**
+*   **Environment:** The target server on `localhost:3031` must be running and have the correct Groq/OpenRouter API keys set as environment variables.
+*   **Streaming Response:** Do not read the response body as a single blob. The script must handle the streaming nature of SSE to meet the acceptance criteria.
+*   **Port Specificity:** The script must explicitly target port `3031`, as required by the story for the "clone" environment.
+
