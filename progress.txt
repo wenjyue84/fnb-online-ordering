@@ -359,3 +359,22 @@ The script should use Node.js's built-in `fetch` to perform a sequence of HTTP r
 ## Iteration 7 - Thu, Mar 12, 2026
 Completed: Verify all locale routes on port 3031 (ID: US-010) + Verify admin panel (ID: US-009)
 
+## Iteration 8 - Story: US-008 - Update CLAUDE.md for fnb-online-ordering context
+
+### What was implemented
+- Updated title: "F&B Online Ordering Platform" (was "Makan Moments Cafe Website")
+- Updated project line: "fnb-online-ordering" with provenance note about makanmoments.cafe
+- Changed live site URL to "TBD (not yet deployed)"
+- Changed project structure tree root from "makanmoments.cafe/" to "fnb-online-ordering/"
+- Updated all port references: 3030 → 3031 (dev command, port lock notice)
+- Updated NEXT_PUBLIC_SITE_URL description to generic placeholder
+
+### Patterns discovered
+- CLAUDE.md had exactly 2 port references (dev command + lock notice) and 2 URL references (live site + env var table)
+
+### Gotchas
+- Kept "Cloned from makanmoments.cafe" as provenance — this is factual context, not branding
+
+## Iteration 8 - Thu, Mar 12, 2026
+Completed: Update CLAUDE.md for fnb-online-ordering context (ID: US-008)
+
