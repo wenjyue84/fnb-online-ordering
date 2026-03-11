@@ -378,3 +378,54 @@ Completed: Verify all locale routes on port 3031 (ID: US-010) + Verify admin pan
 ## Iteration 8 - Thu, Mar 12, 2026
 Completed: Update CLAUDE.md for fnb-online-ordering context (ID: US-008)
 
+## Iteration 7 - Thu, Mar 12, 2026  2:15:00 AM
+Completed: Verify admin panel login and functionality on port 3031 (ID: US-009) in 7m
+
+
+## Pre-analysis for US-011 (Gemini 2.5 Pro)
+This user story is for a **Next.js/TypeScript** application, not Frappe/Python. The task is to verify an existing API endpoint, not implement a new one.
+
+**Project:** `fnb-online-ordering` (Next.js)
+**User Story:** US-011: Verify AI waiter chat endpoint on port 3031
+
+### Technical Brief
+
+1.  **Relevant Files (for debugging if verification fails):**
+    *   `src/app/api/chat/route.ts`: This is the most likely location for the Next.js API route handler for the `/api/chat` endpoint.
+    *   `backend/src/ai.ts`: May contain the core AI/LLM integration logic that the API route uses.
+    *   `.env.example` / `.env.local`: Check these for the names of the required environment variables (e.g., `GROQ_API_KEY`, `OPENROUTER_API_KEY`).
+
+2.  **Framework/Platform Components Involved:**
+    *   **Next.js API Routes:** The endpoint `/api/chat` is a server-side route handler.
+    *   **Middleware.ts:** Potentially involved for request handling, but less likely to be the source of the issue.
+
+3.  **Recommended Verification & Implementation Approach:**
+    *   This is a verification task. No code modification should be needed if the endpoint works as expected.
+    *   Execute the `curl` command from the story's technical notes to test the endpoint running on port `3031`.
+    *   **Command:** `curl -N -X POST http://localhost:3031/api/chat -H "Content-Type: application/json" -d '{"messages":[{"role":"user","content":"hello"}]}'`
+    *   If it fails, debug the `route.ts` file. The primary suspect is that the process on port 3031 has not loaded the correct API key environment variables.
+
+4.  **Edge Cases & Gotchas:**
+    *   Ensure the "clone" application is actually running on port `3031` and that it's a separate process from the main dev server (e.g., port 3000).
+    *   The most common failure point will be missing or incorrect `GROQ_API_KEY` or `OPENROUTER_API_KEY` environment variables for the process on port `3031`.
+    *   The endpoint returns a Server-Sent Events (SSE) stream, not a simple JSON response. The `curl -N` flag is important for observing the stream.
+
+## Iteration 9 - Story: US-007 - Update hardcoded absolute paths in compress script
+
+### What was implemented
+- Replaced 3 hardcoded absolute Windows paths with relative paths using path.join(process.cwd(), ...)
+- inputPath now taken from process.argv[2] (CLI argument) with usage message
+- outputPath uses path.join(process.cwd(), 'public', 'images', 'hero', 'hero-mobile.webp')
+- blurPath uses path.join(process.cwd(), 'src', 'data', 'hero-blur.ts')
+- Added `import path from 'path'`
+
+### Patterns discovered
+- The script was a one-off utility for compressing a specific promo image — input path pointed to a Gemini brain cache
+- Making input a CLI arg is more flexible than hardcoding any path
+
+### Gotchas
+- The original inputPath referenced a Gemini cache dir, completely unrelated to the project — no point making it relative to cwd
+
+## Iteration 9 - Thu, Mar 12, 2026
+Completed: Update hardcoded absolute paths in compress script (ID: US-007)
+
