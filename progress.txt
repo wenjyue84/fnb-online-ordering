@@ -182,3 +182,54 @@ This technical brief is based on the provided JSON user story. Note: The story d
 
 ## Iteration 4 - Thu, Mar 12, 2026
 Completed: Update hardcoded port 3030 in debug/check scripts (ID: US-002)
+## Iteration 4 - Thu, Mar 12, 2026  1:59:49 AM
+Incomplete: Verify admin panel login and functionality on port 3031 (ID: US-009) — attempt 1/3
+
+
+## Pre-analysis for US-009 (Gemini 2.5 Pro)
+This user story is for a Next.js/Node.js project, not Frappe/Python. It focuses on API verification. Here is the technical brief based on the actual story content:
+
+**Technical Brief for US-009: Admin API Verification**
+
+**1. Python Files to Modify:**
+*   None. This is a verification story for a Node.js application.
+*   A new test script, e.g., `verify-admin-endpoints.mjs`, should be created to perform the checks.
+
+**2. Frappe DocTypes/Hooks Involved:**
+*   None. The story involves Next.js API routes:
+    *   `POST /api/admin/verify`
+    *   `GET /api/admin/menu`
+    *   `GET /api/admin/orders`
+
+**3. Recommended Implementation Approach:**
+*   Create a standalone Node.js script that uses `fetch` or `axios`.
+*   The script should first `POST` to `/api/admin/verify` with credentials from `.env.local`.
+*   On success, it must extract the JWT from the response body.
+*   It will then make `GET` requests to the `/api/admin/menu` and `/api/admin/orders` endpoints.
+*   Each of these subsequent requests must include the JWT in the `Authorization: Bearer <token>` header.
+*   The script should assert that each endpoint returns a `200` status code.
+
+**4. Edge Cases & Gotchas:**
+*   The script must load environment variables to access `ADMIN_USERNAME` and `ADMIN_PASSWORD`.
+*   Error handling is crucial: the script must fail if the login request fails and not attempt subsequent calls.
+*   Ensure the target server (`http://localhost:3031`) is running before the script is executed.
+*   The script should confirm the presence of expected data (e.g., a JSON array) in the response, not just the status code.
+
+## Iteration 5 - Story: US-003 - Update hardcoded port 3030 in CDP scripts
+
+### What was implemented
+- Replaced localhost:3030 → localhost:3031 in 4 files under scripts/:
+  - scripts/cdp_screenshot.mjs (2 occurrences: Page.navigate URLs)
+  - scripts/cdp_console_check.mjs (2 occurrences: Page.navigate URL + network request filter)
+  - scripts/test-pages.py (1 occurrence: BASE variable)
+  - scripts/test_pages.py (2 occurrences: BASE_URL variable + wait_for_url)
+
+### Patterns discovered
+- US-003 acceptance criteria covers ALL of scripts/, not just cdp_*.mjs files
+- Python test scripts also lived in scripts/ with localhost:3030 references
+
+### Gotchas
+- The technical notes only mentioned cdp_*.mjs files, but acceptance criteria said "No grep hits for localhost:3030 in scripts/" — always check the broader AC, not just the notes
+
+## Iteration 5 - Thu, Mar 12, 2026
+Completed: Update hardcoded port 3030 in CDP scripts (ID: US-003)

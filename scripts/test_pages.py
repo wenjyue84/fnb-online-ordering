@@ -7,7 +7,7 @@ import os
 import sys
 from playwright.sync_api import sync_playwright
 
-BASE_URL = "http://localhost:3030"
+BASE_URL = "http://localhost:3031"
 SCREENSHOTS_DIR = "scripts/screenshots"
 os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
 

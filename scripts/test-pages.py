@@ -2,7 +2,7 @@
 import time
 from playwright.sync_api import sync_playwright
 
-BASE = "http://localhost:3030"
+BASE = "http://localhost:3031"
 ADMIN_USER = "admin"
 ADMIN_PASS = "admin123"
 
