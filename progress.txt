@@ -53,3 +53,42 @@ The change is isolated to TypeScript test files. No Python files are involved.
 ### Gotchas
 - Must read files before editing (Edit tool enforces this)
 - rtk wrapper doesn't find tsc — use npx directly
+## Iteration 1 - Thu, Mar 12, 2026  1:49:16 AM
+Completed: Update hardcoded port 3030 to 3031 in test files (ID: US-001) in 3m
+
+
+## Iteration 2 - Story: US-004 - Update NEXT_PUBLIC_SITE_URL in .env.local
+
+### What was implemented
+- Changed NEXT_PUBLIC_SITE_URL from https://makanmoments.cafe to http://localhost:3031
+- Also changed VAPID_SUBJECT from mailto:admin@makanmoments.cafe to mailto:admin@localhost (was also in .env.local)
+
+### Patterns discovered
+- .env.local had 2 makanmoments.cafe references: NEXT_PUBLIC_SITE_URL and VAPID_SUBJECT
+- VAPID_SUBJECT change partially overlaps with US-006 scope, but US-006 covers source files not .env.local
+
+### Gotchas
+- .env.local contains secrets — don't commit to git
+- US-004 acceptance criteria says "No reference to makanmoments.cafe in .env.local" — covers ALL references, not just NEXT_PUBLIC_SITE_URL
+
+## Pre-analysis for US-004 (Gemini 2.5 Pro)
+This user story does not pertain to a Frappe/Python application. The details (`.env.local`, `NEXT_PUBLIC_SITE_URL`) are specific to a Next.js (JavaScript/TypeScript) project.
+
+Here is the correct technical brief based on the story's content:
+
+**Project:** Next.js Web Application
+
+**Objective:** Align the local development environment's public URL with the project's identity for accurate SEO, sitemap, and metadata generation.
+
+**Files to Modify:**
+*   `.env.local`
+
+**Implementation Approach:**
+1.  Open the `.env.local` file located in the project's root directory.
+2.  Search for the line containing the `NEXT_PUBLIC_SITE_URL` environment variable.
+3.  Replace the current value (`https://makanmoments.cafe`) with the new local development URL (`http://localhost:3031`).
+
+**Gotchas to Watch For:**
+*   This change only affects the local development environment. Ensure production build pipelines use the correct live domain name.
+*   After changing the variable, the Next.js development server must be restarted for the new value to take effect.
+
