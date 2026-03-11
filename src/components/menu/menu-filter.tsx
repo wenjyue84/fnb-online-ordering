@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Search, X, Heart, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useScrolling } from "@/lib/scrolling-context";
@@ -52,6 +52,7 @@ export function MenuFilter({
 }: MenuFilterProps) {
   const t = useTranslations("menu");
   const tc = useTranslations("common");
+  const locale = useLocale();
   const [isListening, setIsListening] = useState(false);
   const [voiceReady, setVoiceReady] = useState(false);
   // Search bar open on mobile — auto-open if there's already a query (e.g. from URL ?q=)
@@ -104,7 +105,7 @@ export function MenuFilter({
       const Win = window as any;
       const SpeechRecognitionCtor = Win.SpeechRecognition || Win.webkitSpeechRecognition;
       const recognition = new SpeechRecognitionCtor();
-      recognition.lang = "en-US";
+      recognition.lang = locale === "zh" ? "zh-CN" : locale === "ms" ? "ms-MY" : "en-US";
       recognition.continuous = false;
       recognition.interimResults = true;
 
@@ -301,24 +302,33 @@ export function MenuFilter({
           )}
         </div>
 
-        {/* Search toggle button — mobile only */}
+        {/* Search toggle button — mobile only; shows "Search" text when idle for discoverability */}
         <button
           type="button"
           onClick={() => setSearchOpen((v) => !v)}
           className={cn(
-            "flex-shrink-0 rounded-full p-2 transition-colors md:hidden",
+            "flex-shrink-0 flex items-center gap-1.5 rounded-full transition-colors md:hidden",
             searchOpen || searchQuery
-              ? "bg-primary text-primary-foreground"
-              : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              ? "p-2 bg-primary text-primary-foreground"
+              : "px-3 py-1.5 bg-secondary text-secondary-foreground hover:bg-secondary/80"
           )}
           aria-label={searchOpen ? "Close search" : "Search dishes"}
         >
-          {searchOpen && !searchQuery ? <X className="h-4 w-4" /> : <Search className="h-4 w-4" />}
+          {searchOpen && !searchQuery ? (
+            <X className="h-4 w-4" />
+          ) : searchQuery ? (
+            <Search className="h-4 w-4" />
+          ) : (
+            <>
+              <Search className="h-3.5 w-3.5" />
+              <span className="text-sm font-medium">{tc("search")}</span>
+            </>
+          )}
         </button>
       </div>
 
-      {/* Count — desktop only */}
-      <p className="hidden md:block text-sm text-muted-foreground">
+      {/* Count — all screen sizes */}
+      <p className="text-sm text-muted-foreground">
         {t("itemsCount", { count: itemCount })}
       </p>
     </div>

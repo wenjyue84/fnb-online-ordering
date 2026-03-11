@@ -311,10 +311,12 @@ export function AdminMenuTableRow({
         {availableToggle("sm")}
         {item.disabledByRule && (
           <span
-            className="mt-0.5 block rounded-full bg-red-100 px-1.5 py-0.5 text-center text-[10px] font-medium text-red-700 whitespace-nowrap"
-            title={item.appliedRules?.filter((r) => r.ruleType === "disable").map((r) => r.ruleName).join(", ")}
+            className="group relative mt-0.5 inline-block cursor-default rounded-full bg-red-100 px-1.5 py-0.5 text-center text-[10px] font-medium text-red-700 whitespace-nowrap"
           >
-            Disabled: {item.appliedRules?.find((r) => r.ruleType === "disable")?.ruleName ?? "rule"}
+            Rules
+            <span className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100">
+              {item.appliedRules?.filter((r) => r.ruleType === "disable").map((r) => r.ruleName).join(", ") ?? "rule"}
+            </span>
           </span>
         )}
       </td>

@@ -86,7 +86,7 @@ async function MenuPageHeader() {
   return (
     <div className="mb-8">
       <h1 className="font-display text-3xl font-bold lg:text-4xl">{t("title")}</h1>
-      <p className="mt-2 hidden text-muted-foreground sm:block">{t("subtitle")}</p>
+      <p className="mt-2 text-muted-foreground">{t("subtitle")}</p>
     </div>
   );
 }

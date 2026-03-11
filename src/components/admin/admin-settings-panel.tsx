@@ -23,7 +23,7 @@ const DEFAULT_SETTINGS: SiteSettings = {
   tng_qr_url: "",
 };
 
-const SETTINGS_TABS = ["General", "Operating Hours", "Pre-Order", "Notifications", "AI"] as const;
+const SETTINGS_TABS = ["General", "Operating Hours", "Pre-Order", "Notifications"] as const;
 type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 export function AdminSettingsPanel({ displayCategories }: AdminSettingsPanelProps) {
@@ -34,9 +34,6 @@ export function AdminSettingsPanel({ displayCategories }: AdminSettingsPanelProp
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentInput, setPaymentInput] = useState("");
-  const [syncing, setSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState<string | null>(null);
-
   useEffect(() => {
     fetch("/api/admin/settings")
       .then((r) => r.json())
@@ -77,22 +74,6 @@ export function AdminSettingsPanel({ displayCategories }: AdminSettingsPanelProp
       setError(err instanceof Error ? err.message : "Save failed");
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function handleSyncAI() {
-    setSyncing(true);
-    setSyncResult(null);
-    try {
-      const res = await fetch("/api/admin/sync-ai-knowledge", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Sync failed");
-      setSyncResult(`AI menu knowledge updated — ${data.count} items synced`);
-      setTimeout(() => setSyncResult(null), 5000);
-    } catch (err) {
-      setSyncResult(err instanceof Error ? `Error: ${err.message}` : "Sync failed");
-    } finally {
-      setSyncing(false);
     }
   }
 
@@ -304,31 +285,6 @@ export function AdminSettingsPanel({ displayCategories }: AdminSettingsPanelProp
         </div>
       )}
 
-      {/* AI */}
-      {activeTab === "AI" && (
-        <div className="space-y-6">
-          <section className="rounded-xl border border-gray-200 bg-white p-6">
-            <h2 className="mb-1 text-base font-semibold text-gray-900">AI Waiter Knowledge</h2>
-            <p className="mb-4 text-xs text-gray-500">
-              Regenerates <code className="font-mono">knowledge/menu-knowledge.md</code> from the current database and invalidates the AI cache so changes are reflected immediately.
-            </p>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={handleSyncAI}
-                disabled={syncing}
-                className="min-h-[44px] rounded-lg border border-gray-300 bg-gray-50 px-5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
-              >
-                {syncing ? "Syncing…" : "Sync AI Menu Knowledge"}
-              </button>
-              {syncResult && (
-                <span className={`text-sm font-medium ${syncResult.startsWith("Error") ? "text-red-600" : "text-green-700"}`}>
-                  {syncResult.startsWith("Error") ? syncResult : `✓ ${syncResult}`}
-                </span>
-              )}
-            </div>
-          </section>
-        </div>
-      )}
     </div>
   );
 }

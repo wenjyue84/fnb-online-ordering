@@ -79,7 +79,7 @@ export function MenuGrid({
     }
     return null;
   });
-  const [isEditMode, setIsEditMode] = useState(true);
+  const [isEditMode, setIsEditMode] = useState(false);
   // Initialise search from server-passed ?q= value so it survives page refresh
   const [search, setSearch] = useState(initialSearch);
 
@@ -93,7 +93,7 @@ export function MenuGrid({
     const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
     router.replace(newUrl, { scroll: false });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
+  }, [search, previewTime]);
   const debouncedSearch = useDebounce(search, 300);
   const [highlights] = useState<Record<string, string>>(initialHighlights);
 
@@ -125,9 +125,9 @@ export function MenuGrid({
     [displayCategories, chefsPickDCName]
   );
 
-  // Fetch saved Chef's Pick order from DB (admin mode only)
+  // Fetch saved Chef's Pick order from DB (no auth required on GET)
   useEffect(() => {
-    if (!isAdmin || !chefsCatId) return;
+    if (!chefsCatId) return;
     fetch(`/api/admin/display-categories/${chefsCatId}/items`)
       .then((r) => r.json())
       .then((data: unknown) => {
@@ -136,7 +136,7 @@ export function MenuGrid({
         }
       })
       .catch(() => {});
-  }, [isAdmin, chefsCatId]);
+  }, [chefsCatId]);
 
   const handleRemoveChefsPick = useCallback(
     async (itemId: string) => {
@@ -242,7 +242,7 @@ export function MenuGrid({
   }, [visibleItems, removedFromChefsPick, addedToChefsPick]);
 
   const orderedChefsPickItems = useMemo(() => {
-    if (!isAdmin || chefPickOrder.length === 0) return chefsPickItems;
+    if (chefPickOrder.length === 0) return chefsPickItems;
     return [...chefsPickItems].sort((a, b) => {
       const ai = chefPickOrder.indexOf(a.id);
       const bi = chefPickOrder.indexOf(b.id);
@@ -251,7 +251,7 @@ export function MenuGrid({
       if (bi === -1) return -1;
       return ai - bi;
     });
-  }, [chefsPickItems, chefPickOrder, isAdmin]);
+  }, [chefsPickItems, chefPickOrder]);
 
   // ── Other DC sections ────────────────────────────────────────────────────────
   const otherDCSections = useMemo(() => {
@@ -353,10 +353,13 @@ export function MenuGrid({
     let cancelled = false;
     function fetchNext() {
       if (cancelled || idx >= uniqueCodes.length) return;
-      const img = new window.Image();
       const code = uniqueCodes[idx++];
       const nextItem = items.find((i) => i.code === code);
-      img.src = nextItem?.photo ?? `/images/menu/${code}.jpg`;
+      const src = nextItem?.photo;
+      if (src) {
+        const img = new window.Image();
+        img.src = src;
+      }
       schedule();
     }
     function schedule() {
@@ -374,7 +377,7 @@ export function MenuGrid({
       } else {
         setTimeout(fetchNext, 0);
       }
-    }, 1000);
+    }, 300);
     return () => { cancelled = true; clearTimeout(start); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -479,7 +482,7 @@ export function MenuGrid({
 
           {/* ── Chef's Picks section (regular grid — hero image removed) ── */}
           {orderedChefsPickItems.length > 0 && (
-            <section id="section-chefs-picks" aria-labelledby="cat-chefs-picks" className="scroll-mt-[108px] pt-2" style={{ contentVisibility: "auto", containIntrinsicSize: "auto 600px" }}>
+            <section id="section-chefs-picks" aria-labelledby="cat-chefs-picks" className="scroll-mt-[var(--menu-scroll-offset)] pt-2" style={{ contentVisibility: "auto" }}>
               <h2
                 id="cat-chefs-picks"
                 className="bg-amber-50/60 dark:bg-amber-950/20 -mx-4 px-4 py-3 mb-4 border-b border-amber-200 dark:border-amber-800"
@@ -525,8 +528,8 @@ export function MenuGrid({
               key={dcName}
               id={dcSectionId(dcName)}
               aria-labelledby={`cat-dc-${dcName}`}
-              className="scroll-mt-[108px] pt-2"
-              style={{ contentVisibility: "auto", containIntrinsicSize: "auto 600px" }}
+              className="scroll-mt-[var(--menu-scroll-offset)] pt-2"
+              style={{ contentVisibility: "auto" }}
             >
               <h2
                 id={`cat-dc-${dcName}`}
@@ -569,8 +572,8 @@ export function MenuGrid({
 
           {/* ── Unassigned items (no display category) ── */}
           {unassignedItems.length > 0 && (
-            <section id="section-other" className="scroll-mt-[108px] pt-2" style={{ contentVisibility: "auto", containIntrinsicSize: "auto 600px" }}>
-              <h2 className="bg-muted/30 -mx-4 px-4 py-3 mb-4 border-b border-border">
+            <section id="section-other" aria-labelledby="cat-other" className="scroll-mt-[var(--menu-scroll-offset)] pt-2" style={{ contentVisibility: "auto" }}>
+              <h2 id="cat-other" className="bg-muted/30 -mx-4 px-4 py-3 mb-4 border-b border-border">
                 <span className="flex items-center gap-2 border-l-4 border-muted-foreground/40 pl-3 text-sm font-semibold tracking-widest uppercase text-muted-foreground">
                   Other Items
                 </span>

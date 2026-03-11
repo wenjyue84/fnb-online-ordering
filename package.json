@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3030",
-    "dev:portless": "NEXT_TELEMETRY_DISABLED=1 NEXT_DIST_DIR=/tmp/makanmoments-next portless --app-port 3030 makanmoments next dev --port 3030",
+    "dev": "next dev --port 3031",
+    "dev:portless": "NEXT_TELEMETRY_DISABLED=1 NEXT_DIST_DIR=/tmp/fnb-ordering-next portless --app-port 3031 fnb-ordering next dev --port 3031",
     "build": "next build",
     "postbuild": "next-sitemap",
     "start": "next start",

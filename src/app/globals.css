@@ -57,6 +57,8 @@
 /* ─── /colorize: Richer earthy, warmer linen palette ─── */
 :root {
   --radius: 0.625rem;
+  /* Sticky header height + filter bar height — used for scroll-mt on section anchors */
+  --menu-scroll-offset: 108px;
 
   /* /normalize: Easing custom properties */
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);

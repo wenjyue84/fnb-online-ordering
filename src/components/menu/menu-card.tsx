@@ -81,7 +81,7 @@ export function MenuCard({ item, priority = false, isHighlighted = false, isFavo
           role="button"
           aria-label={`View details for ${name}`}
           tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && setRecipeOpen(true)}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setRecipeOpen(true)}
         >
           {hasPhoto ? (
             item.photos && item.photos.length > 1 ? (
@@ -100,7 +100,7 @@ export function MenuCard({ item, priority = false, isHighlighted = false, isFavo
                 fill
                 className="object-cover img-scale"
                 style={{ objectPosition: item.imagePosition || "50% 50%" }}
-                sizes="(max-width: 640px) calc(100vw - 32px), (max-width: 1024px) 50vw, 33vw"
+                sizes="(max-width: 640px) calc(50vw - 24px), (max-width: 1024px) 50vw, 33vw"
                 priority={priority}
                 loading={priority ? "eager" : "lazy"}
                 onLoad={() => setImgLoaded(true)}
@@ -178,7 +178,7 @@ export function MenuCard({ item, priority = false, isHighlighted = false, isFavo
                 {name}
               </p>
               {item.code && (
-                <span className="font-mono text-[10px] text-muted-foreground/50 leading-none">
+                <span aria-hidden="true" className="font-mono text-[10px] text-muted-foreground/50 leading-none">
                   {item.code}
                 </span>
               )}
@@ -193,24 +193,21 @@ export function MenuCard({ item, priority = false, isHighlighted = false, isFavo
                 )}
               </p>
               {item.description && (
-                <div
+                <p
                   className={cn(
-                    "text-xs text-muted-foreground overflow-hidden transition-all duration-300",
-                    showDesc ? "max-h-40 opacity-100 pt-0.5" : "max-h-0 opacity-0"
+                    "text-xs text-muted-foreground cursor-pointer transition-all duration-200",
+                    showDesc ? "" : "line-clamp-1"
                   )}
+                  onClick={() => setShowDesc((v) => !v)}
                 >
                   {item.description}
-                </div>
+                </p>
               )}
               {item.dietary.length > 0 && (
-                <div className={cn("overflow-hidden transition-all duration-300",
-                  showDesc ? "max-h-16 opacity-100" : "max-h-0 opacity-0"
-                )}>
-                  <div className="flex flex-wrap gap-1 pt-0.5">
-                    {item.dietary.map((d) => (
-                      <DietaryBadge key={d} label={d} />
-                    ))}
-                  </div>
+                <div className="flex flex-wrap gap-1 pt-0.5">
+                  {item.dietary.map((d) => (
+                    <DietaryBadge key={d} label={d} />
+                  ))}
                 </div>
               )}
             </div>

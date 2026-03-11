@@ -6,7 +6,7 @@ import sql from "@/lib/db";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const rows = await sql`SELECT id, code, name_en FROM menu_items WHERE available = true ORDER BY sort_order ASC, name_en ASC`;
+  const rows = await sql`SELECT id, code, name_en FROM menu_items WHERE available = true AND (archived IS NULL OR archived = false) ORDER BY sort_order ASC, name_en ASC`;
 
   const publicDir = join(process.cwd(), "public", "images", "menu");
   const missing = rows.filter((row: Record<string, unknown>) => {
