@@ -2,9 +2,9 @@ import type { TestDefinition, TestResult } from "./types";
 
 function getBaseUrl(): string {
   if (process.env.NODE_ENV !== "production") {
-    return "http://localhost:3030";
+    return "http://localhost:3031";
   }
-  return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3030";
+  return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031";
 }
 
 async function checkPage(path: string): Promise<TestResult> {
