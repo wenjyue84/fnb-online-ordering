@@ -1,5 +1,5 @@
 // Check what the menu page returns
-const response = await fetch('http://localhost:3030/en/menu');
+const response = await fetch('http://localhost:3031/en/menu');
 const html = await response.text();
 
 // Check for items

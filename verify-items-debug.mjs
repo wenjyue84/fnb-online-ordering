@@ -5,7 +5,7 @@ const context = await browser.newContext({ viewport: { width: 390, height: 844 }
 const page = await context.newPage();
 
 // Wait for full hydration
-await page.goto('http://localhost:3030/en/menu', { waitUntil: 'networkidle', timeout: 30000 });
+await page.goto('http://localhost:3031/en/menu', { waitUntil: 'networkidle', timeout: 30000 });
 await page.waitForTimeout(3000);
 
 // Check the actual rendered menu items

@@ -134,3 +134,51 @@ The hardcoded URL is likely in a server-side Python script that generates notifi
 ## Iteration 3 - Thu, Mar 12, 2026
 Completed: Replace hardcoded makanmoments.cafe in admin push settings (ID: US-005)
 
+## Iteration 3 - Thu, Mar 12, 2026  1:55:49 AM
+Completed: Replace hardcoded makanmoments.cafe in admin push settings (ID: US-005) in 2m
+
+
+## Pre-analysis for US-009 (Gemini 2.5 Pro)
+This technical brief is based on the provided JSON user story. Note: The story describes a Next.js/Node.js application, not a Frappe/Python one. The API endpoints and file structure (.env.local, /api/...) are characteristic of a Node.js backend.
+
+**Technical Brief for US-009**
+
+*   **Files to Modify:**
+    *   This is a "verification-only" story. No application source code should be changed.
+    *   Create a new verification script in the project root, e.g., `verify-admin-clone.mjs`. This follows the project's convention of using `.mjs` files for scripts.
+
+*   **Frappe DocTypes/Hooks Involved:**
+    *   No Frappe DocTypes are involved.
+    *   The relevant interfaces are the Next.js API endpoints:
+        *   `GET /admin/login` (HTML page)
+        *   `POST /api/admin/verify` (Authentication)
+        *   `GET /api/admin/menu` (Protected data)
+        *   `GET /api/admin/orders` (Protected data)
+
+*   **Implementation Approach:**
+    1.  The script should use Node.js `fetch` to make HTTP requests.
+    2.  Load credentials (`ADMIN_USERNAME`, `ADMIN_PASSWORD`) from `.env.local` using the `dotenv` package to avoid hardcoding.
+    3.  Chain the requests: first, `POST` to `/api/admin/verify` to get a JWT.
+    4.  On success, use the returned JWT in the `Authorization: Bearer <token>` header for `GET` requests to the protected `/api/admin/menu` and `/api/admin/orders` endpoints.
+    5.  Log the status of each check to the console and exit with a non-zero code if any check fails.
+
+*   **Edge Cases & Gotchas:**
+    *   Ensure the target port is hardcoded to `3031` for this specific story.
+    *   The script must handle failed login attempts gracefully and not proceed.
+    *   Correctly parse the JWT from the login response body for use in subsequent headers.
+
+## Iteration 4 - Story: US-002 - Update hardcoded port 3030 in debug/check scripts
+
+### What was implemented
+- Replaced all 11 occurrences of `localhost:3030` → `localhost:3031` across 11 root-level .mjs files
+- Files: check-page-html.mjs, check-category.mjs, check-menu-page.mjs, check-items.mjs, verify-react-state.mjs, check-rules.mjs, find-error.mjs, check-item-raw.mjs, verify-click-all.mjs, verify-items-debug.mjs, verify-menu.mjs
+
+### Patterns discovered
+- Each root .mjs file has exactly 1 occurrence of localhost:3030 (in either a fetch URL or page.goto)
+- scripts/ subdirectory .mjs files (cdp_screenshot, cdp_console_check) are separate scope (US-003)
+
+### Gotchas
+- Edit tool requires file to have been Read in the same session — parallel bulk reads can sometimes lose tracking
+
+## Iteration 4 - Thu, Mar 12, 2026
+Completed: Update hardcoded port 3030 in debug/check scripts (ID: US-002)

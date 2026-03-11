@@ -1,4 +1,4 @@
-const response = await fetch('http://localhost:3030/api/admin/menu');
+const response = await fetch('http://localhost:3031/api/admin/menu');
 const items = await response.json();
 
 // Check what categories exist and their item counts
