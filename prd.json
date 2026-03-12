@@ -38,7 +38,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "medium",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-202",
@@ -150,7 +150,9 @@
         "Include section: Env Vars (table with var name, purpose, required/optional)",
         "Include note: data/*.json files are seed sources only; delete-safe after seeding"
       ],
-      "dependencies": ["US-204"],
+      "dependencies": [
+        "US-204"
+      ],
       "estimatedComplexity": "small",
       "passes": false
     },
@@ -175,7 +177,11 @@
         "Test that DEFAULT_HOURS.openHour is 11, closeHour is 23",
         "Test that DEFAULT_TIME_SLOTS.slots has length 3 and each has id/label/defaultCategory"
       ],
-      "dependencies": ["US-201", "US-202", "US-203"],
+      "dependencies": [
+        "US-201",
+        "US-202",
+        "US-203"
+      ],
       "estimatedComplexity": "small",
       "passes": false
     }

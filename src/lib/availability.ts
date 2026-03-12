@@ -1,5 +1,4 @@
-import fs from "fs";
-import path from "path";
+import sql from "@/lib/db";
 import type { MenuItem } from "@/types/menu";
 
 // ── Operating Hours ──────────────────────────────────────────────────────────
@@ -19,23 +18,30 @@ const DEFAULT_HOURS: OperatingHoursConfig = {
   openHour: 11, openMinute: 0, lastOrderHour: 22, lastOrderMinute: 30, closeHour: 23, closeMinute: 0,
 };
 
-export function readOperatingHours(): OperatingHoursConfig {
+export async function readOperatingHours(): Promise<OperatingHoursConfig> {
   try {
-    const filePath = path.join(process.cwd(), "data", "operating-hours.json");
-    const raw = fs.readFileSync(filePath, "utf-8");
-    return { ...DEFAULT_HOURS, ...JSON.parse(raw) };
+    const rows = await sql<{ value: OperatingHoursConfig }>`
+      SELECT value FROM site_settings WHERE key = 'operating_hours'
+    `;
+    if (!rows.length) return { ...DEFAULT_HOURS };
+    return { ...DEFAULT_HOURS, ...(rows[0].value as OperatingHoursConfig) };
   } catch {
-    return DEFAULT_HOURS;
+    return { ...DEFAULT_HOURS };
   }
 }
 
-export function writeOperatingHours(data: OperatingHoursConfig): void {
-  const filePath = path.join(process.cwd(), "data", "operating-hours.json");
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+export async function writeOperatingHours(data: OperatingHoursConfig): Promise<void> {
+  await sql`
+    INSERT INTO site_settings (key, value, updated_at)
+    VALUES ('operating_hours', ${JSON.stringify(data)}::jsonb, NOW())
+    ON CONFLICT (key) DO UPDATE
+      SET value = EXCLUDED.value,
+          updated_at = NOW()
+  `;
 }
 
-export function getOperatingStatus(): OperatingStatus {
-  const cfg = readOperatingHours();
+export async function getOperatingStatus(): Promise<OperatingStatus> {
+  const cfg = await readOperatingHours();
 
   const fmt = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Kuala_Lumpur",

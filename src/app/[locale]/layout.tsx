@@ -109,7 +109,7 @@ export default async function LocaleLayout({
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   const isAdmin = token ? await verifyAdminToken(token) : false;
-  const opStatus = isAdmin ? "open" : getOperatingStatus();
+  const opStatus = isAdmin ? "open" : await getOperatingStatus();
 
   const messages = (await import(`../../../messages/${locale}.json`)).default;
 

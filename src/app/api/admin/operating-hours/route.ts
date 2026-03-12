@@ -4,7 +4,7 @@ import type { OperatingHoursConfig } from "@/lib/availability";
 export const runtime = "nodejs";
 
 export async function GET() {
-  return Response.json(readOperatingHours());
+  return Response.json(await readOperatingHours());
 }
 
 export async function POST(req: Request) {
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
         return Response.json({ error: `${f} must be a number` }, { status: 400 });
       }
     }
-    writeOperatingHours(body as OperatingHoursConfig);
+    await writeOperatingHours(body as OperatingHoursConfig);
     return Response.json({ ok: true });
   } catch (err) {
     console.error("[operating-hours] Failed to save:", err);
