@@ -15,7 +15,7 @@ export function OperatingHoursAlert({ status }: Props) {
       className={`sticky top-0 z-40 w-full px-4 py-3 text-center text-sm font-medium ${
         isClosed
           ? "bg-gray-900 text-gray-100 dark:bg-gray-950 dark:text-gray-200"
-          : "bg-amber-600 text-white dark:bg-amber-700"
+          : "bg-amber-800 text-white dark:bg-amber-800"
       }`}
     >
       {isClosed ? (

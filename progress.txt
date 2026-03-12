@@ -1581,3 +1581,60 @@ Here is the technical brief based on the Next.js stack described:
 ### Gotchas
 - Static files in `public/` would conflict with dynamic `sitemap.ts`/`robots.ts` routes — must remove them
 - The `postbuild` script runs `next-sitemap` which regenerates static files — had to disable it
+## Iteration 1 - Thu, Mar 12, 2026  2:45:35 PM
+Incomplete: Implement dynamic og:image generation per locale using Next.js ImageResponse (ID: US-324) — attempt 2/3
+
+
+## Pre-analysis for US-324 (Gemini 2.5 Pro)
+This user story is for a **Next.js** application, not Frappe/Python. The goal is to dynamically generate Open Graph images.
+
+**Technical Brief for US-324: Dynamic OG Images**
+
+**1. Core Files to Modify/Create:**
+*   `src/app/[locale]/blog/[slug]/opengraph-image.tsx` (new file)
+*   `src/app/[locale]/menu/opengraph-image.tsx` (new file)
+*   `src/app/[locale]/layout.tsx` (verify fallback `og:image` is present)
+*   Possibly a font file from `public/fonts/`
+
+**2. Involved Next.js/React Concepts:**
+*   **Route Segment:** `opengraph-image.tsx` is a special Next.js file for generating dynamic images.
+*   **API:** `ImageResponse` from `next/og` (Edge runtime compatible).
+*   **Data Fetching:** The generation function will need to fetch post/page data to get the title.
+*   **i18n:** Access translations for labels like 'Menu'.
+
+**3. Implementation Approach:**
+*   Create `opengraph-image.tsx` inside the blog slug directory (`/blog/[slug]`).
+*   Inside this file, define an async function that accepts `params` (`slug`, `locale`).
+*   Fetch the blog post's title using the params.
+*   Fetch a font file (e.g., from `public/fonts/`) as an `ArrayBuffer` for use in `ImageResponse`.
+*   Return a new `ImageResponse` containing JSX/TailwindCSS to style the post title and cafe name.
+*   Repeat the process for the menu page at `/menu/opengraph-image.tsx`, using the locale to get the translated "Menu" string.
+*   Ensure the root layout's `metadata` object retains the static `og:image` as a fallback.
+
+**4. Gotchas & Edge Cases:**
+*   **Font Loading:** `next/font` cannot be used. Fonts must be fetched and provided as an `ArrayBuffer` directly to `ImageResponse`.
+*   **Error Handling:** Wrap the image generation logic in a try/catch. Next.js should automatically use the layout's static OG image on failure.
+*   **Caching:** The `revalidate` period for the OG image is inherited from the corresponding page (`page.tsx`). Ensure the page has ISR configured.
+*   **Translations:** The `opengraph-image.tsx` route handler needs a way to load the correct i18n messages (`en.json`, `ms.json`, etc.) for the given locale.
+
+
+## Iteration 12 - Story: US-318 — Add color contrast validation (WCAG AA 4.5:1)
+
+### What was implemented
+- Fixed 3 dark mode CSS variable contrast failures in globals.css:
+  - `--primary` lightness 0.55→0.58 (4.97:1 on bg, 5.05:1 for fg-on-primary)
+  - `--destructive` lightness 0.55→0.62 (4.91:1 on bg)
+  - `--ring` and `--sidebar-primary/ring` updated to match primary
+- Fixed operating-hours-alert.tsx warning banner:
+  - `bg-amber-600` → `bg-amber-800` (7.09:1 with white, was 3.19:1)
+  - `dark:bg-amber-700` → `dark:bg-amber-800` (6.07:1 with opacity-90 text)
+- All light mode colors already passed (muted-foreground was 6.03:1)
+- All dietary badge colors passed in both modes (>5:1)
+
+### Patterns discovered
+- OKLCH-to-sRGB-to-WCAG pipeline: L, C, H → OKLab → linear sRGB → gamma sRGB → relative luminance → contrast ratio
+- Tailwind amber-600 (#d97706) only achieves 3.19:1 with white — common web anti-pattern
+
+### Gotchas
+- opacity-90 on span text reduces effective contrast; must compute blended color for accurate check
+- CSS `--ring` and `--sidebar-primary` must stay in sync with `--primary` in dark mode
