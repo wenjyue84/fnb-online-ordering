@@ -1119,3 +1119,42 @@ However, applying the *principle* of this story (decoupling configuration from c
 ### Gotchas
 - `currenciesAccepted` left as "MYR" since it's an ISO code not cafe-specific config
 - hasMenuSection was fully removed rather than dynamically generated — the story says "omitted or derived" and omitting is simpler
+## Iteration 2 - Thu, Mar 12, 2026 12:57:17 PM
+Completed: Drive RestaurantJsonLd entirely from SiteSettings (remove all hardcoded cafe data) (ID: US-308) in 4m
+
+
+## Pre-analysis for US-309 (Gemini 2.5 Pro)
+This technical brief is for a **Next.js/TypeScript** project, not Frappe/Python, based on the user story's content and file paths.
+
+**Objective:** Add `hreflang="x-default"` to the sitemap and page metadata to improve multilingual SEO signals.
+
+**1. Files to Modify:**
+*   `next-sitemap.config.js`: To add the `x-default` entry to the generated sitemap for crawlers.
+*   `src/app/[locale]/layout.tsx`: To inject the `x-default` alternate link into the `<head>` on every page for browsers.
+
+**2. Involved Framework Concepts:**
+*   **Next-Sitemap:** The `alternateRefs` configuration option is used to build `hreflang` tags in `sitemap.xml`.
+*   **Next.js Metadata API:** The `alternates.languages` property within the `generateMetadata` export is the modern way to manage `hreflang` link tags.
+
+**3. Implementation Approach:**
+*   In `next-sitemap.config.js`, add `{ href: siteUrl, hreflang: 'x-default' }` to the `alternateRefs` array. The `href` should point to the root or the default language path (e.g., `/en`).
+*   In `src/app/[locale]/layout.tsx`, update the `generateMetadata` function to include `'x-default': '/en'` within the `alternates.languages` object.
+
+**4. Gotchas & Edge Cases:**
+*   **Missing Self-Reference:** Google will invalidate the *entire* `hreflang` set if a page does not have a self-referencing `link rel="alternate"` tag. Verify that `/en`, `/ms`, and `/zh` pages all link to themselves.
+*   **Hardcoded Default:** The plan suggests hardcoding `/en`. The implementation should ideally source the default locale from a central configuration to remain dynamic.
+*   **Validation is Mandatory:** Use an external hreflang validation tool post-deployment to confirm the setup is correct, as simple mistakes can nullify the SEO benefit.
+
+
+## Iteration N - Story: US-309 - Add hreflang x-default tag to the multilingual sitemap and layout metadata
+
+### What was implemented
+- Added `{ href: siteUrl + '/en', hreflang: 'x-default' }` as first entry in `alternateRefs` in `next-sitemap.config.js`
+- Added `'x-default': '/en'` to `alternates.languages` in `generateMetadata` in `src/app/[locale]/layout.tsx`
+
+### Patterns discovered
+- The `x-default` entry should point to the default/fallback locale URL (/en), which matches `routing.defaultLocale`
+- Google requires x-default in the hreflang set or it treats the entire hreflang set as invalid
+
+### Gotchas
+- TypeScript `Metadata.alternates.languages` accepts string keys including `'x-default'` — no type issues

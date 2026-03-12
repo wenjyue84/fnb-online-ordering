@@ -6,6 +6,7 @@ module.exports = {
   generateRobotsTxt: true,
   generateIndexSitemap: false,
   alternateRefs: [
+    { href: `${siteUrl}/en`, hreflang: "x-default" },
     { href: `${siteUrl}/en`, hreflang: "en" },
     { href: `${siteUrl}/ms`, hreflang: "ms" },
     { href: `${siteUrl}/zh`, hreflang: "zh" },
