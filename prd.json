@@ -150,7 +150,7 @@
         "US-304"
       ],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-306",
