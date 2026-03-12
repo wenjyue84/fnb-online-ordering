@@ -1158,3 +1158,53 @@ This technical brief is for a **Next.js/TypeScript** project, not Frappe/Python,
 
 ### Gotchas
 - TypeScript `Metadata.alternates.languages` accepts string keys including `'x-default'` — no type issues
+## Iteration 3 - Thu, Mar 12, 2026  1:00:32 PM
+Completed: Add hreflang x-default tag to the multilingual sitemap and layout metadata (ID: US-309) in 2m
+
+
+## Pre-analysis for US-310 (Gemini 2.5 Pro)
+Here is the technical brief for implementing the rate limiting user story.
+
+**Project:** Next.js / Vercel
+**Objective:** Replace the in-memory rate limiter with a persistent store (Vercel KV or Neon) to enforce security limits in a serverless environment.
+
+**File to Modify:**
+*   `src/lib/chat/rate-limit.ts`
+
+**Affected Endpoints:**
+*   `/api/orders`
+*   The AI chat endpoint (path not specified, but logic is in the target file)
+
+**Implementation Approach:**
+1.  Choose a persistent store: Vercel KV is recommended for its low latency and atomic operations (`INCR`, `EXPIRE`), which are ideal for this use case. Neon/Postgres is a viable alternative.
+2.  Refactor `rateLimit` function in `src/lib/chat/rate-limit.ts`.
+3.  Replace the in-memory `Map` with calls to the chosen persistent store.
+4.  Implement atomic increments for the IP's request count within the defined time window.
+5.  Use environment variables to configure the limits (e.g., `RATELIMIT_ORDERS_MAX=5`, `RATELIMIT_ORDERS_WINDOW_SECONDS=3600`).
+6.  Ensure records have a TTL (or a cleanup cron job for Neon) to prevent unbounded data growth.
+
+**Gotchas & Edge Cases:**
+*   **Chat Endpoint:** The existing dual-window rate-limiting logic for the chat must be preserved.
+*   **Testing:** The exemption for `localhost`/`127.0.0.1` must be maintained for automated tests.
+*   **Response Headers:** Failed requests must return a `429` status with the `Retry-After` header.
+*   **New Tests:** Add unit tests covering allow, block, and TTL/reset scenarios for the new implementation.
+
+
+## Iteration N - Story: US-310 - Migrate rate limiter from in-memory Map to Neon Postgres
+
+### What was implemented
+- Rewrote `src/lib/chat/rate-limit.ts`: both `createRateLimiter` (factory) and `checkRateLimit` (chat dual-window) now use Neon Postgres via atomic `INSERT … ON CONFLICT DO UPDATE SET count = count + 1 RETURNING count`
+- Added `ensureTable()` (runs once per cold start, guarded by `tableReady` flag) that creates the `rate_limit_log (ip, endpoint, window_start, count)` table and fire-and-forgets a 2-day cleanup DELETE
+- Exported `_resetTableState()` to allow unit tests to reset the singleton flag between runs
+- Updated all 3 callers to `await` the now-async functions: `/api/orders/route.ts`, `/api/chat/route.ts`, `/api/admin/login/route.ts`
+- Added `src/tests/unit/rate-limit.test.ts` — 10 tests: allow, block, boundary, localhost exemption (127.0.0.1 and ::1), reset-after-window, chat dual-window (allow, per-minute block, per-day block, localhost)
+
+### Patterns discovered
+- There were 3 callers of `createRateLimiter` / `checkRateLimit` (orders, chat, admin login) — all needed `await` added
+- Vitest `vi.mock("@/lib/db")` + `mockImplementation` inspecting `strings[0]` of the tagged template literal is the clean way to mock the Neon sql client
+- `tableReady` module-level flag must be reset between tests via exported `_resetTableState()`; otherwise ensureTable only runs in the first test
+- Window alignment: `Math.floor(now / windowMs) * windowMs` gives a fixed window boundary, so all requests in the same minute/hour/day share one DB row
+
+### Gotchas
+- TypeScript caught the missing `await` on `loginRateLimiter(ip)` in `/api/admin/login/route.ts` — always run `tsc --noEmit` after changing async signatures
+- The fire-and-forget cleanup DELETE needs `.catch(() => {})` or TypeScript + ESLint will complain about floating promises

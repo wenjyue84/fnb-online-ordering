@@ -327,3 +327,65 @@ C:\Users\Jyue\Documents\1-projects\Software Projects\fnb-online-ordering\src\lib
 PASS
   └─────────────────────────────────────┘
   ✓ All quality gates passed!
+warning: in the working copy of '.spiral/_last_run.log', LF will be replaced by CRLF the next time Git touches it
+[feature/iter-03 f5821b3] feat: US-308 - Drive RestaurantJsonLd entirely from SiteSettings (remove all hardcoded cafe data)
+ 1 file changed, 305 insertions(+)
+
+  ╔══════════════════════════════════════╗
+  ║  Iteration 3/10
+  Progress: [██████████░░░░░░░░░░░░░░░░░░░░] 8/24 (33%)
+  ╚══════════════════════════════════════╝
+  [model] US-309 → sonnet (auto (score-based))
+
+  ┌─ Story ─────────────────────────────┐
+  │ ID:       US-309
+  │ Title:    Add hreflang x-default tag to the multilingual sitemap and layout metadata
+  │ Priority: high
+  │ Deps:     none
+  │ Attempt:  1/3
+  │ Model:    sonnet (auto (score-based))
+  └─────────────────────────────────────┘
+
+  [baseline] Counting pre-story TS errors... 0 errors
+
+  [spawn] Fresh claude instance for US-309...
+  [precontext] Running Gemini 2.5 Pro pre-analysis...
+  [precontext] Gemini pre-analysis injected (20 lines)
+  ─────── AI Output Start (claude) ───────
+[2m[0:42][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[0:44][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[1:00][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[1:05][0m 🔍 [36mGlob[0m [2m"next-sitemap.config.*"[0m
+[2m[1:05][0m 📖 [36mRead[0m [2mlayout.tsx[0m
+[2m[1:11][0m 📖 [36mRead[0m [2mnext-sitemap.config.js[0m
+[2m[1:15][0m [37mNow I have everything I need. Let me implement both changes:[0m
+[2m[1:17][0m 🔧 [36mEdit[0m [2mnext-sitemap.config.js[0m
+[2m[1:18][0m 🔧 [36mEdit[0m [2mlayout.tsx[0m
+[2m[1:21][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[1:32][0m [37mTypeScript passes clean. Now update `prd.json` and commit:[0m
+[2m[1:34][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[1:44][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[1:52][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[2:01][0m [37mUS-309 complete. Two small changes:  1. **`next-sitemap.config.js`** — added `{ href: siteUrl/en, hr...[0m
+
+[32m[1m✓ Claude finished[0m [2m(12 tool calls in 2:06)[0m
+
+[2mStream ended (12 tool calls, 2:08 elapsed)[0m
+  ─────── AI Output End (claude) ─────────
+  [time] Story took 2m
+
+  [done] Story completed: Add hreflang x-default tag to the multilingual sitemap and layout metadata
+  ┌─ Quality Gates ─────────────────────┐
+  │ [1/2] TypeScript... PASS (0 errors, baseline 0)
+  │ [2/2] Lint... 
+C:\Users\Jyue\Documents\1-projects\Software Projects\fnb-online-ordering\src\components\menu\menu-grid.tsx
+  211:5  warning  'isChefsPick' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Jyue\Documents\1-projects\Software Projects\fnb-online-ordering\src\lib\menu.ts
+  88:10  warning  'getSecondaryPhotosMap' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 2 problems (0 errors, 2 warnings)
+
+PASS
+  └─────────────────────────────────────┘
+  ✓ All quality gates passed!
