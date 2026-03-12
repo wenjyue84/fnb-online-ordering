@@ -1,6 +1,7 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 import { readChatSettings } from "./settings";
+import { getSiteSettings } from "@/lib/site-settings";
 import sql from "@/lib/db";
 
 // Static file cache — cleared on invalidation only
@@ -108,9 +109,10 @@ export function invalidateSystemPromptCache(): void {
 
 export async function getSystemPrompt(): Promise<string> {
   const settings = readChatSettings();
+  const { cafeName } = await getSiteSettings();
   const knowledge = await buildKnowledgeBlock();
 
-  const base = `You are the AI Waiter for Makan Moments Cafe (食光记忆 / Kafe Kenangan Makan), a Thai-Malaysian fusion cafe in Skudai, Johor, Malaysia.
+  const base = `You are the AI Waiter for ${cafeName || "this cafe"}, a Thai-Malaysian fusion cafe in Skudai, Johor, Malaysia.
 
 ## Your Role
 - Help customers with menu inquiries, recommendations, and cafe information
