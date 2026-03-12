@@ -157,6 +157,90 @@ export function AdminSettingsPanel({ displayCategories }: AdminSettingsPanelProp
               </div>
             </div>
           </section>
+          <section className="rounded-xl border border-gray-200 bg-white p-6">
+            <h2 className="mb-1 text-base font-semibold text-gray-900">Google Rating (JSON-LD)</h2>
+            <p className="mb-4 text-xs text-gray-500">
+              Optional. Only use real ratings from a verifiable source (e.g. Google Maps reviews).
+              Leave blank to omit from search results.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Rating Value (1-5)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={5}
+                  step={0.1}
+                  value={settings.ratingValue ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "") {
+                      setSettings((prev) => {
+                        const next = { ...prev };
+                        delete next.ratingValue;
+                        return next;
+                      });
+                    } else {
+                      const n = parseFloat(v);
+                      if (n >= 1 && n <= 5) setField("ratingValue", n);
+                    }
+                  }}
+                  className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                  placeholder="e.g. 4.8"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Review Count</label>
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={settings.ratingCount ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "") {
+                      setSettings((prev) => {
+                        const next = { ...prev };
+                        delete next.ratingCount;
+                        return next;
+                      });
+                    } else {
+                      const n = parseInt(v, 10);
+                      if (n >= 1) setField("ratingCount", n);
+                    }
+                  }}
+                  className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                  placeholder="e.g. 47"
+                />
+                <p className="mt-1 text-xs text-gray-500">Must be at least 1 for Google to display stars.</p>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Rating Provider</label>
+                <input
+                  type="text"
+                  value={settings.ratingProvider ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "") {
+                      setSettings((prev) => {
+                        const next = { ...prev };
+                        delete next.ratingProvider;
+                        return next;
+                      });
+                    } else {
+                      setField("ratingProvider", v);
+                    }
+                  }}
+                  className="w-full max-w-xs rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                  placeholder="e.g. Google Maps"
+                />
+                <p className="mt-1 text-xs text-gray-500">Source of the rating (optional).</p>
+              </div>
+            </div>
+          </section>
+
           <SaveBar />
         </div>
       )}

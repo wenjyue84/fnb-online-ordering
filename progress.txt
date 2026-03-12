@@ -1,3 +1,15 @@
+## US-342 — Add aggregateRating to Restaurant JSON-LD from admin-configurable value (PASSED)
+- Added optional `ratingValue` (number 1-5), `ratingCount` (integer), and `ratingProvider` (string) fields to `SiteSettings` interface in `site-settings-shared.ts`
+- Updated `RestaurantJsonLd` in `json-ld.tsx` to conditionally include `aggregateRating` block only when both `ratingValue` and `ratingCount >= 1` are set — never includes placeholder values
+- Added "Google Rating (JSON-LD)" section to admin Settings > General tab with validated inputs: rating value (1-5, step 0.1), review count (min 1), and optional rating provider
+- Clearing any input field removes the optional field entirely from settings (delete from object), so omitted values don't persist as empty strings
+- Zero TS errors, only pre-existing lint warning (unused `isChefsPick` in menu-grid.tsx)
+
+### Patterns discovered
+- Optional SiteSettings fields should use `delete` to remove from the object when cleared, rather than setting to empty string/0 — this prevents the JSON-LD from including zero-value ratings
+- The admin settings endpoint uses generic `{ ...current, ...body }` merge, so new optional fields are automatically saved without touching the endpoint code
+- Google requires `reviewCount >= 1` to display stars; the condition in RestaurantJsonLd enforces this
+
 ## US-341 — Add offline fallback page for PWA users (PASSED)
 - Created `public/offline.html` — fully self-contained offline page with inline CSS, cafe branding (logo, name, tagline), trilingual messaging (EN/MS/ZH), and a "Try Again" reload button
 - Earthy warm palette matching the site theme (#faf6f1 background, #8b5e3c accents)
@@ -2847,4 +2859,37 @@ Here is the technical brief for implementing the PWA offline fallback page.
 *   **Cache Invalidation:** You **must** update the `CACHE_NAME` constant in `sw.js`. Failure to do so will result in existing users not receiving the update.
 *   **Self-Contained Page:** Do not link to any external CSS, fonts, or images from `offline.html` unless they are guaranteed to be in the service worker cache. Inlining is safest.
 *   **Request Type:** Ensure the fallback logic specifically targets navigation requests to avoid incorrectly returning an HTML page for a failed API or image request.
+
+## Iteration 18 - Thu, Mar 12, 2026  6:50:30 PM
+Completed: Add offline fallback page for PWA users (ID: US-341) in 4m
+
+
+## Pre-analysis for US-342 (Gemini 2.5 Pro)
+Here is the technical brief for user story US-342, tailored for the provided Next.js project structure.
+
+**Project:** fnb-online-ordering (Next.js/TypeScript)
+**User Story:** US-342: Add aggregateRating to Restaurant JSON-LD
+
+### Technical Implementation Brief
+
+1.  **Files to Modify:**
+    *   `src/data/settings/schema.ts` (or similar): Extend the Site Settings Zod schema to include optional `ratingValue` (number), `reviewCount` (integer), and `ratingProvider` (string).
+    *   `src/app/admin/settings/components/SettingsForm.tsx` (or similar): Add new input fields to the admin settings UI for the rating values. Ensure proper data binding and validation messages.
+    *   `src/components/meta/RestaurantJsonLd.tsx` (or similar): This component will consume the new settings.
+
+2.  **Key Data Structures & Components:**
+    *   **SiteSettings Schema (Zod):** The central source of truth for the settings structure.
+    *   **Admin Settings Form:** The React component used to edit site settings.
+    *   **RestaurantJsonLd Component:** The React component responsible for generating the JSON-LD script tag.
+
+3.  **Recommended Approach:**
+    *   First, update the Zod schema in the `settings` data definition file to include the new optional fields: `ratingValue`, `reviewCount`, `ratingProvider`.
+    *   Next, enhance the admin settings form by adding corresponding `<Input />` components.
+    *   In the `RestaurantJsonLd` component, fetch the site settings.
+    *   Conditionally add the `aggregateRating` key to the JSON-LD object *only if* `settings.ratingValue` is a valid number. The object structure should be: `{ '@type': 'AggregateRating', ratingValue: settings.ratingValue, reviewCount: settings.reviewCount }`.
+
+4.  **Edge Cases & Gotchas:**
+    *   **Omission is Key:** If `ratingValue` is not configured, the entire `aggregateRating` object must be omitted from the JSON-LD schema to avoid validation errors. Do not render it with empty or null values.
+    *   **Data Types:** Ensure `ratingValue` and `reviewCount` are output as numbers, not strings, in the final JSON-LD.
+    *   **Validation:** While the schema should enforce types, add checks in the admin UI to prevent saving a `reviewCount` without a `ratingValue`. Google requires a `reviewCount` of at least 1.
 

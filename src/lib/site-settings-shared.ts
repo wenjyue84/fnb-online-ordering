@@ -43,6 +43,9 @@ export interface SiteSettings {
   geoLng: number;
   menuDescription: string;
   orderExpiryMinutes: number;
+  ratingValue?: number;
+  ratingCount?: number;
+  ratingProvider?: string;
 }
 
 export const DEFAULT_SETTINGS: SiteSettings = {

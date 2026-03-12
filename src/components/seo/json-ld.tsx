@@ -69,6 +69,16 @@ export async function RestaurantJsonLd({ nonce }: { nonce?: string | null } = {}
       "@type": "Menu",
       url: `${siteUrl}/${settings.defaultLocale}/menu`,
     },
+    ...(settings.ratingValue && settings.ratingCount && settings.ratingCount >= 1
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: String(settings.ratingValue),
+            reviewCount: String(settings.ratingCount),
+            ...(settings.ratingProvider ? { name: settings.ratingProvider } : {}),
+          },
+        }
+      : {}),
   };
 
   return <JsonLd data={data} nonce={nonce} />;
