@@ -602,6 +602,413 @@
       "dependencies": [],
       "estimatedComplexity": "medium",
       "passes": true
+    },
+    {
+      "id": "US-325",
+      "title": "Add global-error.tsx and per-route error boundaries",
+      "priority": "high",
+      "description": "The app has no error.tsx files in any route segment and no global-error.tsx at the app root. Unhandled exceptions in RSC rendering currently crash the entire page with no fallback UI or recovery option. Next.js App Router requires client-side error boundaries (error.tsx) at each segment level and a global-error.tsx that owns html/body for root-layout crashes.",
+      "acceptanceCriteria": [
+        "app/global-error.tsx exists with its own <html><body> wrapper, a user-friendly message in all 3 locales, and a reset() button",
+        "app/[locale]/error.tsx exists and catches segment-level rendering errors with a bilingual fallback and reset button",
+        "Errors thrown by RSC data fetches (e.g. DB timeout) render the error boundary instead of a blank page",
+        "Error digest is logged to console (not exposed to users)",
+        "Error boundary does not catch errors inside event handlers (those are handled with useState)"
+      ],
+      "technicalNotes": [
+        "error.tsx must be a Client Component ('use client')",
+        "global-error.tsx must include <html> and <body> tags — it replaces the root layout",
+        "Use useEffect(() => console.error(error), [error]) in the error component for server-side log correlation",
+        "Reference: https://nextjs.org/docs/app/getting-started/error-handling"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": true
+    },
+    {
+      "id": "US-326",
+      "title": "Add PDPA-compliant privacy notice and data collection disclosure",
+      "priority": "high",
+      "description": "Malaysia's Personal Data Protection Act 2010 (Act 709) requires any commercial website collecting personal data (name, phone number, payment screenshots) to inform users of the purpose of collection, their rights, and the data controller identity. The site currently collects phone numbers and payment screenshots with no privacy notice anywhere. Non-compliance exposes the operator to compound penalties.",
+      "acceptanceCriteria": [
+        "A privacy notice page exists at /[locale]/privacy and is linked in the footer of all locales",
+        "The order submission modal displays a brief inline disclosure: 'Your contact number is used only to notify you about this order. See Privacy Policy.'",
+        "The payment upload page displays a disclosure that the screenshot is used solely for payment verification and deleted after confirmation",
+        "Privacy notice covers: data controller identity (cafe name + contact), data collected, purpose, retention period, user rights (access, correction, deletion)",
+        "Privacy notice is available in EN, MS, and ZH",
+        "Footer link renders as a Next.js <Link> to avoid full page reload"
+      ],
+      "technicalNotes": [
+        "Malaysia PDPA 2010 (Act 709) Section 7 — Notice and Choice Principle: data subjects must be informed before or at time of collection",
+        "Data controller registration with Jabatan Perlindungan Data Peribadi (JPDP) may be required for commercial operators",
+        "Reference: https://www.pdp.gov.my",
+        "Store privacy page content in messages/{locale}.json for i18n consistency"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-327",
+      "title": "Add visible focus indicators for all interactive elements",
+      "priority": "high",
+      "description": "WCAG 2.1 SC 2.4.7 (Level AA) requires a visible focus indicator for all keyboard-operable UI. A global CSS reset or Tailwind's default outline removal frequently strips focus rings from buttons, links, and form inputs. The order form, tray widget, filter pills, and admin panel buttons all need verified, high-contrast focus indicators.",
+      "acceptanceCriteria": [
+        "All interactive elements (buttons, links, inputs, selects, checkboxes, filter pills) have a visible focus ring when navigated via keyboard",
+        "Focus indicators use :focus-visible (not :focus) to avoid showing rings on mouse clicks",
+        "Focus ring meets WCAG 2.4.7: minimum 2px outline, 3:1 contrast against adjacent colours",
+        "Tailwind's focus:outline-none is not applied to any interactive element without a custom replacement",
+        "Verified by keyboard-only navigation through: home page → menu filter → add to tray → order form → submit"
+      ],
+      "technicalNotes": [
+        "Add to globals.css: :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; } as a global fallback",
+        "Audit all shadcn/ui component overrides for focus:outline-none and replace with focus-visible:ring-2 focus-visible:ring-primary",
+        "WCAG 2.4.7 Level AA applies; 2.4.11 Enhanced Focus Appearance is WCAG 2.2 Level AA",
+        "Reference: https://www.w3.org/WAI/WCAG21/Understanding/focus-visible.html"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-328",
+      "title": "Add accessible inline form validation error messages to order form",
+      "priority": "high",
+      "description": "WCAG 2.1 SC 3.3.1 and 3.3.3 (Level AA) require that when input errors are detected, a text description is provided and correction suggestions are given. The current order form validates phone number and ETA client-side, but error feedback relies on HTML5 browser validation bubbles which are not reliably screen-reader accessible.",
+      "acceptanceCriteria": [
+        "Phone number field shows an inline error message with aria-live='polite' when the format is invalid, explaining the expected format (e.g. '01X-XXXXXXXX')",
+        "ETA picker shows an inline error when time is less than 15 minutes from now, with a suggestion: 'Earliest arrival is [calculated time]'",
+        "Each error message is linked to its input via aria-describedby",
+        "Error messages appear below the input field and persist until the user corrects the value",
+        "Error state is visually indicated with a red border + error icon (not colour alone — WCAG 1.4.1)",
+        "Form cannot be submitted while validation errors are present"
+      ],
+      "technicalNotes": [
+        "Replace HTML5 browser validation bubbles with React-controlled error state",
+        "Use aria-invalid='true' on fields in error state",
+        "Pattern: <input aria-invalid={!!error} aria-describedby='phone-error' /> <p id='phone-error' aria-live='polite'>{error}</p>",
+        "WCAG 3.3.1 Error Identification, 3.3.3 Error Suggestion — both Level AA",
+        "Reference: https://www.w3.org/WAI/WCAG21/Understanding/error-suggestion.html"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-329",
+      "title": "Add CSP nonce for inline scripts to strengthen Content Security Policy",
+      "priority": "high",
+      "description": "The layout injects JSON-LD via dangerouslySetInnerHTML, and Tailwind v4 may inject inline styles. Without a nonce, a strict CSP cannot block 'unsafe-inline' for scripts without breaking these legitimate inline elements. A per-request nonce generated in middleware enables strict CSP without disabling XSS protection. This is complementary to the security headers story (already complete) which sets a permissive baseline CSP.",
+      "acceptanceCriteria": [
+        "A cryptographically random nonce is generated per request in middleware.ts",
+        "The nonce is passed to the layout via a request header (x-nonce)",
+        "All inline <script> tags in the layout (including JSON-LD components) receive the nonce attribute",
+        "The Content-Security-Policy header uses nonce-{value} instead of 'unsafe-inline' for scripts",
+        "No browser console CSP violations on any page in production mode",
+        "The nonce changes on every page load (not static)"
+      ],
+      "technicalNotes": [
+        "Use crypto.randomUUID() to generate the nonce: const nonce = Buffer.from(crypto.randomUUID()).toString('base64')",
+        "Pass nonce via response header: response.headers.set('x-nonce', nonce)",
+        "Read nonce in layout via headers(): const nonce = (await headers()).get('x-nonce')",
+        "Reference: https://nextjs.org/docs/app/guides/content-security-policy",
+        "Tailwind v4 uses CSS custom properties (not inline styles) — verify before adding style-src nonce"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-330",
+      "title": "Add MenuSection schema.org structured data for individual menu items",
+      "priority": "medium",
+      "description": "The existing RestaurantJsonLd and MenuPageJsonLd provide top-level Restaurant and Menu schema, but Google's rich results can also index individual menu items (MenuItem, MenuSection) enabling price and item name display directly in search results. This is a significant SEO opportunity for a food ordering site.",
+      "acceptanceCriteria": [
+        "The /[locale]/menu page renders a schema.org Menu with nested MenuSection (one per category) and MenuItem entries",
+        "Each MenuItem includes: name (locale-matched), description, offers.price, offers.priceCurrency (MYR), offers.availability (based on item availability status)",
+        "Unavailable items use offers.availability: OutOfStock",
+        "Structured data validates without errors in Google Rich Results Test",
+        "Schema is rendered server-side as a <script type='application/ld+json'> tag",
+        "MenuSection groups items by their POS category"
+      ],
+      "technicalNotes": [
+        "Use @type: MenuItem within @type: MenuSection within @type: Menu",
+        "Reference: https://schema.org/MenuItem and https://schema.org/MenuSection",
+        "Fetch menu data server-side in RSC and pass to a JsonLd component — do NOT expose all items to the client bundle",
+        "Limit to available items only or mark unavailable with correct availability property to avoid misleading rich results"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-331",
+      "title": "Add Web Vitals reporting with useReportWebVitals hook",
+      "priority": "medium",
+      "description": "There is currently no Core Web Vitals measurement or reporting. Without field data, it is impossible to know whether LCP, INP, and CLS targets are being met on real Malaysian mobile connections. The Next.js useReportWebVitals hook provides built-in access to all CWV metrics and can send data to any analytics endpoint.",
+      "acceptanceCriteria": [
+        "A WebVitals client component uses useReportWebVitals to capture LCP, INP, CLS, FCP, and TTFB",
+        "Metrics are logged or sent to an analytics endpoint (e.g. /api/vitals or Vercel Speed Insights) on each page load",
+        "The component is added to the root layout and does not block rendering",
+        "LCP threshold alert: log a warning when LCP > 2500ms in development mode",
+        "The implementation adds zero JavaScript weight to the initial page render"
+      ],
+      "technicalNotes": [
+        "useReportWebVitals is a Next.js Client Component hook — add to a dedicated 'use client' component",
+        "Free option: @vercel/analytics and @vercel/speed-insights packages provide zero-config CWV monitoring on Vercel deployments",
+        "Reference: https://nextjs.org/docs/app/api-reference/functions/use-report-web-vitals",
+        "Vercel Speed Insights: npm i @vercel/speed-insights then <SpeedInsights /> in root layout"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-332",
+      "title": "Add database indexes on orders table for admin dashboard queries",
+      "priority": "medium",
+      "description": "The orders table has no indexes beyond the primary key. The admin Orders panel queries by status and created_at for filtering and sorting. As order volume grows, full table scans will increase serverless function execution time and Neon compute cost. Missing indexes are the highest-impact query optimization for serverless Postgres.",
+      "acceptanceCriteria": [
+        "Migration script adds: CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)",
+        "Migration script adds: CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at DESC)",
+        "A composite index is added: CREATE INDEX IF NOT EXISTS idx_orders_status_created ON orders(status, created_at DESC)",
+        "EXPLAIN ANALYZE output for the admin orders query shows Index Scan instead of Seq Scan after migration",
+        "Indexes are added to the existing migrate.mjs script as idempotent steps using IF NOT EXISTS"
+      ],
+      "technicalNotes": [
+        "Neon Serverless driver executes each query as a separate HTTP round-trip; slow queries multiply latency",
+        "A partial index on active statuses only (WHERE status NOT IN ('ready', 'rejected')) would reduce index size for the most common admin view",
+        "Reference: https://neon.com/docs/guides/nextjs",
+        "Test with EXPLAIN ANALYZE before and after adding indexes on Neon's SQL editor"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-333",
+      "title": "Add Suspense streaming boundaries to slow data-fetching page sections",
+      "priority": "medium",
+      "description": "Next.js App Router's streaming capability allows fast page shells to render immediately while slow data fetches complete in the background. The menu page, home page highlights section, and blog listing all make Neon DB queries server-side. On Vercel, cold-start plus Neon round-trip can add 500-1500ms before any content is visible. Suspense boundaries with skeleton fallbacks decouple fast and slow sections.",
+      "acceptanceCriteria": [
+        "The menu page hero (static) renders immediately; the menu grid is wrapped in a <Suspense> boundary with a skeleton fallback matching the MenuGrid layout",
+        "The home page highlights section is wrapped in <Suspense> with a skeleton fallback",
+        "The blog listing page wraps the post grid in <Suspense>",
+        "Each Suspense boundary has a dedicated loading skeleton that matches the content dimensions (prevents CLS when content loads)",
+        "Streaming is verified with network throttling showing content arriving in chunks before DB data is ready"
+      ],
+      "technicalNotes": [
+        "Move static content (hero, nav) above the Suspense boundary; move DB-dependent content inside it",
+        "loading.tsx is already present for /[locale] and /[locale]/menu — ensure they match actual page skeleton dimensions to prevent CLS",
+        "Reference: https://nextjs.org/docs/app/getting-started/fetching-data#streaming",
+        "For the admin panel, use React.lazy + Suspense for tab panels that are not initially visible"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-334",
+      "title": "Enhance robots.txt to block AI training crawlers and locale-prefixed admin paths",
+      "priority": "medium",
+      "description": "The existing robots.ts disallows /api/ and /admin/ but does not account for locale-prefixed admin variants or Vercel's internal /_next/data/ paths. It also lacks rules to block AI training crawlers (GPTBot, ClaudeBot, CCBot) which is increasingly expected for content-focused sites.",
+      "acceptanceCriteria": [
+        "robots.ts disallows /api/, /admin/, /kds/, and /_next/data/",
+        "A separate rule set blocks AI training crawlers (GPTBot, anthropic-ai, CCBot, ChatGPT-User) from all paths",
+        "The sitemap URL in robots.txt uses the NEXT_PUBLIC_SITE_URL env var (dynamic, not hardcoded)",
+        "robots.ts uses MetadataRoute.Robots type for type safety",
+        "Visiting /robots.txt returns correct directives with no 404"
+      ],
+      "technicalNotes": [
+        "robots.ts already exists and is partially correct — this is an enhancement, not a new file",
+        "AI crawlers to block: GPTBot, anthropic-ai, CCBot, ChatGPT-User, Google-Extended (optional per operator preference)",
+        "Reference: https://nextjs.org/docs/app/api-reference/file-conventions/metadata/robots",
+        "Note: robots.txt is advisory only — it does not prevent determined crawlers"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-335",
+      "title": "Optimize Interaction to Next Paint (INP) for tray and menu filter interactions",
+      "priority": "medium",
+      "description": "INP is a Core Web Vital with a 200ms threshold. The tray widget and category filter pills involve React state updates that re-render large component trees (entire menu grid re-renders on filter change). Long tasks on the main thread from JavaScript execution block these interactions from meeting the INP threshold on low-end Android devices.",
+      "acceptanceCriteria": [
+        "Filter pill selection shows immediate visual feedback within 50ms of tap (before menu grid re-renders)",
+        "Adding an item to the tray shows immediate count badge increment before any complex state updates",
+        "Menu grid filtering is deferred using React's startTransition to mark it as non-urgent",
+        "INP measured with Lighthouse mobile simulation is < 200ms on the /menu page",
+        "No individual JavaScript task on the main thread runs > 50ms during filter interactions"
+      ],
+      "technicalNotes": [
+        "Wrap menu grid re-renders in startTransition: const [isPending, startTransition] = useTransition(); startTransition(() => setFilter(cat))",
+        "Show filter pill as 'active' immediately (optimistic update), then let the grid catch up",
+        "Consider virtualization (react-window or @tanstack/virtual) if the menu has > 50 items",
+        "Reference: https://web.dev/articles/inp",
+        "Test on a throttled mobile CPU profile in Chrome DevTools Performance tab"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-336",
+      "title": "Prevent Cumulative Layout Shift from menu card images loading",
+      "priority": "medium",
+      "description": "CLS threshold is 0.1. Menu cards show food images that load asynchronously. Without explicit aspect ratio containers, images cause layout shift as they load, which can cause accidental taps on wrong items — a critical UX failure for a food ordering app. The shift also directly degrades Google PageSpeed score.",
+      "acceptanceCriteria": [
+        "All menu card image containers have an explicit aspect ratio set via CSS (aspect-ratio: 4/3 or equivalent) before the image loads",
+        "Next.js Image components in menu cards use explicit width and height or fill with a sized container",
+        "CLS score on /[locale]/menu measured by Lighthouse is < 0.1",
+        "No layout shift occurs when menu images load on a throttled 3G connection",
+        "Blog post card images also have explicit containers to prevent CLS on the blog listing page"
+      ],
+      "technicalNotes": [
+        "Use CSS: .menu-card-image-container { aspect-ratio: 4/3; position: relative; overflow: hidden; }",
+        "For Next.js Image with fill: wrap in a div with explicit height or aspect-ratio",
+        "Reference: https://web.dev/articles/cls",
+        "Avoid using top/left for animation; use transform: translate() instead"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-337",
+      "title": "Add revalidateTag-based cache invalidation for menu and blog updates",
+      "priority": "medium",
+      "description": "Admin menu and blog edits currently call revalidatePath with hardcoded locale paths (e.g. '/en/menu', '/ms/menu', '/zh/menu') — three separate calls that are fragile, miss related pages, and don't work with the Next.js Data Cache layer. Using revalidateTag provides a single locale-agnostic invalidation that works across the full cache hierarchy.",
+      "acceptanceCriteria": [
+        "Menu data fetch functions in src/lib/menu.ts tag their fetches with next: { tags: ['menu'] } via unstable_cache",
+        "Admin PATCH/POST routes for menu items call revalidateTag('menu') instead of multiple revalidatePath calls",
+        "Adding a new locale requires no code changes to the cache invalidation logic",
+        "Home page highlights are also invalidated when menu data changes",
+        "Blog post routes use revalidateTag('blog') and admin blog mutations call revalidateTag('blog')"
+      ],
+      "technicalNotes": [
+        "Since src/lib/db.ts uses the Neon HTTP driver (not fetch), wrap DB calls with unstable_cache and pass tags: ['menu']",
+        "revalidateTag works across all locales simultaneously — no need to enumerate locale paths",
+        "Reference: https://nextjs.org/docs/app/guides/caching#fetch-optionsnexttags-and-revalidatetag",
+        "Note: revalidateTag inside a Route Handler does NOT invalidate the client Router Cache — only Server Actions do that immediately"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-338",
+      "title": "Configure Vercel function region to Singapore for minimal Malaysia latency",
+      "priority": "medium",
+      "description": "Vercel deploys serverless functions to a default region (typically iad1 — US East) unless explicitly configured. For a Malaysian cafe serving customers in Johor/KL, this adds 200-400ms of unnecessary latency to every server-side request. Configuring the function region to Singapore (sin1) significantly reduces TTFB for the target audience.",
+      "acceptanceCriteria": [
+        "vercel.json is created or updated with a regions configuration specifying sin1 (Singapore)",
+        "The Neon database branch is confirmed to be in aws-ap-southeast-1 (Singapore) to minimize DB round-trip latency",
+        "TTFB measured from Malaysia is < 400ms after the change",
+        "The region setting does not conflict with Edge runtime usage (Edge runs globally regardless)",
+        "vercel.json is committed to the repository"
+      ],
+      "technicalNotes": [
+        "Add to vercel.json: { \"regions\": [\"sin1\"] } — Singapore is the closest Vercel region to Malaysia",
+        "Neon database should be in aws-ap-southeast-1 (Singapore) to co-locate with the function",
+        "Reference: https://vercel.com/docs/functions/configuring-functions/region",
+        "Vercel Hobby plan supports 1 region; Pro supports up to 3 regions for failover"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-339",
+      "title": "Add bundle analyzer and lazy-load heavy admin panel dependencies",
+      "priority": "medium",
+      "description": "The admin panel may import heavy client-side libraries that are bundled into the main JavaScript chunk. Next.js production checklist recommends @next/bundle-analyzer to identify large modules and dynamic import() for components not needed on initial render. Admin panel JavaScript weight should not affect the customer-facing page load.",
+      "acceptanceCriteria": [
+        "@next/bundle-analyzer is installed as a dev dependency and configured in next.config.ts",
+        "Running ANALYZE=true npm run build produces an HTML bundle report",
+        "Any admin panel component or dependency > 50KB (gzipped) is converted to a dynamic import with a loading skeleton",
+        "The main customer-facing JavaScript bundle does not include any admin-only component code",
+        "Admin panel tab components (Orders, Settings, Blog editor) are lazy-loaded on first tab activation"
+      ],
+      "technicalNotes": [
+        "Install: npm i -D @next/bundle-analyzer",
+        "Configure in next.config.ts: withBundleAnalyzer({ enabled: process.env.ANALYZE === 'true' })(nextConfig)",
+        "Use Next.js dynamic(): const AdminBlogEditor = dynamic(() => import('./admin-blog-editor'), { loading: () => <Skeleton /> })",
+        "Reference: https://nextjs.org/docs/app/guides/package-bundling#analyzing-javascript-bundles",
+        "Target: customer page JS bundle < 150KB gzipped; admin bundle can be larger since it is auth-gated"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-340",
+      "title": "Add order expiry mechanism for stale pending_approval orders",
+      "priority": "medium",
+      "description": "Orders in pending_approval status that are never acted on accumulate indefinitely. There is no expiry or timeout logic. For a manual-review workflow, stale orders clutter the admin panel, inflate unread count badges, and leave customers in a perpetual pending state. A background cleanup or on-read expiry resolves this.",
+      "acceptanceCriteria": [
+        "Orders in pending_approval older than 4 hours are automatically transitioned to an 'expired' status",
+        "The expiry check runs on each GET /api/admin/orders request before returning results (lazy expiry), or via a Vercel Cron Job",
+        "Expired orders are filterable in the admin Orders tab",
+        "The customer-facing /order/[id] page shows an 'Order expired — please re-order' message for expired orders",
+        "The expiry threshold (4 hours) is configurable in site settings or env var"
+      ],
+      "technicalNotes": [
+        "Simplest implementation: run UPDATE orders SET status='expired' WHERE status='pending_approval' AND created_at < NOW() - INTERVAL '4 hours' at the start of the admin orders fetch",
+        "Alternatively use a Vercel Cron Job calling /api/admin/cron/expire-orders (Hobby plan: 1 cron job, daily minimum interval)",
+        "Add 'expired' to the order status enum/type definitions",
+        "Add an index on (status, created_at) — covered by the database indexes story"
+      ],
+      "dependencies": [
+        "Add database indexes on orders table for admin dashboard queries"
+      ],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-341",
+      "title": "Add offline fallback page for PWA users",
+      "priority": "low",
+      "description": "The service worker implements network-first navigation with cache fallback, but there is no dedicated offline fallback page. When a customer has no connectivity and navigates to a URL not in the shell cache, they get the browser's generic offline page instead of a branded experience. PWA best practices require a custom offline page.",
+      "acceptanceCriteria": [
+        "A static offline.html page exists at public/offline.html with the cafe branding and a 'You are offline' message in all 3 languages",
+        "The service worker caches /offline.html during the install event",
+        "When a navigation request fails and no cached match exists, the SW responds with the offline page",
+        "The offline page includes the cafe name, logo reference, and a 'Try again' button",
+        "The offline page renders correctly with no external resource dependencies (all CSS inline or from cache)"
+      ],
+      "technicalNotes": [
+        "Add '/offline.html' to SHELL_URLS in public/sw.js",
+        "In the fetch handler: caches.match(event.request).then(cached => cached || caches.match('/offline.html'))",
+        "Keep offline.html fully self-contained (inline styles) to avoid sub-resource fetch failures",
+        "Reference: https://web.dev/articles/pwa-checklist",
+        "Update CACHE_NAME version string when modifying sw.js to trigger cache refresh"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-342",
+      "title": "Add aggregateRating to Restaurant JSON-LD from admin-configurable value",
+      "priority": "low",
+      "description": "Google's LocalBusiness rich results can display star ratings in search results when aggregateRating is present in the Restaurant JSON-LD schema. The existing RestaurantJsonLd component does not include aggregateRating. Adding a configurable rating to SiteSettings and surfacing it in the schema enables potential star rating display in Google Search.",
+      "acceptanceCriteria": [
+        "site-settings schema gains optional fields: ratingValue (number 1-5), ratingCount (integer), and ratingProvider (string)",
+        "Admin Settings tab exposes these fields as optional inputs with validation",
+        "RestaurantJsonLd includes aggregateRating only when ratingValue is set — never includes placeholder values",
+        "If ratingValue is not configured, aggregateRating is omitted entirely",
+        "Validated with Google Rich Results Test showing no warnings for the aggregateRating block"
+      ],
+      "technicalNotes": [
+        "Never fabricate rating data — only use actual ratings from a verifiable source (e.g. real Google Maps reviews)",
+        "Google requires reviewCount >= 1 to display stars; a single verified Google review qualifies",
+        "Schema property: aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', reviewCount: '47' }",
+        "Reference: https://developers.google.com/search/docs/appearance/structured-data/local-business"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
     }
   ]
 }

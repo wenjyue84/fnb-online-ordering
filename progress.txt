@@ -1,3 +1,12 @@
+## US-325 — Add global-error.tsx and per-route error boundaries (PASSED)
+- Created src/app/global-error.tsx — root-level error boundary with own <html><body>, trilingual messages (EN/MS/ZH), reset() button, inline styles (no Tailwind since root layout is replaced)
+- Created src/app/[locale]/error.tsx — segment-level error boundary using Tailwind classes, locale-aware message from URL path, reset() button
+- Both use useEffect(() => console.error(error), [error]) for server-side log correlation
+- Error digest stays internal (not rendered to users)
+- Both are 'use client' components as required by Next.js App Router error boundary convention
+- global-error.tsx uses inline styles because it replaces the root layout (no CSS loaded)
+- [locale]/error.tsx uses Tailwind because it renders inside the locale layout (CSS available)
+
 ## US-324 — Implement dynamic og:image generation per locale (PASSED)
 - Created src/app/[locale]/blog/[slug]/opengraph-image.tsx — generates 1200x630 PNG with post title, cafe name (locale-aware), tagline, and locale badge
 - Created src/app/[locale]/menu/opengraph-image.tsx — generates 1200x630 PNG with "Menu" label (localized for zh), cafe name, tagline, and cuisine type pills
@@ -2034,4 +2043,27 @@ Here is the technical brief for implementing dynamic `og:image` generation:
 
 ## Iteration 5 - Thu, Mar 12, 2026  3:36:16 PM
 Completed: Implement dynamic og:image generation per locale using Next.js ImageResponse (ID: US-324) in 6m
+
+
+## Pre-analysis for US-325 (Gemini 2.5 Pro)
+This technical brief outlines the implementation for Next.js error boundaries based on the user story.
+
+**File Modifications:**
+1.  **Create `src/app/global-error.tsx`**: This acts as the root error boundary. It must be a client component (`'use client'`) and contain its own `<html>` and `<body>` tags, as it replaces the root layout upon catastrophic failure.
+2.  **Create `src/app/[locale]/error.tsx`**: This is a route segment-level boundary to catch errors within the localized parts of the app. It should also be a client component.
+
+**Key Frappe/Next.js Concepts:**
+*   **DocTypes -> File-based Routing**: The Next.js App Router conventions `global-error.tsx` and `error.tsx` are the primary mechanisms.
+*   **Hooks -> React Hooks**: The `useEffect` hook is required for logging the error digest to the console (`console.error(error)`). The `reset` function prop provided by Next.js will be used to attempt recovery.
+*   **Localization**: The components must provide messages in English, Chinese, and Malay, likely integrating with the existing `messages/*.json` internationalization setup.
+
+**Implementation Approach:**
+1.  The `global-error.tsx` component will render a complete, user-friendly fallback page with a "Reload" button that triggers the `reset` function.
+2.  The `[locale]/error.tsx` component will render a smaller, bilingual error message within the existing layout, also with a `reset` button.
+3.  To verify, temporarily modify a server component to throw an exception and confirm the correct error boundary is rendered instead of a crashed page.
+
+**Gotchas & Edge Cases:**
+*   `global-error.tsx` rendering its own `<html>/<body>` is non-negotiable; otherwise, it will fail.
+*   Route-level `error.tsx` will not catch errors from its sibling `layout.tsx` in the same directory; the boundary one level up the tree handles that.
+*   These boundaries only handle rendering exceptions, not event handler errors, which must be managed with standard `try/catch` and component state.
 
