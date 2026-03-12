@@ -1,3 +1,15 @@
+## US-334 — Enhance robots.txt to block AI training crawlers and locale-prefixed admin paths (PASSED)
+- Enhanced `src/app/robots.ts` disallow list: added locale-prefixed admin paths (`/en/admin/`, `/ms/admin/`, `/zh/admin/`), `/kds/`, and `/_next/data/`
+- Added separate rule set blocking AI training crawlers (GPTBot, anthropic-ai, CCBot, ChatGPT-User, Google-Extended) from all paths
+- Sitemap URL already used `NEXT_PUBLIC_SITE_URL` env var (dynamic) — no change needed
+- File already used `MetadataRoute.Robots` type — no change needed
+- Changed `rules` from single object to array of rule objects to support multiple user-agent blocks
+- Zero TS errors, zero new lint errors
+
+### Patterns discovered
+- Next.js `MetadataRoute.Robots` accepts `rules` as either a single object or an array — use array when you need multiple user-agent blocks
+- `userAgent` field accepts either a string or string array for multiple agents sharing the same rules
+
 ## US-333 — Add Suspense streaming boundaries to slow data-fetching page sections (PASSED)
 - Menu page: extracted DB-fetching logic (menu items, display categories, highlights) into `MenuContent` async RSC, wrapped in `<Suspense>` with `MenuGridSkeleton` (filter pills + card grid skeleton)
 - Home page: extracted `HighlightsWithData` async RSC that fetches featured items independently, wrapped in `<Suspense>` with `HighlightsSkeleton` (title + 6-card grid skeleton matching actual Highlights layout)
@@ -2451,4 +2463,37 @@ Based on the user story JSON, here is a technical brief for implementing the PWA
 *   **Self-Contained Page:** `offline.html` must not have external dependencies. Any images it uses (like a logo) must also be added to the service worker cache.
 *   **Cache Busting:** You *must* update the `CACHE_NAME` version in `sw.js`, or the new service worker will not be installed, and the offline page will never be cached.
 *   **Request Mode:** The fallback logic must apply only to `'navigate'` requests to avoid incorrectly returning an HTML page for a failed API or image call.
+
+## Iteration 9 - Thu, Mar 12, 2026  5:42:42 PM
+Incomplete: Add offline fallback page for PWA users (ID: US-341) — attempt 1/3
+
+
+## Pre-analysis for US-341 (Gemini 2.5 Pro)
+This user story is for a Progressive Web App (PWA) feature and does not involve the Frappe or Python backend. The implementation will be entirely on the front-end using JavaScript and HTML.
+
+**Technical Brief for US-341: PWA Offline Fallback**
+
+1.  **Files to Create/Modify:**
+    *   **Create:** `public/offline.html` - A new, self-contained static HTML page.
+    *   **Modify:** `public/sw.js` - The existing service worker script.
+
+2.  **Involved PWA/Service Worker Concepts:**
+    *   **Hooks:** Service Worker `install` and `fetch` events.
+    *   **APIs:** Cache API (`caches`).
+
+3.  **Recommended Implementation Approach:**
+    *   **`offline.html`:**
+        *   Create this file in the `public/` directory.
+        *   It must be self-contained: Use inline CSS for styling. Do not link to external stylesheets or scripts unless they are guaranteed to be in the shell cache.
+        *   Include basic branding (logo, cafe name) and a user-friendly "You are offline" message (provide text for all 3 languages).
+        *   Add a "Try Again" button that simply reloads the page (`location.reload()`).
+    *   **`sw.js` modifications:**
+        *   **Cache Busting:** Increment the `CACHE_NAME` version string to trigger a service worker update on clients.
+        *   **Install Event:** Add `'/offline.html'` to the array of URLs to be pre-cached (likely named `SHELL_URLS` or similar).
+        *   **Fetch Event:** In the fetch handler for navigation requests (`event.request.mode === 'navigate'`), modify the `.catch()` block. When a `fetch` to the network fails, it should attempt to serve the offline page from the cache: `return caches.match('/offline.html');`.
+
+4.  **Edge Cases & Gotchas:**
+    *   The offline fallback logic *must* be restricted to navigation requests. Returning HTML for a failed API or image request will break the application.
+    *   Forgetting to update the `CACHE_NAME` is a common mistake that will prevent the new offline page from being cached and used.
+    *   Ensure `offline.html` has no external dependencies; otherwise, it will also fail to render properly when offline.
 
