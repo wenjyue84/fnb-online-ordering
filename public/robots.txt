@@ -4,7 +4,7 @@ Allow: /
 Disallow: /api/
 
 # Host
-Host: https://makanmoments.cafe
+Host: http://localhost:3031
 
 # Sitemaps
-Sitemap: https://makanmoments.cafe/sitemap.xml
+Sitemap: http://localhost:3031/sitemap.xml
