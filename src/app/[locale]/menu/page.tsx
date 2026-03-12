@@ -62,7 +62,7 @@ export default async function MenuPage({
 
   return (
     <>
-      <MenuPageJsonLd nonce={nonce} />
+      <MenuPageJsonLd nonce={nonce} items={items} locale={locale} />
       <div className="mx-auto max-w-6xl px-4 py-12">
         {isAdmin && (
           <Suspense fallback={null}>

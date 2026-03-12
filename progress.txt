@@ -1,3 +1,19 @@
+## US-330 — Add MenuSection schema.org structured data for individual menu items (PASSED)
+- Enhanced `MenuPageJsonLd` in `src/components/seo/json-ld.tsx` to accept optional `items` and `locale` props
+- When items are provided, groups them by POS category into `@type: MenuSection` entries
+- Each menu item rendered as `@type: MenuItem` with locale-matched name, description, image URL, and `offers` (price in MYR, availability as InStock/OutOfStock)
+- Items with multiple POS categories appear in each relevant MenuSection
+- Items with no POS categories fall into "Other" section
+- Updated `src/app/[locale]/menu/page.tsx` to pass `items` and `locale` to `MenuPageJsonLd`
+- All structured data rendered server-side as `<script type="application/ld+json">` — zero client bundle impact
+- Backward compatible: component still works without items prop (renders basic Menu schema only)
+- Zero TS errors, zero new lint errors
+
+### Patterns discovered
+- `MenuPageJsonLd` is an async RSC — can accept data directly from the page RSC without fetching again
+- MenuItem items already have `available` boolean from the DB/rules layer — maps directly to schema.org InStock/OutOfStock
+- POS categories (item.categories[]) are the right grouping key for MenuSection per acceptance criteria
+
 ## US-328 — Add accessible inline form validation error messages to order form (PASSED)
 - Added `aria-invalid` attribute to both phone and arrival time inputs, set to `true` when field has error
 - Added `aria-describedby` linking each input to its error message element (id `ofm-contact-error`, `ofm-arrival-error`)
@@ -2271,3 +2287,33 @@ This user story describes a task for a Next.js/TypeScript application, not Frapp
 ### Gotchas
 - Don't set CSP in both next.config.ts and middleware — they'll both apply and the most restrictive wins, potentially blocking legitimate resources
 - The intl middleware returns its own NextResponse (rewrite) — can't use `NextResponse.next({ request: { headers } })` for that path; must use `x-middleware-request-*` header trick instead
+## Iteration 5 - Thu, Mar 12, 2026  5:16:14 PM
+Completed: Add CSP nonce for inline scripts to strengthen Content Security Policy (ID: US-329) in 14m
+
+
+## Pre-analysis for US-341 (Gemini 2.5 Pro)
+Here is the technical brief for user story US-341.
+
+**Subject: Technical Brief for US-341: PWA Offline Fallback Page**
+
+This story concerns a frontend PWA enhancement, not a Frappe/Python backend change.
+
+**1. Files to Modify:**
+*   `public/sw.js`: The existing service worker script needs modification.
+*   `public/offline.html`: A new static HTML file must be created.
+
+**2. Key Technologies / Hooks:**
+*   This task involves the browser's Service Worker API, specifically the `install` and `fetch` events.
+*   No Frappe DocTypes or server-side hooks are relevant.
+
+**3. Recommended Implementation Approach:**
+1.  Create a self-contained `public/offline.html` with inline CSS/JS. It should include the cafe branding, a "You are offline" message (in English, Malay, and Chinese), and a "Try again" button that reloads the page.
+2.  In `public/sw.js`, increment the `CACHE_NAME` version string to trigger a cache update on deployment.
+3.  Add `/offline.html` to the list of URLs pre-cached during the service worker's `install` event (e.g., `SHELL_URLS`).
+4.  In the `fetch` event handler, modify the network-first strategy for navigation requests. In the `catch` block that handles fetch failures, return `caches.match('/offline.html')` as the fallback response.
+
+**4. Edge Cases & Gotchas:**
+*   The `offline.html` page must not have external dependencies (CSS, fonts, images) unless they are explicitly cached by the service worker, otherwise it will fail to render when offline.
+*   For multilingual support in a static file, displaying all three language strings is the simplest approach.
+*   Forgetting to update the `CACHE_NAME` is a common mistake that will prevent the new service worker and offline page from being activated.
+

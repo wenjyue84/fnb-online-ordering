@@ -1,4 +1,5 @@
 import { getSiteSettings } from "@/lib/site-settings";
+import type { MenuItem } from "@/types/menu";
 
 interface JsonLdProps {
   data: Record<string, unknown>;
@@ -73,21 +74,70 @@ export async function RestaurantJsonLd({ nonce }: { nonce?: string | null } = {}
   return <JsonLd data={data} nonce={nonce} />;
 }
 
-export async function MenuPageJsonLd({ nonce }: { nonce?: string | null } = {}) {
+export async function MenuPageJsonLd({
+  nonce,
+  items,
+  locale,
+}: {
+  nonce?: string | null;
+  items?: MenuItem[];
+  locale?: string;
+} = {}) {
   const settings = await getSiteSettings();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031";
+  const menuUrl = `${siteUrl}/${settings.defaultLocale}/menu`;
 
-  const data = {
+  // Build MenuSection + MenuItem structured data when items are provided
+  let hasMenuSection: Record<string, unknown>[] | undefined;
+  if (items && items.length > 0) {
+    // Group items by POS category
+    const categoryMap = new Map<string, MenuItem[]>();
+    for (const item of items) {
+      const cats = item.categories.length > 0 ? item.categories : ["Other"];
+      for (const cat of cats) {
+        if (!categoryMap.has(cat)) categoryMap.set(cat, []);
+        categoryMap.get(cat)!.push(item);
+      }
+    }
+
+    // Helper to pick locale-appropriate name
+    const getName = (item: MenuItem): string => {
+      if (locale === "zh" && item.nameZh) return item.nameZh;
+      if (locale === "ms" && item.nameMs) return item.nameMs;
+      return item.nameEn;
+    };
+
+    hasMenuSection = Array.from(categoryMap.entries()).map(([category, catItems]) => ({
+      "@type": "MenuSection",
+      name: category,
+      hasMenuItem: catItems.map((item) => ({
+        "@type": "MenuItem",
+        name: getName(item),
+        ...(item.description && { description: item.description }),
+        ...(item.photo && { image: `${siteUrl}${item.photo}` }),
+        offers: {
+          "@type": "Offer",
+          price: item.price.toFixed(2),
+          priceCurrency: "MYR",
+          availability: item.available
+            ? "https://schema.org/InStock"
+            : "https://schema.org/OutOfStock",
+        },
+      })),
+    }));
+  }
+
+  const data: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Menu",
     name: `${settings.cafeName} Menu`,
     description: settings.menuDescription,
-    url:
-      (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031") +
-      `/${settings.defaultLocale}/menu`,
+    url: menuUrl,
     mainEntity: {
       "@type": "Restaurant",
       name: settings.cafeName,
     },
+    ...(hasMenuSection && { hasMenuSection }),
   };
 
   return <JsonLd data={data} nonce={nonce} />;
