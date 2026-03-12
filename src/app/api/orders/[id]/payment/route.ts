@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import sql from "@/lib/db";
+import { put } from "@vercel/blob";
 import fs from "fs";
 import path from "path";
 
@@ -36,6 +37,34 @@ const EXT_MAP: Record<string, string> = {
   "image/png": "png",
   "image/webp": "webp",
 };
+
+/** Upload to Vercel Blob (production) or local filesystem (dev fallback) */
+async function uploadScreenshot(
+  orderId: number,
+  buffer: Buffer,
+  contentType: string
+): Promise<string> {
+  const ext = EXT_MAP[contentType] ?? "jpg";
+  const safeId = String(orderId).replace(/[^a-zA-Z0-9-]/g, "");
+  const filename = `payments/${safeId}.${ext}`;
+
+  // Use Vercel Blob when token is available (production / preview)
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const blob = await put(filename, buffer, {
+      access: "public",
+      contentType,
+      addRandomSuffix: false,
+    });
+    return blob.url; // Full HTTPS URL
+  }
+
+  // Local filesystem fallback for development
+  const uploadsDir = path.join(process.cwd(), "public", "uploads", "payments");
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  const filePath = path.join(uploadsDir, `${safeId}.${ext}`);
+  fs.writeFileSync(filePath, buffer);
+  return `/uploads/payments/${safeId}.${ext}`;
+}
 
 // POST /api/orders/:id/payment — customer uploads TnG payment screenshot
 // Public endpoint (order ID acts as a shared secret, no auth required)
@@ -108,22 +137,9 @@ export async function POST(
       );
     }
 
-    // Save file to public/uploads/payments/
-    const ext = EXT_MAP[file.type] ?? "jpg";
-    const safeId = String(orderId).replace(/[^a-zA-Z0-9-]/g, "");
-    const filename = `${safeId}.${ext}`;
-    const uploadsDir = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      "payments"
-    );
-    fs.mkdirSync(uploadsDir, { recursive: true });
-    const filePath = path.join(uploadsDir, filename);
+    // Upload to cloud storage (or local fallback)
     const buffer = Buffer.from(arrayBuffer);
-    fs.writeFileSync(filePath, buffer);
-
-    const screenshotUrl = `/uploads/payments/${filename}`;
+    const screenshotUrl = await uploadScreenshot(orderId, buffer, file.type);
 
     // Update order status
     await sql`

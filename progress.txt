@@ -1208,3 +1208,51 @@ Here is the technical brief for implementing the rate limiting user story.
 ### Gotchas
 - TypeScript caught the missing `await` on `loginRateLimiter(ip)` in `/api/admin/login/route.ts` — always run `tsc --noEmit` after changing async signatures
 - The fire-and-forget cleanup DELETE needs `.catch(() => {})` or TypeScript + ESLint will complain about floating promises
+## Iteration 4 - Thu, Mar 12, 2026  1:08:51 PM
+Completed: Migrate rate limiter from in-memory Map to a persistent store for Vercel deployments (ID: US-310) in 7m
+
+
+## Pre-analysis for US-311 (Gemini 2.5 Pro)
+This technical brief is for a **Next.js / TypeScript** project, as all technical details in the story (Vercel, `@vercel/blob`, `route.ts`) point to that stack, not Frappe/Python.
+
+**Objective:** Migrate the payment screenshot upload functionality from the local filesystem to a cloud storage provider (Vercel Blob or AWS S3) to support serverless deployment.
+
+**1. Primary File to Modify:**
+*   `src/app/api/orders/[id]/payment/route.ts`: This file contains the `POST` handler that currently processes the file upload and saves it locally.
+
+**2. Involved Systems & Schemas:**
+*   **Database:** The `Order` table (hosted on Neon DB) will be updated. The `payment_screenshot_url` field must store the full HTTPS URL returned by the cloud provider.
+*   **Environment:** New environment variables are required: `BLOB_READ_WRITE_TOKEN` for Vercel Blob, AWS credentials for S3, and `NEXT_PUBLIC_STORAGE_PROVIDER` ('vercel-blob' | 's3' | 'local') to control the active provider.
+
+**3. Recommended Implementation Approach:**
+1.  In the `POST` handler, after receiving the multipart form data, keep the existing file validation logic (MIME type, magic bytes, size limit).
+2.  Implement a switch based on the `NEXT_PUBLIC_STORAGE_PROVIDER` environment variable.
+3.  **Vercel Blob Case:** Use the `put()` function from the `@vercel/blob` SDK. The filename should be `[orderId]-[safeId].[extension]`.
+4.  **S3 Case:** Use `PutObjectCommand` from `@aws-sdk/client-s3`.
+5.  Update the `payment_screenshot_url` in the database with the `url` property from the blob SDK's response.
+6.  Return the new external URL in the API response.
+
+**4. Edge Cases & Gotchas:**
+*   **Credentials:** Ensure the application fails gracefully with a 400/500 error if the required cloud storage credentials are not set in the environment.
+*   **Permissions:** S3 buckets must have a policy that allows public read access for the uploaded objects. Vercel Blob handles this by default.
+*   **Local Development:** Maintain the existing `fs.writeFile` logic under the 'local' provider setting to allow development and testing without cloud access.
+*   **Frontend Impact:** Verify the admin panel can render the new external `<img>` URL. No frontend changes should be needed if it's already using the URL from the API response.
+
+
+## Iteration - Story: US-311 — Move uploaded payment screenshots to cloud storage
+
+### What was implemented
+- Installed `@vercel/blob` package
+- Refactored `src/app/api/orders/[id]/payment/route.ts` to use Vercel Blob when `BLOB_READ_WRITE_TOKEN` env var is set, with local filesystem fallback for development
+- Extracted upload logic into `uploadScreenshot()` helper function that returns full HTTPS URL (Vercel Blob) or relative path (local dev)
+- Added `*.public.blob.vercel-storage.com` to `remotePatterns` in `next.config.ts` for Next.js Image optimization compatibility
+- Added `BLOB_READ_WRITE_TOKEN` to `.env.example`
+- All existing OWASP validation preserved (MIME allowlist, magic bytes check, 5MB size limit)
+
+### Patterns discovered
+- Admin order card uses standard `<img>` (not Next.js `<Image>`), so external URLs work without any component changes
+- `addRandomSuffix: false` in Vercel Blob `put()` ensures predictable filenames keyed by orderId
+
+### Gotchas
+- Vercel Blob `put()` requires `BLOB_READ_WRITE_TOKEN` env var — auto-provisioned when connecting a Vercel Blob store in the Vercel dashboard
+- No files written to local filesystem in production (Vercel's read-only FS constraint satisfied)
