@@ -958,3 +958,36 @@ The relevant entities are React Server Components and a data fetching function, 
 ### Gotchas
 - The build failure was pre-existing (not caused by US-302 changes) but blocked the acceptance criteria
 - Even `import type` from a module triggers full module evaluation in Turbopack bundler
+## Iteration 3 - Thu, Mar 12, 2026 11:30:38 AM
+Completed: Replace CAFE.xxx in async RSC pages and server components (ID: US-302) in 15m
+
+
+## Pre-analysis for US-305 (Gemini 2.5 Pro)
+Based on the user story JSON for US-305, here is the technical brief.
+
+Note: The story pertains to a Next.js/TypeScript project, not Frappe/Python. The brief has been adjusted accordingly.
+
+### Technical Brief: US-305
+
+**1. Files to Modify:**
+*   `src/lib/constants.ts`: Primary file for deleting the `CAFE` constant.
+*   `src/components/menu/menu-card.tsx`: This file has pre-existing changes that need to be committed along with the constant removal.
+
+**2. Key Framework Concepts:**
+*   **TypeScript Modules:** The core task is removing an exported constant from a TypeScript module.
+*   **Git Staging/Commit:** The work requires staging changes from two different files (`constants.ts` and `menu-card.tsx`) into a single commit.
+*   **NPM Scripts:** Validation requires running `npm run build` and `npm run lint`.
+
+**3. Recommended Implementation Approach:**
+1.  First, run `grep` as specified in the ACs (`grep -r 'CAFE\.' src/`) to ensure no usages of the `CAFE` constant remain.
+2.  Edit `src/lib/constants.ts` and remove the entire `export const CAFE = { ... };` block.
+3.  Do not modify `SPECIAL_DISPLAY_CATEGORIES` or `MENU_CATEGORIES` in that same file.
+4.  Stage both `src/lib/constants.ts` and the already-modified `src/components/menu/menu-card.tsx`.
+5.  Run the build and lint commands (`npm run build`, `npm run lint`) to ensure no errors.
+6.  Commit the staged changes with a message referencing US-305.
+
+**4. Edge Cases & Gotchas:**
+*   A build or lint failure after removing the constant indicates a missed dependency where `CAFE` is still being imported or used.
+*   The pre-existing changes in `menu-card.tsx` should be committed as-is, without further analysis or modification.
+*   Ensure that only the `CAFE` constant is removed, as other constants in the file are actively used.
+
