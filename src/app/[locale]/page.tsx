@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
 import { cookies } from "next/headers";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getFeaturedItems, getSignatureDish } from "@/lib/menu";
 import { HeroSection } from "@/components/home/hero-section";
 import { Highlights } from "@/components/home/highlights";
@@ -36,6 +36,7 @@ export default async function HomePage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "home" });
   const settings = await getSiteSettings();
 

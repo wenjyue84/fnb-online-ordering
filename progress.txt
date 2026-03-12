@@ -1638,3 +1638,59 @@ This user story is for a **Next.js** application, not Frappe/Python. The goal is
 ### Gotchas
 - opacity-90 on span text reduces effective contrast; must compute blended color for accurate check
 - CSS `--ring` and `--sidebar-primary` must stay in sync with `--primary` in dark mode
+
+
+## Pre-analysis for US-324 (Gemini 2.5 Pro)
+This user story describes a **Next.js/TypeScript** feature, not a Frappe/Python one. The implementation will be on the frontend.
+
+Here is the technical brief for implementing US-324:
+
+**Files to Modify/Create:**
+
+*   **Create:** `src/app/[locale]/blog/[slug]/opengraph-image.tsx`
+*   **Create:** `src/app/[locale]/menu/opengraph-image.tsx`
+*   **Verify:** `src/app/[locale]/layout.tsx` (to ensure fallback `og:image` is present).
+
+**Involved Next.js APIs:**
+
+*   File-based Metadata: `opengraph-image.tsx` convention.
+*   `ImageResponse` from `next/og` for dynamic image generation.
+
+**Implementation Approach:**
+
+1.  In `.../blog/[slug]/opengraph-image.tsx`, create an async function that accepts `{ params }`. Fetch the specific blog post's data to get its title in the correct `params.locale`.
+2.  In `.../menu/opengraph-image.tsx`, create a similar function to generate an image with the "Menu" title, translated per `params.locale`.
+3.  Use `ImageResponse` to return a JSX-like structure for the image layout (1200x630px).
+4.  Style the image using Tailwind CSS classes. Fetch a font file (e.g., from `/public/fonts/...`) as an `ArrayBuffer` and embed it in the `ImageResponse` options.
+5.  Export `revalidate` from the page component to control caching for both the page and the generated image.
+
+**Gotchas & Edge Cases:**
+
+*   **Runtime:** `ImageResponse` runs on the Edge; ensure any data fetching inside it is Edge-compatible.
+*   **Fonts:** You cannot use `next/font`. Fonts must be fetched and passed as an ArrayBuffer.
+*   **Error Handling:** If `ImageResponse` fails, Next.js should automatically fall back to the static `og:image` defined in the root layout. Test this behavior.
+*   **Localization:** Ensure any static text (like "Menu" or the cafe name) is correctly translated using your i18n setup.
+
+
+## Iteration 14 - Story: US-319 - Enable static rendering on [locale] pages by implementing setRequestLocale
+
+### What was implemented
+- Added `setRequestLocale(locale)` call to 7 server components:
+  - `[locale]/layout.tsx` — plus `generateStaticParams()` returning all 3 locales
+  - `[locale]/page.tsx` (home)
+  - `[locale]/menu/page.tsx` — also added `params` to function signature (was missing)
+  - `[locale]/about/page.tsx`
+  - `[locale]/contact/page.tsx`
+  - `[locale]/blog/page.tsx`
+  - `[locale]/blog/[slug]/page.tsx`
+- Skipped client-only pages: `order/[id]/page.tsx` and `order/[id]/payment/page.tsx` (both "use client")
+
+### Patterns discovered
+- next-intl v4.8.3 exports `setRequestLocale` from `next-intl/server`
+- Menu page's function signature only had `searchParams` but not `params` — needed to add it to access locale
+- Pages using `cookies()` will still render dynamically despite `setRequestLocale`; the call is required by next-intl for locale resolution in server components regardless of rendering mode
+
+### Gotchas
+- `setRequestLocale` must be called before any `await` in the component body per next-intl docs
+- Pages that call `cookies()` (home, menu, about, contact, blog) cannot be fully static — they use cookies for admin inline editing detection
+- `generateStaticParams` in the layout enables the static path but individual pages opt into dynamic rendering when they use dynamic APIs like `cookies()`

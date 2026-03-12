@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Playfair_Display, Noto_Sans, Noto_Sans_SC } from "next/font/google";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
+import { setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { routing } from "@/i18n/routing";
@@ -99,6 +100,10 @@ export async function generateMetadata({
   };
 }
 
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }));
+}
+
 export default async function LocaleLayout({
   children,
   params,
@@ -110,6 +115,7 @@ export default async function LocaleLayout({
   if (!hasLocale(routing.locales, locale)) {
     notFound();
   }
+  setRequestLocale(locale);
 
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;

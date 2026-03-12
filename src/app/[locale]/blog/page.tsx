@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getBlogPosts } from "@/lib/blog";
 import { PostCard } from "@/components/blog/post-card";
 import { FeaturedPost } from "@/components/blog/featured-post";
@@ -27,6 +27,7 @@ export default async function BlogPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "blog" });
   const posts = await getBlogPosts(locale);
 

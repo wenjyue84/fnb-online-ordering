@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
 import { cookies } from "next/headers";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getSiteSettings } from "@/lib/site-settings";
 import { MapPin, Clock, Phone, Wifi, Facebook, Instagram } from "lucide-react";
 import { COOKIE_NAME, verifyAdminToken } from "@/lib/auth";
@@ -61,6 +61,7 @@ export default async function ContactPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "contact" });
 
   const settings = await getSiteSettings();

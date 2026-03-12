@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { cookies } from "next/headers";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getMenuItems, getAllMenuItemsWithRulesForAdmin, getDisplayCategories } from "@/lib/menu";
 import { getHighlightsFromDB, computeEffectiveHighlights } from "@/lib/highlights";
 import { MenuGrid } from "@/components/menu/menu-grid";
@@ -26,10 +26,14 @@ export async function generateMetadata({
 }
 
 export default async function MenuPage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<{ previewTime?: string; q?: string }>;
 }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   const isAdmin = token ? await verifyAdminToken(token) : false;

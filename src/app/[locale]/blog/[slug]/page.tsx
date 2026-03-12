@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getBlogPost, getBlogSlugs } from "@/lib/blog";
 import { PostContent } from "@/components/blog/post-content";
 import { BlogInlineEditor } from "@/components/admin/blog-inline-editor";
@@ -45,6 +45,7 @@ export default async function BlogPostPage({
   params: Promise<{ locale: string; slug: string }>;
 }) {
   const { locale, slug } = await params;
+  setRequestLocale(locale);
   const post = await getBlogPost(slug);
   const t = await getTranslations({ locale, namespace: "common" });
 
