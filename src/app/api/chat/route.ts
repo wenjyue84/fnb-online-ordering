@@ -50,7 +50,7 @@ export async function POST(req: Request) {
   }
 
   // Load admin-configurable settings on each request so changes apply immediately
-  const settings = readChatSettings();
+  const settings = await readChatSettings();
   const primaryModel =
     settings.model === "openrouter"
       ? openrouter.chat("meta-llama/llama-3.3-70b-instruct")

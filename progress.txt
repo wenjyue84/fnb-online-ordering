@@ -691,3 +691,24 @@ This brief outlines the implementation plan for moving time slot configuration f
 - Previous attempt (iter 2) failed — likely timeout on build. Build takes ~15s compile + ~400ms static gen
 - Must propagate async through entire call chain: readTimeSlots → getActiveSlotForTime → getActiveSlot → getServingNowCategories
 
+## Iteration N - Story: US-203 - Migrate chat settings from JSON to Neon Postgres
+
+### What was implemented
+- Removed fs/path imports from `src/lib/chat/settings.ts`, added `import sql from "@/lib/db"`
+- Made `readChatSettings()` async: reads `site_settings WHERE key = 'chat'`, validates fields, falls back to DEFAULT_SETTINGS
+- Made `writeChatSettings()` async: upserts into `site_settings` using same pattern
+- Updated 5 callers to await:
+  - `src/lib/chat/system-prompt.ts` line 111: `await readChatSettings()`
+  - `src/app/api/chat/route.ts` line 53: `await readChatSettings()`
+  - `src/app/admin/chat-settings/page.tsx` line 17: `await readChatSettings()`
+  - `src/app/api/admin/chat-settings/route.ts`: GET (line 7), POST (lines 14, 33) — all awaited
+  - `src/app/api/admin/ai-waiter/status/route.ts` line 22: `await readChatSettings()`
+- `npx tsc --noEmit` passes, `npx next build` passes
+
+### Patterns discovered
+- Chat settings has field-level validation (model must be groq|openrouter, temperature 0-2) — preserved in async version
+- 3 components only import types (ChatSettings) — no changes needed for those
+
+### Gotchas
+- 5 callers (not 4 as PRD suggested) — ai-waiter/status/route.ts was also a caller
+

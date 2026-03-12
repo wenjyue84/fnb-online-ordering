@@ -14,7 +14,7 @@ export default async function ChatSettingsPage() {
   const valid = token ? await verifyAdminToken(token) : false;
   if (!valid) redirect("/admin/login");
 
-  const settings = readChatSettings();
+  const settings = await readChatSettings();
 
   return (
     <div className="min-h-screen bg-gray-50">

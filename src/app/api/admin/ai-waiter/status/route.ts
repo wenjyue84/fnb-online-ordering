@@ -19,7 +19,7 @@ export async function GET() {
   const isAdmin = token ? await verifyAdminToken(token) : false;
   if (!isAdmin) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-  const settings = readChatSettings();
+  const settings = await readChatSettings();
   const systemPrompt = await getSystemPrompt();
   const systemPromptPreview = systemPrompt.slice(0, 600);
 

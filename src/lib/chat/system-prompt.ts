@@ -108,7 +108,7 @@ export function invalidateSystemPromptCache(): void {
 }
 
 export async function getSystemPrompt(): Promise<string> {
-  const settings = readChatSettings();
+  const settings = await readChatSettings();
   const { cafeName } = await getSiteSettings();
   const knowledge = await buildKnowledgeBlock();
 
