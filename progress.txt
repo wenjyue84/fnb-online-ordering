@@ -27,11 +27,64 @@
 
 ### Completed Stories
 
-(none yet)
+**US-501** — Wire depositRequired into approve action
+- In approve action: getSiteSettings().depositRequired -> if false sets status=preparing; if true keeps approved
+- GET /api/settings now exposes depositRequired field
+- Customer /order/[id] page: hides T&G payment section when !depositRequired && status===preparing
+
+**US-502** — Kitchen PIN auth (/kds/login)
+- POST /api/kds/login: reads kitchenPin from SiteSettings, issues kitchen_token JWT (role: kds, 12h)
+- verifyKdsToken() + verifyKitchenToken alias added to auth.ts
+- kitchenPin field added to SiteSettings with default 1234
+- Admin Settings panel: Kitchen PIN input field added
+
+**US-503** — Kitchen Display System (KDS) — /kds page
+- /kds: tablet-optimised, shows preparing + approved orders, polls every 5s
+- GET /api/kds/orders: returns approved+preparing orders (kds-auth-gated)
+- PATCH /api/kds/orders/[id]: action=start->preparing, action=ready->ready
+- Color-coded urgency: red <=5min, yellow 6-10min, green >10min, grey no ETA
+
+**US-504** — Admin SSE for real-time new order notifications
+- GET /api/admin/orders/stream: Edge Runtime, JWT cookie auth via jose, polls every 3s, heartbeat every 20s
+- admin-orders-bell.tsx: EventSource on mount, 3-attempt reconnect with 5s delay, fallback to 30s polling
+- Status indicator: green Live / grey Polling / yellow Connecting dot in bell and dropdown header
+- On new_order event: immediate fetchOrders() + optimistic badge increment via synthetic order prepend
+- Cleanup on unmount (EventSource.close() + clearTimeout + clearInterval)
+
+**US-505** — Bulk approve with smart estimated-ready time
+- POST /api/admin/orders/bulk-approve: approves all pending_approval, calculates ready time per order
+- calculateSmartReadyTime(items): max(10, min(30, 10 + 2 * items.length)) minutes
+- AdminOrdersPanel: Approve All Pending (N) button in Pending tab with confirmation modal
+- AdminOrderCard ApproveModal: prefilled with calculateSmartReadyTime suggestion
+
+**US-506** — Customer Web Push on order ready
+- POST /api/orders/[id]/push-subscribe: stores subscription in order_push_subscriptions (CREATE TABLE IF NOT EXISTS)
+- Admin orders PATCH mark_ready: sendCustomerPush() fire-and-forget after status update
+- PushSubscribeButton: iOS without PWA shows fallback text; on permission grant, subscribes + POSTs
+- sw.js notificationclick: uses event.notification.data?.url - correct for admin + customer push
+
+**US-507** — Improved order status page UX
+- Expiry countdown for pending_approval: 1s tick, red when <5min
+- Last updated X sec ago: secsSince counter resets on each successful poll
+- Confetti on ready: CSS keyframes overlay, 21 emoji spans, 3s, on status transition to ready
+- WhatsApp pre-filled CTA in rejected + expired (NEXT_PUBLIC_WHATSAPP_NUMBER env var)
+- Copy order ID button on terminal statuses (ready/rejected/expired)
+- i18n keys added to all 3 locale files: lastUpdatedAgo, expiryCountdown, expiredWhatsappMsg, whatsappReorder, copyOrderId, copied
 
 ### Key patterns from Iteration 5
 
-(accumulates as stories complete)
+- Edge Runtime SSE: use neon() directly (not sql from @/lib/db - Pool is not Edge-compatible)
+- Edge JWT auth: parse cookie manually with regex, use jose jwtVerify()
+- SSE format: event: new_order
+data: {json}
+
+ for named events, : ping
+
+ for heartbeat
+- EventSource onerror fires immediately on refused connection - use attempt counter for fallback to polling
+- Build OOM workaround: NODE_OPTIONS=--max-old-space-size=16384
+- Uint8Array cast for pushManager: urlBase64ToUint8Array() as unknown as ArrayBuffer
+- web-push in admin route: setVapidDetails() at module level, fire-and-forget with 410 Gone cleanup
 
 ---
 
@@ -534,4 +587,80 @@ This is a technical brief for implementing a Server-Sent Events (SSE) endpoint i
 
 ## Iteration 1 - Fri, Mar 13, 2026  1:01:12 AM
 Incomplete: Admin SSE for real-time new order notifications (ID: US-504) — attempt 1/3
+
+## Iteration 1 - Fri, Mar 13, 2026  1:01:37 AM
+Completed: Wire depositRequired into approve action (ID: US-501) in 14m
+
+
+## Pre-analysis for US-504 (Gemini 2.5 Pro)
+### Technical Brief: Admin SSE Order Notifications (US-504)
+
+**Objective:** Replace polling in the admin bell with a real-time Server-Sent Events (SSE) stream for new order notifications, running on Vercel's Edge Runtime.
+
+**1. Files to Modify:**
+*   **Create:** `src/app/api/admin/orders/stream/route.ts` (New Edge Route Handler)
+*   **Edit:** `src/components/admin/admin-orders-bell.tsx` (React component to consume SSE)
+
+**2. Framework/Library Involvement:**
+*   **Framework:** Next.js (App Router) with Edge Runtime
+*   **Libraries:**
+    *   `@neondatabase/serverless`: For direct, edge-compatible database queries.
+    *   `jose`: For manual JWT verification in the edge environment.
+    *   React: For frontend component logic (`useEffect`, `useState`, `useRef`).
+
+**3. Implementation Approach:**
+*   **Backend (`route.ts`):**
+    *   Export `runtime = 'edge'` and `dynamic = 'force-dynamic'`.
+    *   In the `GET` handler, return a `Response` with a `ReadableStream`.
+    *   Inside the stream, use `setInterval` to poll the `tray_orders` table every 3s. Use `@neondatabase/serverless` directly for the query (do not use the pooled `sql` from `lib/db.ts`).
+    *   Manually parse the admin auth cookie and verify the token using `jose.jwtVerify()`.
+    *   Stream `new_order` events for new orders and a `: ping` heartbeat every 20s.
+*   **Frontend (`admin-orders-bell.tsx`):**
+    *   In a `useEffect`, create and manage an `EventSource` instance.
+    *   On `new_order` events, update the badge count and trigger UI feedback.
+    *   Implement an `onerror` handler with a 3-attempt reconnect (5s delay) before falling back to `setInterval` polling.
+    *   Add a state for and render the "Live" / "Polling" status indicator.
+    *   Ensure the `EventSource` connection is closed in the `useEffect` cleanup function.
+
+**4. Edge Cases & Gotchas:**
+*   **Edge Compatibility:** The biggest constraint. Do not use Node.js-specific APIs or libraries (e.g., the existing `verifyAdminToken` helper or database connection pools).
+*   **Connection Lifecycle:** The server-side stream must correctly handle client disconnects to clean up intervals. The client must gracefully close its connection on unmount.
+*   **Auth in Edge:** Authentication must be implemented manually using `jose`, as standard NextAuth helpers might rely on Node.js APIs.
+*   **Fallback Logic:** The transition from SSE to polling after repeated failures must be clean, preventing duplicate timers or missed states.
+
+
+## Pre-analysis for US-504 (Gemini 2.5 Pro)
+This technical brief is for a Next.js/TypeScript project. The "Frappe/Python" context seems incorrect based on the story's technical notes.
+
+**1. Files to Modify:**
+*   **Create:** `src/app/api/admin/orders/stream/route.ts` (Next.js Edge API Route)
+*   **Modify:** `src/components/admin/admin-orders-bell.tsx` (React client component)
+
+**2. Key APIs & Hooks:**
+*   **Backend:** Next.js Edge Runtime, `ReadableStream` for SSE.
+*   **Frontend:** React `useEffect` for lifecycle, `useState` for state (connection status, count), and `useRef` for managing reconnect attempts.
+*   **Libraries:** `jose` for JWT auth, `@neondatabase/serverless` for direct DB access.
+
+**3. Implementation Approach:**
+*   **API Route (`route.ts`):**
+    *   Export `runtime = 'edge'`.
+    *   In the `GET` handler, return a `ReadableStream`.
+    *   Inside the stream's `start()` function, create a loop that queries Neon DB every 3s for new orders (`status = 'pending_approval'`).
+    *   Emit a `new_order` event with order data.
+    *   Send a comment (`: ping`) every 20s as a heartbeat.
+*   **Client Component (`admin-orders-bell.tsx`):**
+    *   In a `useEffect`, create an `EventSource` instance.
+    *   Handle the `new_order` event to update the badge count.
+    *   Use the `onerror` handler to implement a 5-second reconnect delay, falling back to 30s `setInterval` polling after 3 failed attempts.
+    *   Ensure the `EventSource` is closed in the `useEffect` cleanup function.
+
+**4. Gotchas & Edge Cases:**
+*   **Edge Compatibility is critical:**
+    *   **Database:** Do NOT use the pooled `sql` helper from `src/lib/db.ts`. You must import `neon` from `@neondatabase/serverless` directly, as connection pools don't work in the Edge Runtime.
+    *   **Authentication:** Standard Node.js crypto/auth helpers will fail. Parse the JWT cookie manually and verify it using `jose.jwtVerify()`.
+*   The heartbeat comment is essential to prevent the serverless function from timing out.
+*   The client must manage a state for the connection status ('Live' vs 'Polling') to render the UI indicator.
+
+## Iteration 2 - Fri, Mar 13, 2026  1:16:14 AM
+Incomplete: Admin SSE for real-time new order notifications (ID: US-504) — attempt 2/3
 

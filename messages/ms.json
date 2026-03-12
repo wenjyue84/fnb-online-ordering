@@ -167,7 +167,13 @@
     "maxRetriesTitle": "Pesanan Tidak Dijumpai",
     "maxRetriesMsg": "Kami tidak dapat mencari pesanan anda. Sila hubungi kafe secara terus.",
     "contactCafe": "Hubungi Kafe di WhatsApp",
-    "timeout": "Permintaan tamat masa — sila cuba lagi"
+    "timeout": "Permintaan tamat masa — sila cuba lagi",
+    "lastUpdatedAgo": "Dikemaskini {secs}s yang lalu",
+    "expiryCountdown": "Tamat dalam {mins}m {secs}s",
+    "expiredWhatsappMsg": "Pesanan ini tamat tempoh kerana tidak disahkan dalam masa yang ditetapkan. Sila WhatsApp kami untuk buat pesanan semula.",
+    "whatsappReorder": "WhatsApp kami untuk pesanan semula",
+    "copyOrderId": "Salin nombor pesanan #{id}",
+    "copied": "Disalin!"
   },
   "orderForm": {
     "title": "Lengkapkan Pra-Pesanan Anda",

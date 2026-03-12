@@ -167,7 +167,13 @@
     "maxRetriesTitle": "Order Not Found",
     "maxRetriesMsg": "We could not find your order. Please contact the cafe directly.",
     "contactCafe": "Contact Cafe on WhatsApp",
-    "timeout": "Request timed out — please try again"
+    "timeout": "Request timed out — please try again",
+    "lastUpdatedAgo": "Updated {secs}s ago",
+    "expiryCountdown": "Expires in {mins}m {secs}s",
+    "expiredWhatsappMsg": "This order expired as it wasn't confirmed in time. Please WhatsApp us to re-order.",
+    "whatsappReorder": "WhatsApp us to re-order",
+    "copyOrderId": "Copy order #{id}",
+    "copied": "Copied!"
   },
   "orderForm": {
     "title": "Complete Your Pre-Order",

@@ -167,7 +167,13 @@
     "maxRetriesTitle": "找不到订单",
     "maxRetriesMsg": "我们无法找到您的订单。请直接联系咖啡馆。",
     "contactCafe": "通过WhatsApp联系咖啡馆",
-    "timeout": "请求超时 — 请重试"
+    "timeout": "请求超时 — 请重试",
+    "lastUpdatedAgo": "{secs}秒前更新",
+    "expiryCountdown": "将在 {mins}分 {secs}秒 后过期",
+    "expiredWhatsappMsg": "此订单因未及时确认而已过期。请通过 WhatsApp 联系我们重新下单。",
+    "whatsappReorder": "WhatsApp 我们重新下单",
+    "copyOrderId": "复制订单号 #{id}",
+    "copied": "已复制！"
   },
   "orderForm": {
     "title": "完成预订",

@@ -1,7 +1,54 @@
 import { NextResponse, type NextRequest } from "next/server";
 import sql from "@/lib/db";
+import webpush from "web-push";
 import { OrderPatchSchema } from "@/lib/schemas/order";
 import { getSiteSettings } from "@/lib/site-settings";
+
+// Configure VAPID once (same pattern as src/app/api/orders/route.ts)
+const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+const vapidSubject = process.env.VAPID_SUBJECT || "mailto:admin@localhost";
+
+if (vapidPublicKey && vapidPrivateKey) {
+  webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+}
+
+async function sendCustomerPush(orderId: number) {
+  if (!vapidPublicKey || !vapidPrivateKey) return;
+  try {
+    const subs = await sql<{ endpoint: string; p256dh: string; auth: string }>`
+      SELECT endpoint, p256dh, auth
+      FROM order_push_subscriptions
+      WHERE order_id = ${String(orderId)}
+    `;
+    if (subs.length === 0) return;
+
+    const payload = JSON.stringify({
+      title: "Order Ready! 🍽️",
+      body: "Your order is ready for pickup at Makan Moments Cafe",
+      url: `/en/order/${orderId}`,
+    });
+
+    await Promise.allSettled(
+      subs.map((row) =>
+        webpush
+          .sendNotification(
+            { endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth } },
+            payload
+          )
+          .catch(async (err: { statusCode?: number }) => {
+            if (err?.statusCode === 410) {
+              // Expired subscription — remove it
+              await sql`DELETE FROM order_push_subscriptions WHERE endpoint = ${row.endpoint}`;
+            }
+          })
+      )
+    );
+  } catch (err) {
+    // Push is best-effort — log but don't fail the status update
+    console.warn("[push] sendCustomerPush failed:", err);
+  }
+}
 
 export const runtime = "nodejs";
 
@@ -115,6 +162,8 @@ export async function PATCH(
         RETURNING id, status
       `;
       if (rows.length === 0) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      // Fire-and-forget customer push notification
+      void sendCustomerPush(orderId);
       return NextResponse.json(rows[0]);
     }
 
