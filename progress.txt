@@ -738,3 +738,25 @@ Completed: Migrate time slots from JSON to Neon Postgres (ID: US-202) in 10m
 ## Iteration 11 - Thu, Mar 12, 2026 10:37:00 AM
 Completed: Add seed verification script (ID: US-204) in 2m
 
+
+## Iteration 12 - Story: US-205 - Add Vercel deployment checklist (DEPLOYMENT.md)
+
+### What was implemented
+- Created `DEPLOYMENT.md` at project root with:
+  - Pre-Deployment Checklist section (seed script, verify script)
+  - Environment Variables section (table with 15 vars: DATABASE_URL, ADMIN_*, GROQ_*, OPENROUTER_*, NEXT_PUBLIC_*, WhatsApp_*, VAPID_*, KITCHEN_*)
+  - Vercel Deployment Steps (4 sections: Connect, Configure, Pre-deployment hook, Deploy)
+  - Post-Deployment Verification (homepage, login, API tests)
+  - Notes on data/*.json files being legacy seed sources (safe to delete)
+  - Troubleshooting section (6 common issues)
+
+### Patterns discovered
+- DEPLOYMENT.md is purely documentation — no code changes needed
+- .env.example contains 14 environment variables across 7 categories
+
+### Gotchas
+- None — TypeScript check passes (no code was modified)
+
+## Iteration 12 - Thu, Mar 12, 2026 10:39:00 AM
+Completed: Add Vercel deployment checklist (ID: US-205) in 2m
+
