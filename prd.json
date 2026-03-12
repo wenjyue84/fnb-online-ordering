@@ -1,231 +1,136 @@
 {
   "productName": "fnb-online-ordering",
-  "branchName": "feature/decouple-from-makanmoments",
-  "overview": "Generic F&B online ordering platform cloned from makanmoments.cafe. Goal: decouple all Makan Moments branding and hardcoded port references so the codebase runs independently on port 3031 with its own Neon DB.",
+  "branchName": "feature/iter-01",
+  "overview": "Iteration 1: DB-backed settings foundation. Migrate all 4 JSON config files (site-settings, operating-hours, chat-settings, time-slots) to a Neon Postgres site_settings table. Make getSiteSettings() async and DB-backed. Decouple remaining hardcoded cafe name from push notifications and AI waiter prompt. Add smoke test scripts and Vitest unit tests.",
   "goals": [
-    "Replace all hardcoded localhost:3030 with localhost:3031",
-    "Replace all hardcoded makanmoments.cafe references with generic or env-driven values",
-    "Verify full functional parity with the source project",
-    "Update CLAUDE.md for the new project context"
+    "Move all server-side JSON config to Neon Postgres (Vercel ephemeral FS has no write persistence)",
+    "Make getSiteSettings() and writeSiteSettings() async and DB-backed",
+    "Decouple all remaining hardcoded Makan Moments references from runtime code",
+    "Add a SPIRAL-compatible smoke test report script",
+    "Add Vitest unit tests with npm run test"
   ],
   "userStories": [
     {
-      "id": "US-001",
-      "title": "Update hardcoded port 3030 to 3031 in test files",
+      "id": "US-101",
+      "title": "Add smoke test report script",
       "priority": 1,
-      "description": "All test files use the correct dev port (3031) so that smoke, reliability, e2e, performance, pre-order, and new-features tests run against the right server.",
+      "description": "Create test-reports/ directory and scripts/generate-test-report.mjs that hits localhost:3031 and writes a SPIRAL-compatible report.json with passed/failed/errored counts.",
       "acceptanceCriteria": [
-        "All occurrences of localhost:3030 in src/lib/tests/*.ts are replaced with localhost:3031",
-        "No grep hits for localhost:3030 in src/lib/tests/"
+        "test-reports/ in .gitignore (with .gitkeep exception)",
+        "scripts/generate-test-report.mjs writes test-reports/<timestamp>/report.json",
+        "Report shape: { summary: { passed, failed, errored, total }, tests: [...] }",
+        "Smoke tests: GET /en, GET /en/menu, GET /api/settings — all expect 200",
+        "npm run build passes"
       ],
       "technicalNotes": [
-        "Files: src/lib/tests/smoke.ts, reliability.ts, pre-order.ts, performance.ts, new-features.ts, e2e.ts",
-        "Find: localhost:3030 → Replace: localhost:3031"
+        "Use fetch() with AbortSignal.timeout for each URL",
+        "Output dir: test-reports/<ISO-timestamp>/report.json",
+        "Exit 1 if any failed or errored"
       ],
       "dependencies": [],
       "estimatedComplexity": "small",
       "passes": true
     },
     {
-      "id": "US-002",
-      "title": "Update hardcoded port 3030 in debug/check scripts",
-      "priority": 2,
-      "description": "All root-level debug scripts (check-*.mjs, find-error.mjs, verify-*.mjs) point to port 3031 so they work with this project's dev server.",
-      "acceptanceCriteria": [
-        "All occurrences of localhost:3030 in root-level .mjs files are replaced with localhost:3031",
-        "No grep hits for localhost:3030 in *.mjs at project root"
-      ],
-      "technicalNotes": [
-        "Files: check-rules.mjs, check-items.mjs, check-category.mjs, check-item-raw.mjs, check-page-html.mjs, check-menu-page.mjs, find-error.mjs, verify-items-debug.mjs, verify-react-state.mjs, verify-click-all.mjs, verify-menu.mjs",
-        "Find: localhost:3030 → Replace: localhost:3031"
-      ],
-      "dependencies": [],
-      "estimatedComplexity": "small",
-      "passes": true
-    },
-    {
-      "id": "US-003",
-      "title": "Update hardcoded port 3030 in CDP scripts",
-      "priority": 2,
-      "description": "CDP screenshot and console check scripts target port 3031.",
-      "acceptanceCriteria": [
-        "All occurrences of localhost:3030 in scripts/cdp_*.mjs are replaced with localhost:3031",
-        "No grep hits for localhost:3030 in scripts/"
-      ],
-      "technicalNotes": [
-        "Files: scripts/cdp_screenshot.mjs, scripts/cdp_console_check.mjs",
-        "Find: localhost:3030 → Replace: localhost:3031"
-      ],
-      "dependencies": [],
-      "estimatedComplexity": "small",
-      "passes": true
-    },
-    {
-      "id": "US-004",
-      "title": "Update NEXT_PUBLIC_SITE_URL in .env.local",
+      "id": "US-102",
+      "title": "Pre-order submission verification script",
       "priority": 1,
-      "description": "NEXT_PUBLIC_SITE_URL reflects this project's identity (not makanmoments.cafe) so SEO, sitemap, and meta tags are correct.",
+      "description": "Create scripts/verify-order-submit.mjs that POSTs a clearly-marked test order to /api/orders and confirms 201 + order ID. Update .env.example with WhatsApp vars.",
       "acceptanceCriteria": [
-        ".env.local has NEXT_PUBLIC_SITE_URL=http://localhost:3031",
-        "No reference to makanmoments.cafe in .env.local"
+        "Script prints PASS: Order saved — ID: <id> on HTTP 201",
+        "Test item: { id: 'TEST-VERIFY', nameEn: 'VERIFY TEST — DELETE ME', price: 1.00, quantity: 1 }",
+        "estimatedArrival at least 30 min in the future",
+        ".env.example documents WAITER_WHATSAPP_NUMBER, WHATSAPP_API_URL, WHATSAPP_API_KEY",
+        "npm run build passes"
       ],
       "technicalNotes": [
-        "File: .env.local",
-        "Find: NEXT_PUBLIC_SITE_URL=https://makanmoments.cafe → Replace: NEXT_PUBLIC_SITE_URL=http://localhost:3031"
+        "Port: http://localhost:3031",
+        "Prints reminder to delete test order from /admin > Orders tab"
       ],
       "dependencies": [],
       "estimatedComplexity": "small",
       "passes": true
     },
     {
-      "id": "US-005",
-      "title": "Replace hardcoded makanmoments.cafe in admin push settings",
+      "id": "US-103",
+      "title": "Migrate all settings from JSON files to Neon Postgres site_settings table",
       "priority": 1,
-      "description": "Push notification blocked message does not reference makanmoments.cafe.",
+      "description": "Create site_settings table (key TEXT PRIMARY KEY, value JSONB). Make getSiteSettings() async + DB-backed. Update all callers. Wire admin and public settings APIs to read/write DB. Create seed script.",
       "acceptanceCriteria": [
-        "src/components/admin/admin-push-settings.tsx does not contain the string makanmoments.cafe",
-        "The message uses a generic reference like 'this site' instead"
+        "site_settings table created idempotently in src/lib/site-settings.ts",
+        "scripts/seed-settings.mjs seeds all 4 keys (site, operating_hours, chat, time_slots) from existing JSON files",
+        "getSiteSettings() is now async and returns Promise<SiteSettings>",
+        "writeSiteSettings() is now async and upserts into DB",
+        "src/app/api/admin/settings/route.ts uses await getSiteSettings() and await writeSiteSettings()",
+        "src/app/api/settings/route.ts uses await getSiteSettings()",
+        "middleware.ts root-redirect uses await getSiteSettings()",
+        "npm run build passes with no TypeScript errors"
       ],
       "technicalNotes": [
-        "File: src/components/admin/admin-push-settings.tsx",
-        "Find: makanmoments.cafe → Replace: this site"
+        "SQL: INSERT ... ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+        "Seed script loads .env.local if present for DATABASE_URL",
+        "knowledge/ files read via readFileSync (static assets, fine on Vercel)",
+        "data/*.json files remain as backup/seed source — not read at runtime"
       ],
       "dependencies": [],
-      "estimatedComplexity": "small",
+      "estimatedComplexity": "large",
       "passes": true
     },
     {
-      "id": "US-006",
-      "title": "Update VAPID subject mailto fallback",
+      "id": "US-104",
+      "title": "Decouple push notification title from hardcoded Makan Moments",
       "priority": 2,
-      "description": "VAPID subject fallback email does not reference makanmoments.cafe.",
+      "description": "Replace hardcoded '🍽 New Order — Makan Moments' in orders/route.ts and tools/orders.ts with dynamic (await getSiteSettings()).cafeName.",
       "acceptanceCriteria": [
-        "No grep hits for makanmoments.cafe in src/app/api/orders/route.ts or src/lib/tools/orders.ts",
-        "Fallback uses mailto:admin@localhost or reads from VAPID_SUBJECT env var"
+        "grep 'Makan Moments' src/lib/tools/orders.ts → zero hits",
+        "grep 'Makan Moments' src/app/api/orders/route.ts → zero hits",
+        "Notification title uses (await getSiteSettings()).cafeName with fallback 'Cafe'",
+        "npm run build passes"
       ],
       "technicalNotes": [
-        "Files: src/app/api/orders/route.ts, src/lib/tools/orders.ts",
-        "Find: mailto:admin@makanmoments.cafe → Replace: mailto:admin@localhost"
+        "Both files already import sql from db — add getSiteSettings import",
+        "cafeName used only inside the sendPushToAllAdmins function"
       ],
-      "dependencies": [],
+      "dependencies": ["US-103"],
       "estimatedComplexity": "small",
       "passes": true
     },
     {
-      "id": "US-007",
-      "title": "Update hardcoded absolute paths in compress script",
-      "priority": 3,
-      "description": "scripts/compress-steamed-fish.mjs uses relative paths instead of hardcoded makanmoments.cafe directory paths.",
-      "acceptanceCriteria": [
-        "No grep hits for makanmoments.cafe in scripts/compress-steamed-fish.mjs",
-        "Script uses process.cwd() or path.resolve for output paths"
-      ],
-      "technicalNotes": [
-        "File: scripts/compress-steamed-fish.mjs",
-        "Replace hardcoded C:\\Users\\Jyue\\Documents\\2-areas\\makan-moments-cafe\\1-projects\\makanmoments.cafe paths with relative paths using process.cwd()"
-      ],
-      "dependencies": [],
-      "estimatedComplexity": "small",
-      "passes": true
-    },
-    {
-      "id": "US-008",
-      "title": "Update CLAUDE.md for fnb-online-ordering context",
+      "id": "US-105",
+      "title": "Decouple AI waiter system prompt from hardcoded cafe name",
       "priority": 2,
-      "description": "CLAUDE.md describes this as the fnb-online-ordering project (port 3031, separate Neon DB) instead of referencing makanmoments.cafe specifics.",
+      "description": "Update src/lib/chat/system-prompt.ts to use (await getSiteSettings()).cafeName in the base prompt intro instead of hardcoded 'Makan Moments Cafe'.",
       "acceptanceCriteria": [
-        "CLAUDE.md first line references fnb-online-ordering, not makanmoments.cafe",
-        "Port references show 3031 not 3030",
-        "Live site URL is a placeholder (not makanmoments.cafe)",
-        "Neon DB project name is fnb-online-ordering"
+        "grep 'Makan Moments Cafe' src/lib/chat/system-prompt.ts → zero hits in the hardcoded base intro string",
+        "getSystemPrompt() awaits getSiteSettings() and uses cafeName",
+        "Chat endpoint still streams a 200 response",
+        "npm run build passes"
       ],
       "technicalNotes": [
-        "File: CLAUDE.md",
-        "Update project name, port, live URL, and DB references throughout",
-        "Keep all structural documentation intact — only change identity-specific values"
+        "getSystemPrompt() is already async — just add getSiteSettings() import and await call",
+        "readChatSettings() (chat/settings.ts) is a separate file-based reader — leave unchanged for now"
       ],
-      "dependencies": [],
-      "estimatedComplexity": "medium",
-      "passes": true
-    },
-    {
-      "id": "US-009",
-      "title": "Verify admin panel login and functionality on port 3031",
-      "priority": 1,
-      "description": "Confirm /admin/login works, admin can log in, and all admin tabs load correctly on the clone. This is a verification-only story — curl the admin API endpoints to confirm they respond.",
-      "acceptanceCriteria": [
-        "curl http://localhost:3031/admin/login returns 200",
-        "POST /api/admin/login with correct credentials returns a JWT cookie",
-        "GET /api/admin/menu with JWT returns menu items",
-        "GET /api/admin/orders with JWT returns orders array"
-      ],
-      "technicalNotes": [
-        "Use curl to test endpoints — no browser needed",
-        "Admin credentials checked against admin_users table in Neon DB",
-        "Login endpoint: POST /api/admin/login with JSON body {username, password} — returns JWT as httpOnly cookie"
-      ],
-      "dependencies": ["US-004"],
+      "dependencies": ["US-103"],
       "estimatedComplexity": "small",
       "passes": true
     },
     {
-      "id": "US-010",
-      "title": "Verify all locale routes work on port 3031",
-      "priority": 1,
-      "description": "All 3 locale routes (/en, /ms, /zh) and key pages (menu, about, contact) return HTTP 200 on the clone.",
-      "acceptanceCriteria": [
-        "curl http://localhost:3031/en returns 200",
-        "curl http://localhost:3031/ms returns 200",
-        "curl http://localhost:3031/zh returns 200",
-        "curl http://localhost:3031/en/menu returns 200",
-        "curl http://localhost:3031/en/about returns 200",
-        "curl http://localhost:3031/en/contact returns 200"
-      ],
-      "technicalNotes": [
-        "Use curl -o /dev/null -s -w '%{http_code}' to check status codes",
-        "Dev server must be running on port 3031"
-      ],
-      "dependencies": [],
-      "estimatedComplexity": "small",
-      "passes": true
-    },
-    {
-      "id": "US-011",
-      "title": "Verify AI waiter chat endpoint works on port 3031",
+      "id": "US-106",
+      "title": "Add Vitest + npm run test with unit tests",
       "priority": 2,
-      "description": "The AI waiter chat API endpoint responds on the clone, confirming Groq/OpenRouter API keys work.",
+      "description": "Install vitest, create vitest.config.ts with @/ alias scoped to src/, add src/tests/unit/utils.test.ts with unit tests. Wire 'test': 'vitest run' in package.json.",
       "acceptanceCriteria": [
-        "POST /api/chat with a test message returns a streaming response (HTTP 200)",
-        "No API key errors in the response"
+        "package.json has 'test': 'vitest run' script",
+        "vitest.config.ts at project root: environment: 'node', @/ alias, include: src/**/*.test.ts, exclude: rainbow-ai",
+        "src/tests/unit/utils.test.ts has ≥ 3 passing tests for utilities from src/lib/utils.ts",
+        "npm run test exits 0",
+        "npm run build still passes"
       ],
       "technicalNotes": [
-        "Use curl to POST to http://localhost:3031/api/chat",
-        "Send body in UIMessage format: {\"messages\":[{\"role\":\"user\",\"parts\":[{\"type\":\"text\",\"text\":\"hello\"}],\"id\":\"test1\"}]}",
-        "Response is SSE stream: start → start-step → text-start → text-delta tokens",
-        "NOTE: Plain {content:\"hello\"} format does NOT work — route expects UIMessage with parts array"
+        "vitest ^4 — scoped to src/ only to avoid pre-existing rainbow-ai test failures",
+        "Test coverage: cn(), formatPrice(), getLocalizedName()"
       ],
-      "dependencies": [],
-      "estimatedComplexity": "small",
-      "passes": true
-    },
-    {
-      "id": "US-099",
-      "title": "Parity check loop — re-compare and iterate",
-      "priority": 4,
-      "description": "Re-run the full comparison between makanmoments.cafe (port 3030) and fnb-online-ordering (port 3031) after all fixes. Steps: (1) grep for any remaining localhost:3030 or makanmoments.cafe references, (2) curl all key endpoints on both ports and diff responses, (3) if any differences found, add new user stories to prd.json and set this story back to passes:false, (4) if zero differences, mark passes:true and the loop terminates.",
-      "acceptanceCriteria": [
-        "grep -r 'localhost:3030' in src/ scripts/ and root *.mjs returns zero hits",
-        "grep -r 'makanmoments.cafe' in src/ returns zero hits (CLAUDE.md and .env excluded)",
-        "All API endpoints return equivalent responses on both ports",
-        "All locale routes return 200 on both ports",
-        "Zero actionable differences found — loop terminates"
-      ],
-      "technicalNotes": [
-        "This is the loop termination story — always the last to run",
-        "If differences found: create new user stories, set this to passes:false",
-        "If no differences: set passes:true — ralph loop ends"
-      ],
-      "dependencies": ["US-001", "US-002", "US-003", "US-004", "US-005", "US-006", "US-007", "US-008", "US-009", "US-010", "US-011"],
+      "dependencies": ["US-101"],
       "estimatedComplexity": "medium",
       "passes": true
     }
