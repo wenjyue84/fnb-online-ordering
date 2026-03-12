@@ -9,7 +9,7 @@ import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-const VALID_TABS = ["orders", "ai-waiter", "menu", "categories", "rules", "blog", "tests", "settings"];
+const VALID_TABS = ["orders", "ai-waiter", "menu", "categories", "rules", "blog", "tests", "settings", "chat-analytics"];
 
 export default async function AdminTabPage({ params }: { params: Promise<{ tab: string }> }) {
   const cookieStore = await cookies();

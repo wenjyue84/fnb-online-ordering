@@ -16,6 +16,7 @@ import {
   LogOut,
   Monitor,
   Bot,
+  BarChart3,
 } from "lucide-react";
 
 const KDS_URL = process.env.NEXT_PUBLIC_KDS_URL ?? "/kds";
@@ -68,6 +69,10 @@ const AiWaiterPage = dynamic(
   () => import("./ai-waiter-page").then((m) => m.AiWaiterPage),
   { ssr: false, loading: LoadingPlaceholder }
 );
+const ChatAnalyticsPanel = dynamic(
+  () => import("./chat-analytics-panel"),
+  { ssr: false, loading: LoadingPlaceholder }
+);
 
 interface AdminTabsProps {
   items: MenuItemWithRules[];
@@ -83,6 +88,7 @@ const TABS = [
   "Blog",
   "Tests",
   "Settings",
+  "Chat Analytics",
   "KDS",
   "AI Waiter",
 ] as const;
@@ -97,6 +103,7 @@ const TAB_ICONS: Record<Tab, React.ReactNode> = {
   Blog: <BookOpen className="h-4 w-4 shrink-0" />,
   Tests: <FlaskConical className="h-4 w-4 shrink-0" />,
   Settings: <Settings className="h-4 w-4 shrink-0" />,
+  "Chat Analytics": <BarChart3 className="h-4 w-4 shrink-0" />,
   KDS: <Monitor className="h-4 w-4 shrink-0" />,
 };
 
@@ -109,6 +116,7 @@ const TAB_SLUGS: Record<Tab, string> = {
   Blog: "blog",
   Tests: "tests",
   Settings: "settings",
+  "Chat Analytics": "chat-analytics",
   KDS: "kds",
 };
 
@@ -121,6 +129,7 @@ const SLUG_TO_TAB: Record<string, Tab> = {
   blog: "Blog",
   tests: "Tests",
   settings: "Settings",
+  "chat-analytics": "Chat Analytics",
 };
 
 export function AdminTabs({ items, displayCategories, posts }: AdminTabsProps) {
@@ -240,6 +249,7 @@ export function AdminTabs({ items, displayCategories, posts }: AdminTabsProps) {
           {activeTab === "Blog" && <AdminBlogTable initialPosts={posts} />}
           {activeTab === "Tests" && <AdminTestsPanel />}
           {activeTab === "Settings" && <AdminSettingsPanel displayCategories={displayCategories} />}
+          {activeTab === "Chat Analytics" && <ChatAnalyticsPanel />}
         </main>
       </div>
     </div>
