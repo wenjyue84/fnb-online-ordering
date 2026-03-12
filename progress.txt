@@ -505,3 +505,33 @@ Here is the technical brief for implementing the real-time notification user sto
 *   **UI State:** The notification badge count should be reset after the admin views the new orders list.
 *   **Build Step:** Remember to run `bench build` after adding or modifying the client-side JS file to apply the changes.
 
+## Iteration 1 - Fri, Mar 13, 2026 12:55:31 AM
+Completed: Wire depositRequired into approve action (ID: US-501) in 29m
+
+
+## Pre-analysis for US-504 (Gemini 2.5 Pro)
+This is a technical brief for implementing a Server-Sent Events (SSE) endpoint in a Next.js application to provide real-time order notifications to an admin dashboard.
+
+**1. Files to Modify:**
+*   **Create:** `src/app/api/admin/orders/stream/route.ts` - The new Edge Runtime SSE endpoint.
+*   **Modify:** `src/components/admin/admin-orders-bell.tsx` - The client-side React component that will consume the SSE stream.
+
+**2. Involved DocTypes & Hooks:**
+*   **Framework/Runtime:** Next.js App Router, Vercel Edge Runtime.
+*   **API:** Server-Sent Events (`ReadableStream`, `EventSource`).
+*   **Database:** Neon, using the `@neondatabase/serverless` driver directly.
+*   **Authentication:** Manual JWT parsing using the `jose` library.
+
+**3. Implementation Approach:**
+*   **Backend (`route.ts`):** Create a `GET` handler that returns a `ReadableStream`. Inside the stream, use `setInterval` to poll the `tray_orders` table every 3 seconds for new orders. On finding new orders, enqueue a `data: {json}\n\n` event. A separate `setInterval` will send a comment (`: ping\n\n`) every 20s as a heartbeat.
+*   **Frontend (`admin-orders-bell.tsx`):** Use a `useEffect` hook to establish an `EventSource` connection. An `onmessage` handler will update the UI with new order notifications. An `onerror` handler will manage the reconnection logic.
+
+**4. Edge Cases & Gotchas:**
+*   **Edge Compatibility is critical:** The standard DB client in `@src/lib/db.ts` uses a connection pool and is **not** Edge-compatible. You must import and use `neon` from `@neondatabase/serverless` directly in the route handler.
+*   **Edge Authentication:** Similarly, standard auth helpers may rely on Node.js APIs. Authentication must be handled by manually parsing the cookie and using `jose.jwtVerify` for JWT validation.
+*   **Connection Lifecycle:** The client must close the `EventSource` connection in the `useEffect` cleanup function to prevent memory leaks.
+*   **Graceful Fallback:** After 3 failed reconnection attempts, the client must cleanly terminate SSE efforts and revert to the existing 30-second `setInterval` polling mechanism, updating a status indicator in the UI to reflect this state.
+
+## Iteration 1 - Fri, Mar 13, 2026  1:01:12 AM
+Incomplete: Admin SSE for real-time new order notifications (ID: US-504) — attempt 1/3
+

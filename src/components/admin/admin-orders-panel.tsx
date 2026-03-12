@@ -1,6 +1,7 @@
 "use client";
 
-import { RefreshCw } from "lucide-react";
+import { useState } from "react";
+import { RefreshCw, CheckCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminOrders, type FilterTab } from "@/hooks/useAdminOrders";
 import { AdminOrderCard } from "./admin-order-card";
@@ -22,10 +23,73 @@ export function AdminOrdersPanel() {
     updateStatus,
   } = useAdminOrders();
 
+  const [bulkConfirm, setBulkConfirm] = useState(false);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkToast, setBulkToast] = useState<string | null>(null);
+
   const expiredCount = orders.filter((o) => o.status === "expired").length;
+
+  async function handleBulkApprove() {
+    setBulkLoading(true);
+    try {
+      const res = await fetch("/api/admin/orders/bulk-approve", { method: "POST" });
+      const data = await res.json() as { approved: number; failed: number };
+      if (data.failed > 0) {
+        setBulkToast(`${data.approved} approved, ${data.failed} failed`);
+      } else {
+        setBulkToast(`${data.approved} order${data.approved !== 1 ? "s" : ""} approved`);
+      }
+      setTimeout(() => setBulkToast(null), 4000);
+      await fetchOrders(true);
+    } catch {
+      setBulkToast("Bulk approve failed");
+      setTimeout(() => setBulkToast(null), 4000);
+    } finally {
+      setBulkLoading(false);
+      setBulkConfirm(false);
+    }
+  }
 
   return (
     <div>
+      {/* Bulk approve confirmation modal */}
+      {bulkConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-xl bg-white shadow-2xl p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Approve All Pending ({pendingCount})?
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Approve all {pendingCount} pending orders? Ready times will be auto-calculated.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => void handleBulkApprove()}
+                disabled={bulkLoading}
+                className="flex-1 min-h-[40px] rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
+              >
+                <CheckCheck className="h-4 w-4" />
+                {bulkLoading ? "Approving…" : "Confirm"}
+              </button>
+              <button
+                onClick={() => setBulkConfirm(false)}
+                disabled={bulkLoading}
+                className="min-h-[40px] rounded-lg border border-gray-300 px-4 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      {bulkToast && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-medium text-white shadow-lg">
+          {bulkToast}
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
         <div className="flex items-center gap-2">
@@ -36,14 +100,26 @@ export function AdminOrdersPanel() {
             </span>
           )}
         </div>
-        <button
-          onClick={() => fetchOrders(true)}
-          disabled={refreshing || loading}
-          className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
-        >
-          <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          {filterTab === "Pending" && pendingCount > 0 && (
+            <button
+              onClick={() => setBulkConfirm(true)}
+              disabled={bulkLoading}
+              className="flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+            >
+              <CheckCheck className="h-3.5 w-3.5" />
+              Approve All Pending ({pendingCount})
+            </button>
+          )}
+          <button
+            onClick={() => fetchOrders(true)}
+            disabled={refreshing || loading}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+          >
+            <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Filter tabs */}

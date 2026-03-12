@@ -5,6 +5,7 @@ import { Check, X, Clock, Eye, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDateTimeCompact as formatDateTime, formatTime } from "@/lib/date-utils";
 import type { AdminOrder, ActionResult } from "@/hooks/useAdminOrders";
+import { calculateSmartReadyTime, toDatetimeLocal } from "@/lib/orders";
 
 export const STATUS_LABELS: Record<string, string> = {
   pending_approval: "Pending Approval",
@@ -32,24 +33,18 @@ export const STATUS_COLORS: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
 };
 
-function defaultReadyTime() {
-  const d = new Date(Date.now() + 30 * 60 * 1000);
-  d.setSeconds(0, 0);
-  d.setMinutes(Math.ceil(d.getMinutes() / 5) * 5);
-  return d.toISOString().slice(0, 16);
-}
-
 // ---------------------------------------------------------------------------
 // Approve modal
 // ---------------------------------------------------------------------------
 interface ApproveModalProps {
   orderId: number;
+  items: { quantity: number }[];
   onClose: () => void;
   onApprove: (id: number, estimatedReady: string) => Promise<ActionResult>;
 }
 
-function ApproveModal({ orderId, onClose, onApprove }: ApproveModalProps) {
-  const [readyTime, setReadyTime] = useState(defaultReadyTime());
+function ApproveModal({ orderId, items, onClose, onApprove }: ApproveModalProps) {
+  const [readyTime, setReadyTime] = useState(() => toDatetimeLocal(calculateSmartReadyTime(items)));
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
@@ -400,6 +395,7 @@ export function AdminOrderCard({ order, onApprove, onReject, onStatusUpdate }: A
       {showApprove && (
         <ApproveModal
           orderId={order.id}
+          items={order.items}
           onClose={() => setShowApprove(false)}
           onApprove={onApprove}
         />
