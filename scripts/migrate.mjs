@@ -35,8 +35,8 @@ const { neon } = await import("@neondatabase/serverless");
 // Prefer unpooled (direct) connection for DDL; fall back to pooled
 const DATABASE_URL = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
 if (!DATABASE_URL) {
-  console.error("ERROR: DATABASE_URL is not set. Add it to .env.local or export it.");
-  process.exit(1);
+  console.warn("WARN: DATABASE_URL is not set — skipping migrations (build-only mode).");
+  process.exit(0);
 }
 
 const sql = neon(DATABASE_URL);
