@@ -82,7 +82,7 @@ self.addEventListener("notificationclick", (event) => {
       .then((windowClients) => {
         // Focus existing admin tab if open
         for (const client of windowClients) {
-          if (client.url.includes("/admin") && "focus" in client) {
+          if (client.url.includes(targetUrl) && "focus" in client) {
             return client.focus();
           }
         }
