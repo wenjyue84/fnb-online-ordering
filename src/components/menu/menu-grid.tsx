@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo, useTransition } from "react";
+import { useState, useCallback, useEffect, useMemo, useDeferredValue } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import dynamic from "next/dynamic";
@@ -66,8 +66,6 @@ export function MenuGrid({
   const router = useRouter();
   const pathname = usePathname();
 
-  const [isPending, startTransition] = useTransition();
-
   // Filter mode only: Vegetarian/Favorites filters change this value.
   // Navigation pills (display categories as sections) do NOT change this — they just scroll.
   const [category, setCategory] = useState<string | null>(() => {
@@ -95,6 +93,13 @@ export function MenuGrid({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, previewTime]);
   const debouncedSearch = useDebounce(search, 300);
+
+  // Defer category and search so the filter pill highlights immediately (within 50ms)
+  // while the expensive menu grid re-render is yielded to the browser.
+  const deferredCategory = useDeferredValue(category);
+  const deferredSearch = useDeferredValue(debouncedSearch);
+  const isPending = deferredCategory !== category || deferredSearch !== debouncedSearch;
+
   const [highlights] = useState<Record<string, string>>(initialHighlights);
 
   // Archive state — track items archived/restored in this session
@@ -211,8 +216,8 @@ export function MenuGrid({
     isChefsPick,
   } = useMenuFiltering({
     items: visibleItems,
-    selectedCategory: category,
-    searchQuery: debouncedSearch,
+    selectedCategory: deferredCategory,
+    searchQuery: deferredSearch,
     highlights,
     displayCategories,
     favorites,
@@ -393,7 +398,7 @@ export function MenuGrid({
         activeSection={activeSection}
         onScrollToSection={handleScrollToSection}
         selectedCategory={category}
-        onCategoryChange={(cat) => startTransition(() => setCategory(cat))}
+        onCategoryChange={setCategory}
         onSearchChange={setSearch}
         searchQuery={search}
         itemCount={filtered.length}
