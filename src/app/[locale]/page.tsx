@@ -112,7 +112,7 @@ function HighlightsSkeleton() {
         <div className="h-9 w-64 animate-pulse rounded-lg bg-muted" />
         <div className="mt-2 hidden h-5 w-96 animate-pulse rounded bg-muted sm:block" />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="overflow-hidden rounded-xl border border-border">
             <div className="aspect-[4/3] animate-pulse bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/20" />

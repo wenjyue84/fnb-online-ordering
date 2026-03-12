@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ShoppingCart, X, Minus, Plus, ChevronDown, ChevronUp, Clock } from "lucide-react";
 import { useTray } from "@/lib/tray-context";
-import { useScrolling } from "@/lib/scrolling-context";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { OrderFormModal } from "./order-form-modal";
@@ -74,7 +73,6 @@ export function TrayWidget() {
     const [historyOpen, setHistoryOpen] = useState(false);
     const [badgeBounce, setBadgeBounce] = useState(false);
     const { items, addItem, removeItem, clearTray, totalPrice } = useTray();
-    const { scrollPhase } = useScrolling();
     const t = useTranslations("tray");
 
     const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -190,7 +188,7 @@ export function TrayWidget() {
                     <h2 className="text-xl font-bold">{t("title")}</h2>
                     <button
                         onClick={() => setOpen(false)}
-                        className="rounded-full p-2 hover:bg-muted transition-colors"
+                        className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-muted transition-colors"
                         aria-label={t("close") ?? "Close cart"}
                     >
                         <X className="h-5 w-5" />
@@ -246,7 +244,7 @@ export function TrayWidget() {
                                     <div className="flex items-center gap-3 bg-background border shadow-sm rounded-full p-1">
                                         <button
                                             onClick={() => removeItem(item.id)}
-                                            className="rounded-full h-8 w-8 flex items-center justify-center hover:bg-muted transition-colors"
+                                            className="rounded-full h-11 w-11 flex items-center justify-center hover:bg-muted transition-colors"
                                             aria-label={`Decrease quantity of ${item.name}`}
                                         >
                                             <Minus className="h-4 w-4" />
@@ -254,7 +252,7 @@ export function TrayWidget() {
                                         <span className="w-6 text-center font-semibold" aria-live="polite" aria-atomic="true">{item.quantity}</span>
                                         <button
                                             onClick={() => addItem(item)}
-                                            className="rounded-full h-8 w-8 flex items-center justify-center hover:bg-muted transition-colors"
+                                            className="rounded-full h-11 w-11 flex items-center justify-center hover:bg-muted transition-colors"
                                             aria-label={`Increase quantity of ${item.name}`}
                                         >
                                             <Plus className="h-4 w-4" />
@@ -335,7 +333,7 @@ export function TrayWidget() {
                 <div className="fixed bottom-0 left-0 right-0 z-40 sm:hidden animate-in slide-in-from-bottom-4 duration-300">
                     <button
                         onClick={() => setOpen(true)}
-                        className="w-full flex items-center gap-3 bg-orange-500 text-white px-5 active:bg-orange-600 transition-colors"
+                        className="w-full flex items-center gap-3 bg-orange-500 text-white px-5 min-h-[56px] active:bg-orange-600 transition-colors shadow-[0_-2px_10px_rgba(0,0,0,0.15)]"
                         style={{ paddingTop: "0.875rem", paddingBottom: "max(0.875rem, env(safe-area-inset-bottom))" }}
                         aria-label="View cart"
                         aria-expanded={open}
@@ -356,10 +354,8 @@ export function TrayWidget() {
                     ref={buttonRef}
                     onClick={() => setOpen(true)}
                     className={cn(
-                        "hidden sm:flex fixed bottom-4 right-20 z-40 h-14 items-center justify-center rounded-full bg-orange-500 px-4 text-white shadow-lg transition-[transform,opacity] hover:scale-105 gap-2",
+                        "hidden sm:flex fixed bottom-4 right-20 z-40 h-14 items-center justify-center rounded-full bg-orange-500 px-4 text-white shadow-lg transition-transform hover:scale-105 gap-2",
                         open && "!hidden",
-                        scrollPhase === "scrolling" && "opacity-0 transition-opacity duration-150 pointer-events-none",
-                        scrollPhase === "resting" && "scroll-fade-in"
                     )}
                     aria-label="View cart"
                     aria-expanded={open}

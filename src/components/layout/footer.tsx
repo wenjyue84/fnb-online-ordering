@@ -72,7 +72,7 @@ export async function Footer() {
                 href={settings.social.facebook}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-lg p-2 text-muted-foreground transition-all hover:bg-[#1877f2]/10 hover:text-[#1877f2]"
+                className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-all hover:bg-[#1877f2]/10 hover:text-[#1877f2]"
                 aria-label="Facebook"
               >
                 <Facebook className="h-5 w-5" />
@@ -81,7 +81,7 @@ export async function Footer() {
                 href={settings.social.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-lg p-2 text-muted-foreground transition-all hover:bg-[#e4405f]/10 hover:text-[#e4405f]"
+                className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-all hover:bg-[#e4405f]/10 hover:text-[#e4405f]"
                 aria-label="Instagram"
               >
                 <Instagram className="h-5 w-5" />
@@ -90,7 +90,7 @@ export async function Footer() {
                 href={settings.social.tiktok}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-lg p-2 text-muted-foreground transition-all hover:bg-foreground/8 hover:text-foreground"
+                className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-all hover:bg-foreground/8 hover:text-foreground"
                 aria-label="TikTok"
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">

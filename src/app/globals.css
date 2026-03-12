@@ -2,13 +2,13 @@
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
-/* Scroll-fade: instantly appear at 15% opacity, then ease to full over 2s */
+/* Scroll-fade: appear quickly — 600ms is fast enough to feel instant but smooth */
 @keyframes scrollFadeIn {
   from { opacity: 0.15; }
   to { opacity: 1; }
 }
 .scroll-fade-in {
-  animation: scrollFadeIn 2s ease-in forwards;
+  animation: scrollFadeIn 0.6s ease-out forwards;
 }
 
 @custom-variant dark (&:is(.dark *));
@@ -57,8 +57,8 @@
 /* ─── /colorize: Richer earthy, warmer linen palette ─── */
 :root {
   --radius: 0.625rem;
-  /* Sticky header height + filter bar height — used for scroll-mt on section anchors */
-  --menu-scroll-offset: 108px;
+  /* Sticky header (64px) + filter bar (~92px) + breathing room (8px) — used for scroll-mt on section anchors */
+  --menu-scroll-offset: 164px;
 
   /* /normalize: Easing custom properties */
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);

@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Search, X, Heart, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useScrolling } from "@/lib/scrolling-context";
 
 const speechSupported =
   typeof window !== "undefined" &&
@@ -61,7 +60,6 @@ export function MenuFilter({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const { scrollPhase } = useScrolling();
 
   // Reveal mic after hydration to avoid SSR mismatch
   useEffect(() => { setVoiceReady(speechSupported); }, []);
@@ -148,25 +146,23 @@ export function MenuFilter({
   }
 
   const pillBase =
-    "flex-shrink-0 snap-start rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1";
+    "flex-shrink-0 snap-start rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 min-h-[44px] flex items-center";
   const pillActive = "bg-primary text-primary-foreground scale-[1.04]";
   const pillInactive = "bg-secondary text-secondary-foreground hover:bg-secondary/80";
 
   return (
     <div
       className={cn(
-        // Mobile: sticky top bar below site header
-        "sticky top-16 left-0 right-0 z-40 transition-opacity",
-        scrollPhase === "scrolling" && "opacity-0 transition-opacity duration-150 pointer-events-none",
-        scrollPhase === "resting" && "scroll-fade-in",
-        "border-b border-border bg-background",
+        // Mobile: sticky top bar below site header — always visible for navigation
+        "sticky top-16 left-0 right-0 z-40",
+        "border-b border-border bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80",
         "px-4",
         // Desktop: always visible, non-sticky
-        "md:relative md:top-auto md:opacity-100 md:pointer-events-auto",
-        "md:border-0 md:bg-transparent",
+        "md:relative md:top-auto",
+        "md:border-0 md:bg-transparent md:backdrop-blur-none",
         "md:px-0 md:pb-0 md:mb-6 md:space-y-4"
       )}
-      style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
+      style={{ paddingBottom: "0.5rem" }}
     >
       {/* Search bar — hidden on mobile until toggled; always visible on desktop */}
       <div
@@ -289,7 +285,7 @@ export function MenuFilter({
               }
               data-active={selectedCategory === FAV_KEY ? "true" : "false"}
               className={cn(
-                "flex-shrink-0 snap-start inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 active:scale-95",
+                "flex-shrink-0 snap-start inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 active:scale-95 min-h-[44px]",
                 selectedCategory === FAV_KEY
                   ? "bg-red-500 text-white scale-[1.04]"
                   : "border border-red-300 bg-red-50 text-red-600 hover:bg-red-100"
@@ -309,8 +305,8 @@ export function MenuFilter({
           className={cn(
             "flex-shrink-0 flex items-center gap-1.5 rounded-full transition-colors md:hidden",
             searchOpen || searchQuery
-              ? "p-2 bg-primary text-primary-foreground"
-              : "px-3 py-1.5 bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              ? "p-2.5 bg-primary text-primary-foreground"
+              : "px-3 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80"
           )}
           aria-label={searchOpen ? "Close search" : "Search dishes"}
         >

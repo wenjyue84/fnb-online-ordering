@@ -25,7 +25,7 @@ export async function Highlights({ items, highlightsTitle, highlightsSubtitle }:
         <h2 className="font-display text-3xl font-bold">{title}</h2>
         <p className="mt-2 hidden text-muted-foreground sm:block">{subtitle}</p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
         {items.slice(0, 6).map((item, index) => (
           <div
             key={item.id}

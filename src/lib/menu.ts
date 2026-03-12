@@ -45,7 +45,7 @@ function buildPhotosCache(): { primary: Record<string, string>; secondary: Recor
       // Primary descriptive: {POS-code}-{name-starting-with-non-digit}.ext
       // POS codes are short uppercase + digits (e.g. TM03, AC01, LL13) — strict match
       // prevents misidentifying codes with hyphens (e.g. Thai-styled_green_cu.jpg)
-      const descMatch = file.match(/^([A-Z]{2,4}\d{1,3})-([^0-9].+)\.(jpe?g|png|webp)$/i);
+      const descMatch = file.match(/^([A-Z]{1,4}\d{1,3})-([^0-9].+)\.(jpe?g|png|webp)$/i);
       if (descMatch) {
         const code = descMatch[1].toUpperCase();
         const ext = file.split(".").pop()!.toLowerCase();
@@ -57,6 +57,14 @@ function buildPhotosCache(): { primary: Record<string, string>; secondary: Recor
       const exactMatch = file.match(/^(.+)\.(jpe?g|png|webp)$/i);
       if (exactMatch) {
         const code = exactMatch[1];
+        // Warn if this looks like a descriptive file that the regex above failed to parse.
+        // This catches future regressions where the POS-code pattern drifts.
+        if (process.env.NODE_ENV !== "production" && /^[A-Z]+\d+-/i.test(code)) {
+          console.warn(
+            `[menu-photos] File "${file}" looks descriptive but was not matched by the POS-code regex. ` +
+            `It fell through to exact-match with code "${code}". Check the descriptive regex in menu.ts.`
+          );
+        }
         const ext = file.split(".").pop()!.toLowerCase();
         if (!primaryExact[code] || ext === "webp") primaryExact[code] = `/images/menu/${file}`;
       }

@@ -1,3 +1,40 @@
+## Iteration 5: Core Ordering Flow — Progress Log
+
+### Context
+- Reducing customer wait time by streamlining the order-to-kitchen pipeline
+- depositRequired already exists in SiteSettings type (default: false) and admin settings toggle — just needs wiring into approve action
+- web-push already installed; VAPID keys already in .env.local; push_subscriptions table exists for admins
+- public/sw.js already has push + notificationclick handlers
+- /kitchen route does not yet exist
+
+### Pre-analysis (research phase)
+
+**SSE in Next.js App Router (for US-504):**
+- Use `export const runtime = 'edge'` — avoids Vercel's 60s Node.js serverless limit (Edge gets 300s)
+- Must include `X-Accel-Buffering: no` header — prevents NGINX/Vercel proxy buffering events
+- Edge Runtime cannot use Pool from @neondatabase/serverless — use `neon()` tagged template directly
+- JWT verification in Edge: use `jose` jwtVerify() directly (not verifyAdminToken() which uses Node.js APIs)
+- EventSource sends cookies automatically on same-origin — admin JWT cookie auth works
+- SSE wire format: `data: {json}\n\n` for events, `: ping\n\n` for heartbeat comments
+- Client reconnect: EventSource has built-in reconnect; also implement manual attempt counter for fallback to polling
+
+**Customer Web Push (for US-506):**
+- Separate table `order_push_subscriptions` (order_id, endpoint, p256dh, auth) — CREATE TABLE IF NOT EXISTS in route
+- iOS only delivers push to PWA added to Home Screen (iOS 16.4+) — gate subscribe button behind: /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.matchMedia('(display-mode: standalone)').matches
+- Use urlBase64ToUint8Array() helper for applicationServerKey conversion (10-line utility, inline it)
+- 410 Gone from push service = expired subscription → DELETE that row (same pattern as admin push in src/app/api/orders/route.ts)
+- NEXT_PUBLIC_VAPID_PUBLIC_KEY already in .env.example — reuse existing VAPID setup
+
+### Completed Stories
+
+(none yet)
+
+### Key patterns from Iteration 5
+
+(accumulates as stories complete)
+
+---
+
 ## Iteration 4: AI Waiter Enhancement — Progress Log
 
 ### Context
@@ -156,4 +193,315 @@ Here is the technical brief for user story US-401.
 *   **Relative Paths:** Ensure the `kbDir` path is relative to function across different operating systems (dev vs. production).
 *   **Dynamic Knowledge:** The `system_prompt` should define the AI's role and personality but must NOT include menu items, as they are loaded dynamically from the knowledge base.
 *   **File Integrity:** Do not alter the existing `AGENTS.md` file within the KB directory.
+
+## Iteration 1 - Thu, Mar 12, 2026  8:15:57 PM
+Completed: Populate Makan Moments KB and config in Rainbow AI (ID: US-401) in 19m
+
+
+## Pre-analysis for US-501 (Gemini 2.5 Pro)
+This user story (US-501) describes a **Next.js/TypeScript** implementation, not a Frappe/Python one. The technical brief below is based on the actual file paths and logic in the story.
+
+**Technical Brief: US-501**
+
+*   **Files to Modify:**
+    *   `src/app/api/admin/orders/[id]/route.ts`: To implement the core conditional logic.
+    *   `src/app/api/settings/route.ts`: To expose the setting to the client.
+    *   `src/app/[locale]/order/[id]/page.tsx`: The customer-facing UI that conditionally renders components.
+    *   `src/lib/site-settings.ts`: (Verify) The function that reads the setting.
+
+*   **Key Data/API Endpoints (Analogous to DocTypes/Hooks):**
+    *   **Data Source:** `data/site-settings.json` (contains the `depositRequired` flag).
+    *   **API Endpoint:** `PATCH /api/admin/orders/[id]`: The whitelisted API route for the `approve` action.
+    *   **API Endpoint:** `GET /api/settings`: The public endpoint for client-side settings.
+
+*   **Implementation Approach:**
+    1.  In `.../api/admin/orders/[id]/route.ts`, modify the `PATCH` handler. Inside the `approve` action block, call `getSiteSettings()`.
+    2.  Branch the logic: if `depositRequired` is `false`, set the order status to `'preparing'`. Otherwise, keep the existing `'approved'` status logic.
+    3.  In `.../api/settings/route.ts`, add the `depositRequired` field to the public response payload.
+    4.  In `.../order/[id]/page.tsx`, fetch settings from `/api/settings` and use the flag to hide the payment section, showing a "preparing" message instead when appropriate.
+
+*   **Gotchas to Watch For:**
+    *   Ensure the `estimatedReady` time is saved correctly in both branches of the logic.
+    *   The client page (`page.tsx`) must handle the loading state for the new settings API call to prevent UI flicker or race conditions.
+    *   Confirm `getSiteSettings()` gracefully handles a missing `depositRequired` key in the JSON, defaulting to `false`.
+
+
+## Pre-analysis for US-501 (Gemini 2.5 Pro)
+### Technical Brief: US-501 (Frappe/Python Adaptation)
+
+This brief translates the provided user story's logic into a Frappe/Python context for the `lhdn_payroll_integration` app. The core task is to make a document's approval action conditional based on a global setting.
+
+**1. Python Files to Modify:**
+- `lhdn_payroll_integration/lhdn_payroll_integration/doctype/payroll_submission/payroll_submission.py`: To implement the conditional logic in the document's controller class.
+- `lhdn_payroll_integration/lhdn_payroll_integration/api.py`: To create a new whitelisted API endpoint that exposes the required setting to the client-side.
+
+**2. Frappe DocTypes & Hooks:**
+- **`Payroll Submission`** (Assumed name): The primary transactional DocType being approved. It needs a `status` field supporting values like `'Approved'` and `'Preparing'`.
+- **`LHDN Settings`** (Singleton): A new or existing singleton settings DocType must have a **Check** field named `deposit_required` (default: 0).
+- **`hooks.py`**: May be needed to whitelist the new API endpoint in `api.py`.
+
+**3. Recommended Implementation Approach:**
+1.  In `payroll_submission.py`, define a whitelisted method like `approve_submission`.
+2.  Inside this method, fetch the setting: `deposit_required = frappe.db.get_single_value('LHDN Settings', 'deposit_required')`.
+3.  Branch the logic: `self.status = 'Approved' if deposit_required else 'Preparing'`.
+4.  Save the document using `self.save()`.
+5.  In `payroll_submission.js` (client script), use `frm.add_custom_button` to call the new method. On `refresh`, conditionally show/hide payment-related fields based on the document's status.
+
+**4. Edge Cases & Gotchas:**
+- **Workflows:** If a Frappe Workflow manages the status, place this logic in a Workflow Action script for the 'Approve' transition instead of a custom button to avoid bypassing the state machine.
+- **Permissions:** Ensure the `approve_submission` method is restricted by role.
+- **Caching:** Use `frappe.get_cached_doc` for settings to improve performance, but be aware of cache clearing if the setting changes often.
+
+
+## Pre-analysis for US-501 (Gemini 2.5 Pro)
+This user story is for a **Next.js (TypeScript/React)** application, not a Frappe/Python one. The file paths (`route.ts`, `page.tsx`) and technical notes reference a typical Next.js project structure.
+
+Here is the technical brief based on the Next.js context provided:
+
+**Project:** fnb-online-ordering (Next.js)
+**User Story:** US-501
+
+**1. Files to Modify:**
+*   `src/app/api/admin/orders/[id]/route.ts`: To change the order status logic.
+*   `src/app/api/settings/route.ts`: To expose the `depositRequired` setting publicly.
+*   `src/app/[locale]/order/[id]/page.tsx`: The customer-facing UI that will conditionally render the payment section.
+*   `src/lib/site-settings.ts`: Confirmed as the source for `getSiteSettings()`.
+
+**2. Involved Framework Concepts:**
+*   **API Routes:** The core logic resides in two Next.js API routes (`/api/admin/orders/[id]` and `/api/settings`).
+*   **React Server/Client Components:** The order page (`page.tsx`) will fetch data and conditionally render UI based on the new setting.
+
+**3. Implementation Approach:**
+*   In the `approve` action of the admin orders API, call `getSiteSettings()`.
+*   Implement a conditional: `if (settings.depositRequired)` then set status to `'approved'`, else set status to `'preparing'`.
+*   Update the public settings API to include the `depositRequired` boolean in its response payload.
+*   On the customer order page, fetch settings alongside order data. Use a React state or prop (`depositRequired`) to control the visibility of the payment upload section.
+
+**4. Gotchas & Edge Cases:**
+*   The `estimatedReady` time can be provided during the approve action and must be saved regardless of the `depositRequired` value.
+*   The customer page logic must check both `!depositRequired` AND `order.status === 'preparing'` to show the correct confirmation message.
+*   Ensure the public settings API only exposes safe, non-sensitive fields.
+
+
+## Pre-analysis for US-501 (Gemini 2.5 Pro)
+Here is the technical brief for the Claude agent.
+
+**Technical Brief: US-501 - Implement `depositRequired` Logic**
+
+This brief outlines the implementation of a feature where a system setting, `depositRequired`, alters the outcome of an order approval action within the `lhdn_payroll_integration` app.
+
+**1. Python Files to Modify:**
+
+*   **Primary:** `lhdn_payroll_integration/lhdn_payroll_integration/doctype/payroll_order/payroll_order.py` (assuming `Payroll Order` is the relevant DocType). The `approve_order` controller method will be created/modified here.
+*   **Secondary:** `lhdn_payroll_integration/api.py`. A new whitelisted method `get_lhdn_settings` will be added to expose the setting to the client.
+*   **Hooks:** `lhdn_payroll_integration/hooks.py` to whitelist the new API endpoints.
+
+**2. Frappe DocTypes & Hooks:**
+
+*   **DocType (Singleton):** `LHDN Settings`. A new field `deposit_required` (Type: Check, Default: 0) must be added.
+*   **DocType:** `Payroll Order`. This DocType's status field will be conditionally updated.
+*   **API Hook:** The `approve_order` method in `payroll_order.py` must be whitelisted (`@frappe.whitelist()`).
+
+**3. Implementation Approach:**
+
+1.  Modify the `LHDN Settings` DocType to include the `deposit_required` checkbox.
+2.  In `payroll_order.py`, create the `approve_order(order_id)` method.
+3.  Inside this method, fetch the setting: `settings = frappe.get_cached_doc('LHDN Settings')`.
+4.  Conditionally set the order status:
+    *   If `settings.deposit_required`: `order.status = 'Approved'`
+    *   Else: `order.status = 'Preparing'`
+5.  In `api.py`, create a `get_lhdn_settings` function to return `{'deposit_required': settings.deposit_required}`.
+
+**4. Edge Cases & Gotchas:**
+
+*   **Permissions:** Ensure `approve_order` validates user roles (e.g., 'Payroll Manager').
+*   **Workflow:** If the `status` field is governed by a Frappe Workflow, you must use `frappe.model.workflow.apply_workflow(doc, "action")` instead of setting `doc.status` directly.
+*   **Client Side:** The frontend must call the new `get_lhdn_settings` endpoint and adjust the UI based on the `deposit_required` flag and the order's new `Preparing` status.
+*   **Deployment:** A `bench migrate` is required to apply the new `deposit_required` field to the database schema.
+
+
+## Pre-analysis for US-501 (Gemini 2.5 Pro)
+Here is the technical brief for implementing user story US-501 in a Frappe/Python environment.
+
+**Subject: Technical Brief for US-501: Conditional Order Approval Flow**
+
+This brief outlines the implementation plan for modifying the order approval process based on a system-wide `depositRequired` setting.
+
+**1. Primary Files to Modify:**
+*   `lhdn_payroll_integration/lhdn_payroll_integration/doctype/purchase_order/purchase_order.py`: The controller file for the `Purchase Order` DocType, to modify the `approve` action method.
+*   `lhdn_payroll_integration/api.py`: A likely location for creating a new public-facing API endpoint to expose site settings.
+*   `lhdn_payroll_integration/www/order_status.py` (and corresponding `.js`/`.html`): The web view files for the customer-facing status page.
+
+**2. Frappe DocTypes & Hooks Involved:**
+*   **Purchase Order:** The core DocType. The `status` field will be updated, and its server-side controller method for approval will be the focus.
+*   **Site Settings:** The singleton DocType that contains the `depositRequired` boolean field.
+*   **Hooks:** A new `@frappe.whitelist(allow_guest=True)` method will be needed to expose settings to unauthenticated users.
+
+**3. Recommended Implementation Approach:**
+1.  In `purchase_order.py`, locate the whitelisted approval function (e.g., `approve_order`).
+2.  Inside this function, fetch the site settings using `settings = frappe.get_cached_doc('Site Settings')`.
+3.  If `settings.deposit_required` is false, set `doc.status = 'To Receive'` and save.
+4.  If `settings.deposit_required` is true, maintain the existing logic (likely setting `doc.status = 'To Bill'`).
+5.  In `api.py`, create a new whitelisted, guest-allowed function (`get_deposit_setting`) that returns `{'deposit_required': frappe.db.get_single_value('Site Settings', 'deposit_required')}`.
+6.  Update the customer-facing order status page's Python and JS to call this new endpoint and conditionally render the payment section.
+
+**4. Edge Cases & Gotchas:**
+*   Ensure the `Purchase Order` `status` field includes 'To Receive' as a valid option.
+*   Verify permissions on the approval method are restricted to authorized roles.
+*   The customer status page must handle the new `'To Receive'` state gracefully, displaying the "kitchen is preparing" message instead of payment instructions.
+
+
+## Pre-analysis for US-501 (Gemini 2.5 Pro)
+Here is a technical brief for implementing the user story within a Frappe/Python context.
+
+**Subject: Technical Brief for US-501: Conditional Order Approval Logic**
+
+This brief outlines the implementation of a conditional approval workflow for an `Order` DocType based on a `Site Settings` flag. The goal is to bypass the payment step for certain orders.
+
+**1. Python Files & DocTypes to Modify:**
+*   **Primary Logic File:** `.../doctype/order/order.py`. The core logic will be in the whitelisted method that handles order approval.
+*   **Involved DocTypes:**
+    *   `Order`: A custom DocType. Its `status` field needs modification.
+    *   `Site Settings`: The standard singleton DocType. A custom field `deposit_required` (type: Check, default: 0) must be added.
+*   **API File:** A method in `.../doctype/order/order_api.py` (or similar) will be needed to expose the `deposit_required` setting to the front end.
+
+**2. Recommended Implementation Approach:**
+1.  In the `order.py` controller, find the `@frappe.whitelist()` decorated method for the "approve" action.
+2.  Within this method, retrieve the global setting: `deposit_required = frappe.db.get_single_value('Site Settings', 'deposit_required')`.
+3.  Implement an `if/else` branch:
+    *   If `not deposit_required`, set `self.status = 'Preparing'` and save the document.
+    *   Else (if `deposit_required`), retain the existing logic, likely setting `self.status = 'Approved'`.
+4.  Update the customer-facing Web Template (`.html` and `.js` for the order status page) to fetch the setting and conditionally render the payment upload section based on the order's status.
+
+**3. Edge Cases & Gotchas:**
+*   The `status` field in the `Order` DocType meta must have "Preparing" added to its list of Options.
+*   The API exposing `deposit_required` should be public but read-only.
+*   Ensure front-end logic correctly handles the two distinct states ('Preparing' vs. 'Approved') to show the correct messaging and UI elements.
+
+
+## Pre-analysis for US-501 (Gemini 2.5 Pro)
+Here is a technical brief for user story US-501, based on the provided JSON.
+
+**Subject: US-501 Technical Brief: Conditional Order Approval Workflow**
+
+**Core Requirement:** The admin order approval action must conditionally bypass the customer payment step. This is controlled by the `depositRequired` boolean in the site settings.
+
+**Files to Modify:**
+*   `src/app/api/admin/orders/[id]/route.ts`
+*   `src/app/api/settings/route.ts`
+*   `src/app/[locale]/order/[id]/page.tsx`
+
+**Implementation Approach:**
+
+1.  **Admin API (`.../orders/[id]/route.ts`):**
+    *   In the `PATCH` handler, inside the `action === 'approve'` block, call `getSiteSettings()`.
+    *   If `settings.depositRequired` is `false`, set the order status directly to `'preparing'`.
+    *   If `true`, keep the existing logic, setting status to `'approved'`.
+
+2.  **Public Settings API (`.../settings/route.ts`):**
+    *   Update the `GET` handler to include the `depositRequired` field in the public-facing response. This exposes the setting to the client.
+
+3.  **Customer Order Page (`.../order/[id]/page.tsx`):**
+    *   Fetch both the order data and the site settings (`/api/settings`).
+    *   If `!depositRequired` and `order.status === 'preparing'`, hide the payment upload component and display the "Your order is confirmed..." message.
+
+**Gotchas & Edge Cases:**
+*   The `estimatedReady` time must still be saved during the `approve` action, even when `depositRequired` is false.
+*   The customer order page's rendering logic depends on *both* the `depositRequired` flag and the `order.status`. Ensure both are available before rendering.
+*   No database changes are needed; the 'preparing' status is already supported.
+
+## Iteration 1 - Fri, Mar 13, 2026 12:44:28 AM
+Incomplete: Wire depositRequired into approve action (ID: US-501) — attempt 1/3
+
+
+## Pre-analysis for US-501 (Gemini 2.5 Pro)
+Here is the technical brief for the Claude agent:
+
+**Subject:** Technical Brief for US-501: Conditional Order Approval Workflow
+
+This user story requires modifying the order approval process to bypass the payment step based on a system setting.
+
+**1. Python Files to Modify:**
+*   `lhdn_payroll_integration/api.py`: Create a new whitelisted `approve_order` controller method here. This method will contain the core logic.
+*   Also in `api.py`, create a new whitelisted, guest-allowed method `get_payroll_settings` to expose the setting to the front end.
+
+**2. Frappe DocTypes & Hooks:**
+*   **Sales Order (or similar DocType):** This is the primary document. The `approve_order` method will update its `status` field.
+*   **LHDN Payroll Settings (Singleton DocType):** This DocType must contain the `deposit_required` (Type: Check, Default: 0) field. If this settings DocType doesn't exist, it needs to be created.
+*   **No hooks required;** the changes are triggered by a direct API call from the admin UI.
+
+**3. Recommended Implementation:**
+1.  In `api.py`, define `@frappe.whitelist() def approve_order(order_id):`.
+2.  Inside, fetch the setting: `settings = frappe.get_cached_doc('LHDN Payroll Settings')`.
+3.  Fetch the order: `order = frappe.get_doc('Sales Order', order_id)`.
+4.  If `settings.deposit_required`: maintain the current logic, setting `order.status = 'Approved'`.
+5.  If not `settings.deposit_required`: set `order.status = 'Preparing'`.
+6.  Remember to call `order.save()` and check permissions within the method.
+7.  The `get_payroll_settings` method should simply return `{'deposit_required': settings.deposit_required}`.
+
+**4. Edge Cases & Gotchas:**
+*   **Workflow:** Check if the `Sales Order` DocType has a Document Workflow. If so, directly setting the status might fail. You may need to adjust the workflow transitions to allow this new state change.
+*   **Permissions:** Ensure the `approve_order` method validates that the logged-in user has the permission to approve orders.
+*   **Client-Side:** The customer-facing portal page needs to call `get_payroll_settings` and conditionally render the payment upload section based on the returned value and order status.
+
+
+## Pre-analysis for US-501 (Gemini 2.5 Pro)
+This technical brief is for a Claude agent tasked with implementing a feature in a Frappe/Python context, based on a provided user story.
+
+**Project:** `lhdn_payroll_integration`
+**User Story:** US-501 - Conditional 'approve' action based on a system setting.
+
+**Technical Analysis & Implementation Plan:**
+
+The user story describes a Next.js/TypeScript implementation. This brief translates that logic into the equivalent Frappe/Python architecture.
+
+1.  **Primary Python File:**
+    *   A whitelisted API function, likely in a file such as `lhdn_payroll_integration/api.py`, will contain the core logic. This function handles the "approve" action for the relevant DocType.
+
+2.  **Frappe DocTypes & Hooks:**
+    *   **DocType (Singleton):** A Singleton DocType, analogous to `SiteSettings`, should be created or used (e.g., `LHDN Payroll Settings`). It must contain a Check field named `deposit_required` (default: 0).
+    *   **DocType (Transaction):** A central DocType (e.g., `Payroll Submission`) with a `status` field that includes states like 'Approved', 'Preparing', and 'Pending Payment'.
+    *   **Hooks (`hooks.py`):** No specific hooks seem necessary, as the logic is contained within whitelisted API calls.
+
+3.  **Implementation Approach:**
+    *   The `approve_submission` function in `api.py` must first read the `deposit_required` setting using `frappe.db.get_single_value('LHDN Payroll Settings', 'deposit_required')`.
+    *   Based on the setting, it will set the `status` of the target document to either `Preparing` (if `deposit_required` is false) or `Approved` (if true).
+    *   A separate whitelisted function (`get_payroll_settings`) should be created to expose the `deposit_required` value to the frontend, ensuring `allow_guest=True` for public access.
+
+4.  **Edge Cases & Gotchas:**
+    *   Ensure the `status` field in the transaction DocType has 'Preparing' as a valid option.
+    *   Permissions for the whitelisted API methods must be correctly set for both admin users (for the action) and public/guest users (for reading settings).
+    *   The frontend (DocType client script or Page script) must be updated to call the new settings endpoint and conditionally render the UI as described in the user story.
+
+
+## Pre-analysis for US-504 (Gemini 2.5 Pro)
+Here is the technical brief for implementing the real-time notification user story in a Frappe/Python environment.
+
+***
+
+### **Technical Brief: US-504 - Real-Time Order Notifications in Frappe**
+
+**Objective:** Replace client-side polling with a real-time, event-driven system to notify admins of new orders using Frappe's built-in real-time framework (Socket.IO).
+
+**1. Python Files to Modify:**
+*   `lhdn_payroll_integration/hooks.py`: To define the DocType event listener that triggers the real-time event.
+*   `lhdn_payroll_integration/api.py` (or a new module): To house the Python logic that formats and publishes the event. A fallback polling endpoint can also be defined here.
+
+**2. Frappe DocTypes & Hooks:**
+*   **DocType:** `Sales Order` or a similar custom "Order" DocType. The logic will trigger on this document's lifecycle.
+*   **Hook:** The `on_submit` document hook is the ideal candidate to ensure the notification is sent only for committed orders.
+*   **Function:** `frappe.publish_realtime` is the core Frappe function to push the event from the backend to connected clients.
+
+**3. Recommended Implementation Approach:**
+1.  In `hooks.py`, connect the `on_submit` event for the order DocType to a new Python function (e.g., `lhdn_payroll_integration.api.notify_new_order`).
+2.  In that Python function, construct a payload with essential order details (`name`, `grand_total`, etc.).
+3.  Use `frappe.publish_realtime("new_order", message=payload, user=None, role="System Manager")` to send the event specifically to admin-level users.
+4.  Create a client-side JS file (`/public/js/realtime_notifications.js`) and include it in the app's `build.json` to load it in the Desk UI.
+5.  In this JS file, use `frappe.realtime.on("new_order", (data) => { ... })` to listen for the event and trigger a UI update (e.g., animate a bell icon, increment a badge).
+
+**4. Edge Cases & Gotchas:**
+*   **Permissions:** Target the `publish_realtime` event to a specific role (e.g., `System Manager`) to avoid leaking order data to unauthorized users.
+*   **Fallback:** The client-side JS should implement a `setInterval` with `frappe.call` to a simple count-checking API endpoint as a fallback in case the websocket connection fails.
+*   **UI State:** The notification badge count should be reset after the admin views the new orders list.
+*   **Build Step:** Remember to run `bench build` after adding or modifying the client-side JS file to apply the changes.
 

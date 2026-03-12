@@ -274,7 +274,7 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
               href={`https://wa.me/${WHATSAPP_NUMBER}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-md p-1 text-primary-foreground/70 hover:text-primary-foreground"
+              className="flex h-11 w-11 items-center justify-center rounded-md text-primary-foreground/70 hover:text-primary-foreground"
               aria-label="Order via WhatsApp"
               title="Order via WhatsApp"
             >
@@ -341,6 +341,7 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
       <form
         onSubmit={handleSubmit}
         className="flex items-center gap-2 border-t border-border p-3"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
       >
         <input
           type="text"
@@ -356,7 +357,7 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
             onClick={toggleVoice}
             disabled={isLoading}
             className={cn(
-              "relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors disabled:opacity-50",
+              "relative flex h-11 w-11 shrink-0 items-center justify-center rounded-lg transition-colors disabled:opacity-50",
               isListening
                 ? "bg-red-500 text-white"
                 : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -372,7 +373,7 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
         <button
           type="submit"
           disabled={isLoading || !input.trim()}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
           aria-label="Send message"
         >
           <Send className="h-4 w-4" />

@@ -150,7 +150,7 @@ export function MenuCard({ item, priority = false, isHighlighted = false, isFavo
                 onToggleFavorite();
               }}
               className={cn(
-                "absolute top-2 right-2 z-10 rounded-full p-1.5 transition-[background-color] duration-200",
+                "absolute top-1 right-1 z-10 flex h-11 w-11 items-center justify-center rounded-full transition-[background-color] duration-200",
                 isFavorited ? "bg-black/50 hover:bg-black/70" : "bg-black/30 hover:bg-black/50"
               )}
               aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
@@ -219,7 +219,7 @@ export function MenuCard({ item, priority = false, isHighlighted = false, isFavo
                   <button
                     type="button"
                     onClick={() => decrementItem(item.code)}
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary transition-all active:scale-95 hover:bg-primary hover:text-primary-foreground"
+                    className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary transition-all active:scale-95 hover:bg-primary hover:text-primary-foreground"
                     aria-label="Remove one"
                   >
                     <Minus className="h-3.5 w-3.5" />
@@ -230,7 +230,7 @@ export function MenuCard({ item, priority = false, isHighlighted = false, isFavo
                   <button
                     type="button"
                     onClick={() => addItem({ id: item.code, name, price: item.price })}
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all active:scale-95 hover:bg-primary/90"
+                    className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all active:scale-95 hover:bg-primary/90"
                     aria-label="Add one more"
                   >
                     <Plus className="h-3.5 w-3.5" />

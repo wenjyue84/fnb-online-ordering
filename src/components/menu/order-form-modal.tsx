@@ -190,7 +190,7 @@ export function OrderFormModal({ items, total, onSuccess, onClose }: OrderFormMo
           </h2>
           <button
             onClick={onClose}
-            className="rounded-full p-2 hover:bg-muted transition-colors"
+            className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-muted transition-colors"
             aria-label="Close"
           >
             <X className="h-5 w-5" />

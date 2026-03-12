@@ -6,6 +6,7 @@ import { Camera, Loader2, Check, X } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import type { MenuItem } from "@/types/menu";
 import { HeroDishCard } from "@/components/home/hero-dish-card";
+import { MenuCard } from "@/components/menu/menu-card";
 import { HERO_BLUR } from "@/data/hero-blur";
 import { cn } from "@/lib/utils";
 
@@ -342,16 +343,10 @@ export function HomeInlineEditor({ content, featuredItems, signatureDish }: Home
         </div>
 
         {featuredItems.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 opacity-60">
-            {featuredItems.slice(0, 3).map((item) => (
-              <div key={item.id} className="rounded-xl border bg-card p-3 text-sm">
-                <p className="font-semibold">{item.nameEn}</p>
-                <p className="text-xs text-muted-foreground">RM {item.price.toFixed(2)}</p>
-              </div>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+            {featuredItems.slice(0, 6).map((item) => (
+              <MenuCard key={item.id} item={item} isAdmin />
             ))}
-            {featuredItems.length > 3 && (
-              <p className="self-center text-xs text-muted-foreground">+{featuredItems.length - 3} more featured items</p>
-            )}
           </div>
         ) : (
           <div className="rounded-xl border border-dashed border-border bg-muted/30 p-8 text-center text-sm text-muted-foreground">

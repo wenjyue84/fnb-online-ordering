@@ -157,7 +157,7 @@ export default async function ContactPage({
                 href={settings.social.facebook}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm hover:bg-secondary/80"
+                className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2.5 text-sm min-h-[44px] hover:bg-secondary/80"
               >
                 <Facebook className="h-4 w-4" /> Facebook
               </a>
@@ -165,7 +165,7 @@ export default async function ContactPage({
                 href={settings.social.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm hover:bg-secondary/80"
+                className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2.5 text-sm min-h-[44px] hover:bg-secondary/80"
               >
                 <Instagram className="h-4 w-4" /> Instagram
               </a>

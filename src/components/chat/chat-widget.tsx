@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useScrolling } from "@/lib/scrolling-context";
 import { MessageCircle, X, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
@@ -15,8 +14,6 @@ export function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [hasUnread, setHasUnread] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const { scrollPhase } = useScrolling();
-
   useEffect(() => {
     fetch("/api/admin/verify", { credentials: "include", redirect: "manual" })
       .then((r) => setIsAdmin(r.ok))
@@ -49,7 +46,7 @@ export function ChatWidget() {
       {isAdmin && (
         <Link
           href="/admin/chat-settings"
-          className="fixed bottom-20 right-4 z-50 flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-amber-700 shadow-sm transition-colors hover:bg-amber-200 md:bottom-4 md:right-20"
+          className="fixed bottom-[4.5rem] right-4 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-amber-100 text-amber-700 shadow-sm transition-colors hover:bg-amber-200 md:bottom-4 md:right-20"
           aria-label="AI Waiter Settings"
           title="AI Waiter Settings"
         >
@@ -61,10 +58,8 @@ export function ChatWidget() {
       <button
         onClick={() => (open ? setOpen(false) : handleOpen())}
         className={cn(
-          "fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-[transform,opacity] hover:scale-110 active:scale-95 sm:bottom-4",
+          "fixed bottom-[4.5rem] right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-110 active:scale-95 sm:bottom-4",
           open && "md:flex hidden",
-          scrollPhase === "scrolling" && "opacity-0 transition-opacity duration-150 pointer-events-none",
-          scrollPhase === "resting" && "scroll-fade-in"
         )}
         aria-label="Open AI Waiter chat"
       >

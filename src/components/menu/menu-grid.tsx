@@ -306,7 +306,7 @@ export function MenuGrid({
   useEffect(() => {
     if (isFlatView) return;
 
-    const THRESHOLD = 160;
+    const THRESHOLD = 180; // header (64px) + filter bar (~92px) + margin
 
     function updateActiveSection() {
       const chefsEl = document.getElementById("section-chefs-picks");
@@ -487,7 +487,7 @@ export function MenuGrid({
 
           {/* ── Chef's Picks section (regular grid — hero image removed) ── */}
           {orderedChefsPickItems.length > 0 && (
-            <section id="section-chefs-picks" aria-labelledby="cat-chefs-picks" className="scroll-mt-[var(--menu-scroll-offset)] pt-2" style={{ contentVisibility: "auto" }}>
+            <section id="section-chefs-picks" aria-labelledby="cat-chefs-picks" className="scroll-mt-[var(--menu-scroll-offset)] pt-2" style={{ contentVisibility: "auto", containIntrinsicSize: "auto 500px" }}>
               <h2
                 id="cat-chefs-picks"
                 className="bg-amber-50/60 dark:bg-amber-950/20 -mx-4 px-4 py-3 mb-4 border-b border-amber-200 dark:border-amber-800"
@@ -534,7 +534,7 @@ export function MenuGrid({
               id={dcSectionId(dcName)}
               aria-labelledby={`cat-dc-${dcName}`}
               className="scroll-mt-[var(--menu-scroll-offset)] pt-2"
-              style={{ contentVisibility: "auto" }}
+              style={{ contentVisibility: "auto", containIntrinsicSize: "auto 500px" }}
             >
               <h2
                 id={`cat-dc-${dcName}`}
@@ -577,7 +577,7 @@ export function MenuGrid({
 
           {/* ── Unassigned items (no display category) ── */}
           {unassignedItems.length > 0 && (
-            <section id="section-other" aria-labelledby="cat-other" className="scroll-mt-[var(--menu-scroll-offset)] pt-2" style={{ contentVisibility: "auto" }}>
+            <section id="section-other" aria-labelledby="cat-other" className="scroll-mt-[var(--menu-scroll-offset)] pt-2" style={{ contentVisibility: "auto", containIntrinsicSize: "auto 500px" }}>
               <h2 id="cat-other" className="bg-muted/30 -mx-4 px-4 py-3 mb-4 border-b border-border">
                 <span className="flex items-center gap-2 border-l-4 border-muted-foreground/40 pl-3 text-sm font-semibold tracking-widest uppercase text-muted-foreground">
                   Other Items
