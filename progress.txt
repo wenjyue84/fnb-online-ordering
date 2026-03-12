@@ -1007,3 +1007,6 @@ All 6 user stories in prd.json have passes: true:
 - US-306: Add unit tests for SiteSettings identity fields ✓
 
 PRD iteration 03 (feature/iter-03) is fully complete. Zero incomplete stories remain.
+## Iteration 4 - Thu, Mar 12, 2026 11:34:35 AM
+Completed: Remove CAFE constant and commit pre-existing changes (ID: US-305) in 3m
+
