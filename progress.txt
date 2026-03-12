@@ -787,3 +787,31 @@ Completed: Add Vercel deployment checklist (ID: US-205) in 2m
 ## Iteration 13 - Thu, Mar 12, 2026 10:41:00 AM
 Completed: Add unit tests for async DB-backed settings getters (ID: US-206) in 3m
 
+
+---
+
+## ITERATION 2 COMPLETE ✓
+
+All 6 user stories marked passes: true. Feature complete.
+
+### Completed Stories
+1. **US-201** ✅ Migrate operating hours from JSON to Neon Postgres
+2. **US-202** ✅ Migrate time slots from JSON to Neon Postgres
+3. **US-203** ✅ Migrate chat settings from JSON to Neon Postgres
+4. **US-204** ✅ Add seed verification script (scripts/verify-seed.mjs)
+5. **US-205** ✅ Add Vercel deployment checklist (DEPLOYMENT.md)
+6. **US-206** ✅ Add unit tests for async DB-backed settings getters
+
+### Summary
+- All config JSON files (operating-hours.json, time-slots.json, chat-settings.json) now read from Neon Postgres site_settings table
+- All getter/setter functions migrated to async
+- All callers updated to await async functions
+- Zero fs.readFileSync calls for config at runtime — Vercel-safe
+- Seed verification script added (verify all 4 DB keys present)
+- Deployment guide created (DEPLOYMENT.md)
+- 15 new unit tests added (23 total passing)
+- Exports added: DEFAULT_HOURS now exported from availability.ts
+
+### Zero Remaining Work
+The feature/iter-02 branch is feature-complete. No more stories needed. Ready for merge to main.
+
