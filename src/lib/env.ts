@@ -3,6 +3,8 @@ import { z } from "zod";
 
 const EnvSchema = z.object({
   DATABASE_URL: z.string().min(1),
+  // Direct (unpooled) connection for migrations — optional at runtime, required by scripts/migrate
+  DATABASE_URL_UNPOOLED: z.string().optional(),
   ADMIN_JWT_SECRET: z.string().min(1),
   GROQ_API_KEY: z.string().optional(),
   OPENROUTER_API_KEY: z.string().optional(),

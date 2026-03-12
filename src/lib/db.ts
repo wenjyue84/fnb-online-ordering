@@ -5,8 +5,17 @@ import { env } from "./env";
 // in the same serverless invocation — reduces round-trip overhead.
 neonConfig.fetchConnectionCache = true;
 
-// Lazy init — connection is established on first query, but DATABASE_URL is
-// validated at startup by env.ts and will throw a clear error if missing.
+// ── Pooled (runtime) connection ─────────────────────────────────────────────
+// DATABASE_URL should point to the Neon pooled endpoint (-pooler.neon.tech).
+// The neon() HTTP driver is inherently stateless (one HTTP request per query),
+// so it does not hold open TCP connections or leak connection slots. The pooled
+// endpoint is still preferred because Neon routes it through PgBouncer, which
+// provides connection reuse and better latency under concurrent load.
+//
+// IMPORTANT: Do not use SET, PREPARE, TEMPORARY TABLE, or session-level
+// commands through this client — PgBouncer transaction mode does not preserve
+// session state between queries.
+
 let _db: ReturnType<typeof neon> | undefined;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,3 +27,18 @@ const sql = <T = Record<string, unknown>>(strings: TemplateStringsArray, ...valu
 };
 
 export default sql;
+
+// ── Unpooled (migration) connection ─────────────────────────────────────────
+// DATABASE_URL_UNPOOLED is the direct Neon endpoint (no PgBouncer). Required
+// for DDL migrations (CREATE TABLE, ALTER TABLE) that may need session-level
+// features. Falls back to DATABASE_URL if not set (works for dev).
+
+let _dbUnpooled: ReturnType<typeof neon> | undefined;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const sqlUnpooled = <T = Record<string, unknown>>(strings: TemplateStringsArray, ...values: any[]): Promise<T[]> => {
+  if (!_dbUnpooled) {
+    _dbUnpooled = neon(env.DATABASE_URL_UNPOOLED || env.DATABASE_URL);
+  }
+  return _dbUnpooled(strings, ...values) as unknown as Promise<T[]>;
+};

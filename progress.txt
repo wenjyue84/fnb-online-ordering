@@ -1,3 +1,12 @@
+## US-321 — Neon pooled connection string and connection leak prevention (PASSED)
+- Updated .env.example to document pooled (-pooler.neon.tech) vs unpooled (direct) connection strings
+- Added DATABASE_URL_UNPOOLED as optional env var in env.ts (for migrations, falls back to DATABASE_URL)
+- Added sqlUnpooled export to db.ts for migration scripts to use direct connections
+- Documented PgBouncer transaction mode constraints in db.ts (no SET, PREPARE, TEMP TABLE)
+- Audited entire src/ — zero SET search_path, PREPARE, or TEMPORARY TABLE statements found
+- The neon() HTTP driver is inherently stateless (no TCP connection leaks) — pooled endpoint preferred for PgBouncer connection reuse and latency
+- TypeScript check and lint pass with no new errors
+
 ## US-320 — WhatsApp notification delivery retry with exponential backoff (PASSED)
 - Most implementation was already done in a prior iteration: withRetry helper, sendOrderWhatsAppNotification, notification_status column, unit tests
 - Missing piece: admin panel visual indicator for failed notifications
@@ -1856,4 +1865,36 @@ This technical brief is for a **Next.js/TypeScript** implementation, as the user
 *   **Edge Compatibility:** Data fetching within `opengraph-image.tsx` must use edge-compatible libraries/APIs (e.g., `fetch`).
 *   **Text Overflow:** Long post titles may not fit. Implement text truncation or dynamic font sizing to prevent overflow.
 *   **Error Handling:** Next.js should automatically fall back to the parent layout's OG image on error, but explicitly test this by simulating a data fetch failure.
+
+
+
+## Pre-analysis for US-324 (Gemini 2.5 Pro)
+This user story is for a Next.js/TypeScript project, not a Frappe/Python one. Here is the technical brief based on the provided JSON for implementing dynamic OG images in the Next.js application.
+
+***
+
+**Subject: Technical Brief for US-324: Dynamic OG Image Generation in Next.js**
+
+**1. Files to Modify:**
+*   **Create:** `src/app/[locale]/blog/[slug]/opengraph-image.tsx`
+*   **Create:** `src/app/[locale]/menu/opengraph-image.tsx`
+*   **Verify:** `src/app/[locale]/layout.tsx` (to ensure the static fallback `og:image` is defined in root metadata).
+
+**2. Key Framework APIs & Conventions:**
+*   **Next.js Metadata API:** The implementation relies on file-based metadata generation within the App Router.
+*   **`ImageResponse` API:** The core of the feature is the `ImageResponse` constructor from the `next/og` package, which generates a PNG image from JSX and CSS.
+*   **Route Parameters:** The generated functions will receive `params` like `{ locale, slug }` to fetch data specific to the page.
+
+**3. Recommended Implementation Approach:**
+1.  Create `opengraph-image.tsx` inside the `blog/[slug]` directory. This file will export an async default function.
+2.  Inside this function, use the `slug` and `locale` params to fetch the corresponding blog post's title and any other required data.
+3.  Fetch a font file (e.g., `.ttf` or `.otf`) as an `ArrayBuffer` to embed it.
+4.  Return a new `ImageResponse`, passing in the JSX for the image layout (e.g., a `div` with the post title and cafe name) and options including `width`, `height`, and the font data.
+5.  Repeat the process for `src/app/[locale]/menu/opengraph-image.tsx`, rendering a static "Menu" title (localized) instead of a dynamic post title.
+
+**4. Edge Cases & Gotchas:**
+*   **Font Loading:** `next/font` cannot be used. Fonts must be fetched (e.g., using `fetch()`) and passed as an `ArrayBuffer` into the `ImageResponse` options.
+*   **Styling:** Styling is limited to a subset of CSS properties compatible with Satori (the underlying library). Use flexbox for layout.
+*   **Error Handling:** Next.js should automatically fall back to the `og:image` defined in the parent layout (`src/app/[locale]/layout.tsx`) if generation fails. This must be verified.
+*   **Caching:** The generated image's caching is tied to the page's `revalidate` setting. Ensure this is configured correctly for both blog posts and the menu page.
 
