@@ -7,7 +7,9 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getSiteSettings } from "@/lib/site-settings";
 import { MapPin, Clock, Phone, Wifi, Facebook, Instagram } from "lucide-react";
 import { COOKIE_NAME, verifyAdminToken } from "@/lib/auth";
-import { ContactInlineEditor, type ContactContent } from "@/components/admin/contact-inline-editor";
+import type { ContactContent } from "@/components/admin/contact-inline-editor";
+import dynamic from "next/dynamic";
+const ContactInlineEditor = dynamic(() => import("@/components/admin/contact-inline-editor").then(m => m.ContactInlineEditor));
 
 export const runtime = "nodejs";
 

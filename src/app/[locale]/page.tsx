@@ -9,7 +9,9 @@ import { HeroSection } from "@/components/home/hero-section";
 import { Highlights } from "@/components/home/highlights";
 import { PreorderBanner } from "@/components/home/preorder-banner";
 import { COOKIE_NAME, verifyAdminToken } from "@/lib/auth";
-import { HomeInlineEditor, type HomeContent } from "@/components/admin/home-inline-editor";
+import type { HomeContent } from "@/components/admin/home-inline-editor";
+import dynamic from "next/dynamic";
+const HomeInlineEditor = dynamic(() => import("@/components/admin/home-inline-editor").then(m => m.HomeInlineEditor));
 import { getSiteSettings } from "@/lib/site-settings";
 import { FadeUp } from "@/components/ui/fade-up";
 

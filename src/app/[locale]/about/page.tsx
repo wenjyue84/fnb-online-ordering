@@ -7,7 +7,9 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Leaf, Users, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import { COOKIE_NAME, verifyAdminToken } from "@/lib/auth";
-import { AboutInlineEditor, type AboutContent } from "@/components/admin/about-inline-editor";
+import type { AboutContent } from "@/components/admin/about-inline-editor";
+import dynamic from "next/dynamic";
+const AboutInlineEditor = dynamic(() => import("@/components/admin/about-inline-editor").then(m => m.AboutInlineEditor));
 
 export const runtime = "nodejs";
 

@@ -1,3 +1,21 @@
+## US-339 — Add bundle analyzer and lazy-load heavy admin panel dependencies (PASSED)
+- `@next/bundle-analyzer` was already installed (`^16.1.6` devDep) and configured in `next.config.ts` with `ANALYZE=true` env toggle
+- Admin tab panels (Orders, Menu, Categories, Rules, Blog, Tests, Settings) were already using `next/dynamic` with `ssr: false` — only `AiWaiterPage` was a static import; converted it to dynamic
+- Improved `LoadingPlaceholder` from plain "Loading..." text to proper skeleton with `animate-pulse` blocks
+- Converted 5 admin component imports in customer-facing pages to `next/dynamic`:
+  - `AdminFloatingToolbar` in `[locale]/layout.tsx`
+  - `HomeInlineEditor` in `[locale]/page.tsx`
+  - `AboutInlineEditor` in `[locale]/about/page.tsx`
+  - `ContactInlineEditor` in `[locale]/contact/page.tsx`
+  - `BlogInlineEditor` in `[locale]/blog/[slug]/page.tsx`
+- Type-only imports (`import type { ... }`) kept as static since they're erased at compile time
+- Zero TS errors, zero new lint warnings, production build passes
+
+### Patterns discovered
+- In Next.js App Router, server components conditionally rendering client components already skip loading unused chunks (RSC payload only includes rendered references). But explicit `next/dynamic` makes code splitting intentional and prevents accidental bundling if architecture changes
+- `next/dynamic` works in both server and client components — in server components it marks client components for lazy loading
+- For `type`-only exports, use `import type { X }` (static) alongside `dynamic(() => import(...))` for the runtime export
+
 ## US-338 — Configure Vercel function region to Singapore for minimal Malaysia latency (PASSED)
 - Created `vercel.json` with `"regions": ["sin1"]` (Singapore) — closest Vercel region to Malaysia
 - Used `$schema` from Vercel's OpenAPI spec for IDE autocompletion support
@@ -2708,4 +2726,31 @@ This is a technical brief for implementing a PWA offline fallback page, based on
 *   **Cache Busting:** Failing to update the `CACHE_NAME` in `sw.js` is a common mistake. The new service worker will not activate, and the offline page won't be cached.
 *   **Request Type:** The fallback logic must only apply to navigation requests. Returning HTML for a failed API call or image request would break the application.
 *   **Self-Contained Page:** The `offline.html` page must not request any un-cached resources, as those requests would also fail.
+
+
+
+## Pre-analysis for US-341 (Gemini 2.5 Pro)
+Here is the technical brief for user story US-341.
+
+**Project:** Next.js PWA (Note: This is a frontend task, not Frappe/Python).
+
+**1. Files to Modify/Create:**
+*   `public/sw.js`: Modify the existing service worker.
+*   `public/offline.html`: Create a new static offline fallback page.
+
+**2. Involved Framework Elements:**
+*   **Service Worker API**: Specifically the `install` and `fetch` events.
+*   **Cache API**: For storing and retrieving the offline page.
+*   No Frappe DocTypes or server-side hooks are involved.
+
+**3. Recommended Implementation Approach:**
+1.  Create `public/offline.html` with self-contained/inline CSS. Include the cafe name, logo, and a "You are offline" message (in English, Malay, and Chinese). Add a 'Try Again' button that triggers `window.location.reload()`.
+2.  In `public/sw.js`, add `'/offline.html'` to the array of URLs to be pre-cached during the `install` event (likely `SHELL_URLS`).
+3.  Increment the `CACHE_NAME` version string to trigger the service worker update cycle.
+4.  In the `fetch` event handler, wrap the `network-first` fetch call in a `.catch()` block. For failed navigation requests (`event.request.mode === 'navigate'`), respond with `caches.match('/offline.html')`.
+
+**4. Edge Cases & Gotchas:**
+*   `offline.html` must be 100% self-contained. Any image references (like a logo) must also be part of the pre-cached assets, or they will not load.
+*   Forgetting to update the `CACHE_NAME` is a common error that will prevent the new service worker from activating.
+*   The fetch handler logic must correctly differentiate between navigation requests and other asset requests (e.g., API calls, images) to only serve the HTML page for navigations.
 
