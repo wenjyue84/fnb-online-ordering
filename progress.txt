@@ -2032,3 +2032,6 @@ Here is the technical brief for implementing dynamic `og:image` generation:
 *   Fallback: If generation fails, Next.js automatically uses the OG image from the parent layout.
 *   Set the `revalidate` option to match the parent page's caching strategy.
 
+## Iteration 5 - Thu, Mar 12, 2026  3:36:16 PM
+Completed: Implement dynamic og:image generation per locale using Next.js ImageResponse (ID: US-324) in 6m
+
