@@ -1522,3 +1522,6 @@ This user story is for a **Next.js/TypeScript** project, not Frappe/Python. Here
 
 ### Gotchas
 - Unit tests run in browser context (admin Tests tab) so they cannot test real DB calls — localhost exempt path + config checks are the testable surface
+## Iteration 10 - Thu, Mar 12, 2026  1:46:48 PM
+Incomplete: Implement dynamic og:image generation per locale using Next.js ImageResponse (ID: US-324) — attempt 1/3
+

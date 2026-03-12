@@ -1,13 +1,13 @@
 {
   "productName": "fnb-online-ordering",
   "branchName": "feature/iter-03",
-  "overview": "Iteration 3: Complete CAFE constant migration. The CAFE constant in src/lib/constants.ts has 34 usages across 13 files \u00e2\u20ac\u201d all hardcoded Makan Moments values. Extend SiteSettings to include all cafe identity fields (address, phone, social, tagline, etc.), replace every CAFE.xxx reference with getSiteSettings(), and remove the CAFE constant. After this iteration, zero hardcoded cafe identity strings remain in runtime code.",
+  "overview": "Iteration 3: Complete CAFE constant migration. The CAFE constant in src/lib/constants.ts has 34 usages across 13 files â€” all hardcoded Makan Moments values. Extend SiteSettings to include all cafe identity fields (address, phone, social, tagline, etc.), replace every CAFE.xxx reference with getSiteSettings(), and remove the CAFE constant. After this iteration, zero hardcoded cafe identity strings remain in runtime code.",
   "goals": [
     "Extend SiteSettings interface with full cafe identity fields (address, phone, social, tagline, displayHours, neighborhood, wifi, dietary, googleMapsEmbed)",
     "Replace all 34 CAFE.xxx usages across 13 files with DB-backed settings",
     "Server components: await getSiteSettings() directly; client components: receive cafeName prop from parent RSC",
     "Remove CAFE constant from constants.ts (keep SPECIAL_DISPLAY_CATEGORIES and MENU_CATEGORIES)",
-    "Zero runtime reads from CAFE constant \u00e2\u20ac\u201d all cafe identity is DB-authoritative",
+    "Zero runtime reads from CAFE constant â€” all cafe identity is DB-authoritative",
     "Clean up pre-existing uncommitted changes"
   ],
   "userStories": [
@@ -67,11 +67,11 @@
         "npm run build passes with no TypeScript errors"
       ],
       "technicalNotes": [
-        "footer.tsx: add 'import { getSiteSettings } from \"@/lib/site-settings\"' and 'const settings = await getSiteSettings()' \u00e2\u20ac\u201d it is already an async RSC (uses getTranslations)",
+        "footer.tsx: add 'import { getSiteSettings } from \"@/lib/site-settings\"' and 'const settings = await getSiteSettings()' â€” it is already an async RSC (uses getTranslations)",
         "json-ld.tsx: make the component functions async, add getSiteSettings() call at top of each exported component that needs cafe data",
-        "layout.tsx: already async \u00e2\u20ac\u201d add getSiteSettings() call alongside getOperatingStatus(); use settings.cafeName for metadata title, settings.cafeTagline for description",
+        "layout.tsx: already async â€” add getSiteSettings() call alongside getOperatingStatus(); use settings.cafeName for metadata title, settings.cafeTagline for description",
         "about/page.tsx: if it uses CAFE.ambiance and ambiance is not in SiteSettings, just hardcode the array inline or remove the CAFE dependency gracefully",
-        "contact/page.tsx: straightforward swap \u00e2\u20ac\u201d settings.address, settings.phone, settings.neighborhood, settings.displayHours.daily, settings.displayHours.lastOrder, settings.social, settings.googleMapsEmbed",
+        "contact/page.tsx: straightforward swap â€” settings.address, settings.phone, settings.neighborhood, settings.displayHours.daily, settings.displayHours.lastOrder, settings.social, settings.googleMapsEmbed",
         "After changes: remove 'import { CAFE } from \"@/lib/constants\"' from all modified files"
       ],
       "dependencies": [
@@ -93,9 +93,9 @@
         "npm run build passes"
       ],
       "technicalNotes": [
-        "admin/[tab]/page.tsx: server page \u00e2\u20ac\u201d add getSiteSettings() call, use settings.cafeName in the h1 title element",
-        "kds/layout.tsx: server layout \u00e2\u20ac\u201d export async function or use generateMetadata pattern with getSiteSettings()",
-        "admin-settings-panel.tsx: likely 'use client' \u00e2\u20ac\u201d import DEFAULT_SETTINGS from '@/lib/site-settings' and use DEFAULT_SETTINGS.cafeName as placeholder instead of hardcoded string"
+        "admin/[tab]/page.tsx: server page â€” add getSiteSettings() call, use settings.cafeName in the h1 title element",
+        "kds/layout.tsx: server layout â€” export async function or use generateMetadata pattern with getSiteSettings()",
+        "admin-settings-panel.tsx: likely 'use client' â€” import DEFAULT_SETTINGS from '@/lib/site-settings' and use DEFAULT_SETTINGS.cafeName as placeholder instead of hardcoded string"
       ],
       "dependencies": [
         "US-301"
@@ -116,8 +116,8 @@
       ],
       "technicalNotes": [
         "hero-dish-card.tsx: add 'cafeName?: string' to props interface; use cafeName || 'Cafe' in alt text",
-        "The parent (hero-section.tsx or home page RSC) must pass cafeName \u00e2\u20ac\u201d if the parent is a server component it can call getSiteSettings(); if already a client component, cafeName must be threaded from the page RSC",
-        "contact-inline-editor.tsx: inspect usages \u00e2\u20ac\u201d if it hardcodes 'Makan Moments' in a placeholder or label, replace with props.cafeName or import DEFAULT_SETTINGS.cafeName from site-settings"
+        "The parent (hero-section.tsx or home page RSC) must pass cafeName â€” if the parent is a server component it can call getSiteSettings(); if already a client component, cafeName must be threaded from the page RSC",
+        "contact-inline-editor.tsx: inspect usages â€” if it hardcodes 'Makan Moments' in a placeholder or label, replace with props.cafeName or import DEFAULT_SETTINGS.cafeName from site-settings"
       ],
       "dependencies": [
         "US-301"
@@ -139,7 +139,7 @@
         "npm run lint passes"
       ],
       "technicalNotes": [
-        "Only remove the CAFE export \u00e2\u20ac\u201d keep SPECIAL_DISPLAY_CATEGORIES (used by menu filter) and MENU_CATEGORIES (used for POS section grouping)",
+        "Only remove the CAFE export â€” keep SPECIAL_DISPLAY_CATEGORIES (used by menu filter) and MENU_CATEGORIES (used for POS section grouping)",
         "Search for any remaining CAFE. references before deleting: grep -r 'CAFE\\.' src/",
         "Pre-existing uncommitted changes in menu-card.tsx: stage and commit these before or as part of this story",
         "After removing CAFE from constants.ts, run npm run build to catch any missed references"
@@ -170,7 +170,7 @@
       "technicalNotes": [
         "Import DEFAULT_SETTINGS from '@/lib/site-settings'",
         "Use describe/it/expect from vitest",
-        "Tests are pure unit tests \u00e2\u20ac\u201d no DB calls, no async, just asserting DEFAULT_SETTINGS shape",
+        "Tests are pure unit tests â€” no DB calls, no async, just asserting DEFAULT_SETTINGS shape",
         "Existing tests in src/tests/unit/utils.test.ts have ~23 tests; add 6+ here to reach 29+"
       ],
       "dependencies": [
@@ -178,6 +178,430 @@
       ],
       "estimatedComplexity": "small",
       "passes": true
+    },
+    {
+      "id": "US-307",
+      "title": "Replace hardcoded strings in manifest.json with dynamic SiteSettings values",
+      "priority": "high",
+      "description": "public/manifest.json still hardcodes 'Makan Moments Cafe', 'Makan Moments', the description, and brand colors. For the platform to be truly generic, the manifest must be generated server-side from SiteSettings so each deployment can rebrand without touching source files.",
+      "acceptanceCriteria": [
+        "Replace public/manifest.json with a server-side app/manifest.ts file using Next.js MetadataRoute.Manifest",
+        "manifest.name and manifest.short_name read from SiteSettings.cafeName",
+        "manifest.description reads from SiteSettings.cafeTagline",
+        "manifest.theme_color and manifest.background_color are configurable via SiteSettings (new fields: themeColor, backgroundColor)",
+        "manifest.start_url resolves to /{SiteSettings.defaultLocale}",
+        "Lighthouse PWA audit passes with score >= 90 after the change"
+      ],
+      "technicalNotes": [
+        "Use Next.js App Router file convention: src/app/manifest.ts — returns MetadataRoute.Manifest",
+        "Call getSiteSettings() inside the manifest() function; it is cached per-request by Next.js",
+        "Add themeColor (#b45309) and backgroundColor (#fef9f0) to SiteSettings and DEFAULT_SETTINGS in site-settings-shared.ts",
+        "Remove public/manifest.json after migration; the /manifest.json route is now served by the App Router handler",
+        "Metadata in [locale]/layout.tsx already references manifest: '/manifest.json' — no change needed there"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": true
+    },
+    {
+      "id": "US-308",
+      "title": "Drive RestaurantJsonLd entirely from SiteSettings (remove all hardcoded cafe data)",
+      "priority": "high",
+      "description": "src/components/seo/json-ld.tsx still hardcodes the telephone, full street address, GPS coordinates, opening hours, price range, payment methods, cuisine types, and menu section names. These fields must be sourced from SiteSettings so deploying for a new cafe requires only a settings update, not a code change.",
+      "acceptanceCriteria": [
+        "telephone in JSON-LD reads from SiteSettings.phone",
+        "address fields read from SiteSettings.address (parsed) or new structured address sub-fields in SiteSettings",
+        "openingHoursSpecification reads from SiteSettings.operatingHours",
+        "servesCuisine reads from a new SiteSettings.cuisineTypes string array field",
+        "priceRange reads from a new SiteSettings.priceRange string field",
+        "paymentAccepted reads from SiteSettings.paymentMethods (joined)",
+        "hasMenu.url uses NEXT_PUBLIC_SITE_URL + '/{defaultLocale}/menu'",
+        "hasMenuSection is omitted or derived from dynamic menu categories — no hardcoded section names remain",
+        "MenuPageJsonLd description reads from SiteSettings rather than any hardcoded text"
+      ],
+      "technicalNotes": [
+        "Add cuisineTypes: string[], priceRange: string, and structured address fields (street, city, region, postcode, country, lat, lng) to SiteSettings interface and DEFAULT_SETTINGS",
+        "lat/lng for geo should come from new SiteSettings.geoLat and SiteSettings.geoLng numeric fields",
+        "The menu section list in hasMenuSection can be dropped from JSON-LD or built dynamically from the categories table query",
+        "Keep the JSON-LD component as a server component — it already uses getSiteSettings() correctly"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": true
+    },
+    {
+      "id": "US-309",
+      "title": "Add hreflang x-default tag to the multilingual sitemap and layout metadata",
+      "priority": "high",
+      "description": "The next-sitemap config provides hreflang entries for en/ms/zh but is missing the required x-default entry. Google treats a missing x-default as an invalid hreflang set, which can reduce multilingual SEO signals. The layout's alternates.languages also omits x-default.",
+      "acceptanceCriteria": [
+        "next-sitemap.config.js alternateRefs includes { href: siteUrl, hreflang: 'x-default' } pointing to the root or /en",
+        "generateMetadata in [locale]/layout.tsx includes 'x-default': '/' in alternates.languages",
+        "A crawl of the rendered HTML for /en confirms <link rel=\"alternate\" hreflang=\"x-default\" href=\"...\"> is present in <head>",
+        "Every page with hreflang tags references itself with a self-referencing alternate (verify en/ms/zh all do this)",
+        "Validated with an hreflang checker tool showing no missing self-referencing errors"
+      ],
+      "technicalNotes": [
+        "In next-sitemap.config.js, add { href: siteUrl + '/en', hreflang: 'x-default' } to the alternateRefs array",
+        "In [locale]/layout.tsx generateMetadata, add 'x-default': '/en' to alternates.languages",
+        "Consider making x-default point to SiteSettings.defaultLocale dynamically",
+        "Google guidance: hreflang without a self-referencing tag for each variant causes the whole set to fail"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": true
+    },
+    {
+      "id": "US-310",
+      "title": "Migrate rate limiter from in-memory Map to a persistent store for Vercel deployments",
+      "priority": "high",
+      "description": "The current rate limiter (src/lib/chat/rate-limit.ts) uses a module-level in-memory Map. On Vercel, each serverless function invocation may run in a separate isolate, making the store non-persistent and allowing rate limit bypass through request distribution across instances. This is a security gap for the public orders and chat endpoints.",
+      "acceptanceCriteria": [
+        "Rate limit state is stored in Neon Postgres or Vercel KV instead of an in-memory Map",
+        "A single IP submitting 6 orders within one hour from any Vercel instance is correctly blocked on the 6th request",
+        "The rate limiter table/store is automatically cleaned up (TTL or cron-based) to prevent unbounded growth",
+        "Localhost/127.0.0.1 exemption is preserved for automated tests",
+        "429 response includes Retry-After header as currently implemented",
+        "Rate limiter logic is covered by at least 3 unit tests: allow, block, and reset-after-window"
+      ],
+      "technicalNotes": [
+        "Simplest Neon-based approach: CREATE TABLE rate_limit_log (ip TEXT, endpoint TEXT, window_start TIMESTAMPTZ, count INT, PRIMARY KEY (ip, endpoint, window_start))",
+        "Use ON CONFLICT DO UPDATE SET count = count + 1 for atomic increment",
+        "Alternative: Vercel KV (Redis) with INCR + EXPIRE for atomic sliding window — lower latency than Postgres for hot paths",
+        "The chat endpoint already uses a more complex dual-window model; preserve that behavior",
+        "For /api/orders: window = 1 hour, max = 5; these limits should be configurable in env vars"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": true
+    },
+    {
+      "id": "US-311",
+      "title": "Move uploaded payment screenshots to cloud storage instead of local filesystem",
+      "priority": "high",
+      "description": "The T&G payment screenshot upload handler writes files to public/uploads/payments/ on the local filesystem. On Vercel (and most serverless platforms), the filesystem is read-only — writes silently fail or throw, breaking the payment upload flow in production. Files must be stored in Vercel Blob, AWS S3, or equivalent.",
+      "acceptanceCriteria": [
+        "POST /api/orders/[id]/payment uploads the screenshot to Vercel Blob (or configured S3 bucket) instead of the local filesystem",
+        "The returned screenshotUrl is a publicly accessible HTTPS URL, not a /uploads/... relative path",
+        "The order record in Neon stores the full external URL in payment_screenshot_url",
+        "Admin panel can display the screenshot by rendering the external URL in an <img> tag",
+        "Upload fails gracefully (400 error) if the configured storage credentials are missing in env",
+        "OWASP file validation (MIME type allowlist, magic bytes check, 5MB size limit) is preserved after migration",
+        "No files are written to the local filesystem in the new implementation"
+      ],
+      "technicalNotes": [
+        "Use @vercel/blob with put() for simplest Vercel-native integration; requires BLOB_READ_WRITE_TOKEN env var",
+        "Alternatively use AWS S3 PutObject with @aws-sdk/client-s3 and pre-signed URLs",
+        "Preserve the UUID-based filename sanitization (safeId logic) — prepend orderId to blob name",
+        "Existing magic byte validation (MAGIC_BYTES record in route.ts) is already correct — keep it",
+        "Add NEXT_PUBLIC_STORAGE_PROVIDER env var ('vercel-blob' | 's3' | 'local') to allow local-dev fallback"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": true
+    },
+    {
+      "id": "US-312",
+      "title": "Set security headers (CSP, X-Frame-Options, X-Content-Type-Options) in next.config.ts",
+      "priority": "high",
+      "description": "The project has no HTTP security headers configured. Without X-Content-Type-Options: nosniff, browsers may sniff uploaded image files as HTML — creating an XSS vector through the payment screenshot upload. X-Frame-Options prevents clickjacking on the payment page. A Content-Security-Policy reduces script injection risk.",
+      "acceptanceCriteria": [
+        "next.config.ts headers() returns X-Content-Type-Options: nosniff for all routes",
+        "X-Frame-Options: SAMEORIGIN is set for all routes",
+        "Referrer-Policy: strict-origin-when-cross-origin is set",
+        "A Content-Security-Policy header is present with at minimum default-src 'self' and explicit allowlists for fonts, images (storage host), and AI chat API host",
+        "Permissions-Policy disables geolocation and microphone (not needed for this app)",
+        "Lighthouse security audit or securityheaders.com gives a grade of B or better",
+        "The app still functions correctly in EN/MS/ZH locales with the CSP active (no console CSP violations)"
+      ],
+      "technicalNotes": [
+        "Add async headers() to next.config.ts returning the header array for source: '/(.*)'",
+        "CSP must allowlist: 'unsafe-inline' for Tailwind CSS style injection (or use nonces), next/image optimization domain, Groq/OpenRouter API domains for connect-src, Google Fonts for font-src",
+        "The PWA docs explicitly show this security header pattern — reference nextjs.org/docs/app/guides/progressive-web-apps",
+        "Strict-Transport-Security (HSTS) is better applied at the Vercel/CDN level than in Next.js headers()"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": true
+    },
+    {
+      "id": "US-313",
+      "title": "Add ARIA labels and keyboard navigation to the tray widget and order form modal",
+      "priority": "high",
+      "description": "The pre-order tray and order submission modal are the primary conversion paths on the site but have no ARIA role declarations, no focus trapping inside the modal, and no keyboard-accessible close mechanism. WCAG 2.1 SC 2.1.1 requires all functionality to be keyboard operable; modal dialogs require focus trapping per ARIA Authoring Practices.",
+      "acceptanceCriteria": [
+        "The order modal has role='dialog', aria-modal='true', aria-labelledby pointing to the modal heading",
+        "Opening the modal moves focus to the first interactive element inside it",
+        "Tab key cycles only within the modal while it is open (focus trap)",
+        "Pressing Escape closes the modal and returns focus to the trigger button",
+        "The tray widget button has aria-label='View cart' and aria-expanded indicating open/closed state",
+        "Item quantity +/- buttons have aria-label='Increase quantity of {item name}' / 'Decrease quantity of {item name}'",
+        "Form fields in the order modal have associated <label> elements (not just placeholder text)",
+        "Screen reader test (NVDA or VoiceOver) can complete a full order submission without sighted assistance"
+      ],
+      "technicalNotes": [
+        "Use the shadcn/ui Dialog primitive for the order modal — it already implements ARIA dialog pattern correctly; migrate from any custom modal implementation",
+        "Focus trap can be implemented with the native Dialog element's built-in focus management (shadcn Dialog handles this)",
+        "The tray-widget.tsx and tray-button.tsx components in src/components/menu/ are the primary targets",
+        "Contact number and estimated arrival time fields need explicit <label htmlFor> associations",
+        "WCAG 2.1 SC 1.3.1, 2.1.1, 2.1.2, 4.1.2 are all relevant here"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": true
+    },
+    {
+      "id": "US-314",
+      "title": "Ensure all menu item images have descriptive alt text pulled from item data",
+      "priority": "high",
+      "description": "Food images are the primary visual content of the menu page. If menu card images use empty alt='' or generic alt text, screen reader users and search engines miss the product information. WCAG 2.1 SC 1.1.1 requires meaningful text alternatives for all non-decorative images.",
+      "acceptanceCriteria": [
+        "Every menu item <Image> component renders alt text in the format '{itemName} — {itemCategory}' using the item's translated name for the active locale",
+        "When itemName is not available in the current locale, the English name is used as a fallback",
+        "Decorative dividers, backgrounds, and icons use aria-hidden='true' or alt=''",
+        "The chef's pick card and highlight card images use the same alt text pattern",
+        "Automated axe-core scan on /en/menu returns 0 critical image-alt violations"
+      ],
+      "technicalNotes": [
+        "Update MenuCard and ChefPickCard components in src/components/menu/ to derive alt from item.nameEn (fallback) or locale-specific name",
+        "Use the useLocale() hook or pass locale as a prop to select the correct name field",
+        "MenuItem type in src/types/menu.ts has nameEn — check for nameMs and nameZh fields; add if missing",
+        "Run vitest with @axe-core/react to automate the accessibility assertion in the test suite"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": true
+    },
+    {
+      "id": "US-315",
+      "title": "Add fetchpriority=high to the hero LCP image and audit Largest Contentful Paint on mobile",
+      "priority": "high",
+      "description": "The CLAUDE.md specifies an LCP target of < 2.5s on mobile 3G and a Lighthouse mobile score >= 85. The hero section's primary image must have priority={true} and fetchpriority='high'. A missing fetchpriority hint means the browser discovers the LCP image late during the HTML parse, adding 200-500ms to LCP on slow connections.",
+      "acceptanceCriteria": [
+        "The hero section's primary <Image> component has priority={true} set (maps to fetchpriority='high' in Next.js)",
+        "The hero image has an explicit sizes prop appropriate for its responsive breakpoints",
+        "Lighthouse mobile simulation (4G throttling) on /en shows LCP < 2.5s",
+        "Lighthouse mobile accessibility score >= 90 and performance score >= 85",
+        "No render-blocking <script> or <link rel='stylesheet'> in <head> other than those injected by Next.js",
+        "Hero image is served in WebP or AVIF format via next/image optimization"
+      ],
+      "technicalNotes": [
+        "Check src/components/home/hero-section.tsx for the primary <Image> component — confirm priority prop is present",
+        "Add sizes='(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 1200px' to the hero image",
+        "The Noto Sans SC font with preload: false is already correctly configured to avoid CJK font blocking non-zh locales",
+        "Use Chrome DevTools > Performance > LCP candidate trace to identify the actual LCP element at runtime"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": true
+    },
+    {
+      "id": "US-316",
+      "title": "Generate sitemap dynamically from the database for menu and blog pages",
+      "priority": "medium",
+      "description": "The current sitemap is fully static (generated at build time from filesystem routes). Menu items and blog posts live in Neon Postgres — their individual URLs (/en/blog/[slug]) are not included in the sitemap, reducing discoverability of dynamic content. A dynamic sitemap.ts should query the DB for live slugs.",
+      "acceptanceCriteria": [
+        "A sitemap.ts file generates entries for all published blog posts at /en/blog/[slug], /ms/blog/[slug], /zh/blog/[slug]",
+        "Each blog entry includes lastmod set to the post's updated_at timestamp from the DB",
+        "Each blog entry includes hreflang alternateRefs for all 3 locales",
+        "The sitemap is revalidated on a schedule (ISR: revalidate = 86400) not just at build time",
+        "Static routes (home, menu, about, contact) remain in the sitemap with correct priority",
+        "robots.txt continues to disallow /api/ and /admin/"
+      ],
+      "technicalNotes": [
+        "Use Next.js native sitemap.ts convention at src/app/sitemap.ts for dynamic generation — this replaces or supplements next-sitemap",
+        "Query blog slugs from Neon with a lightweight SELECT slug, updated_at FROM blog_posts WHERE published = true",
+        "Set export const revalidate = 86400 on the sitemap route for daily refresh",
+        "Keep next-sitemap as a fallback for static routes, or migrate entirely to the native sitemap.ts approach"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-317",
+      "title": "Add rate limiting to the payment upload endpoint (POST /api/orders/[id]/payment)",
+      "priority": "medium",
+      "description": "The T&G payment screenshot upload endpoint has no rate limiting. A single IP could repeatedly upload large files against arbitrary order IDs, causing storage exhaustion and DoS. The orders POST endpoint already has a rate limiter — the payment endpoint needs one too.",
+      "acceptanceCriteria": [
+        "POST /api/orders/[id]/payment enforces a maximum of 10 upload attempts per IP per hour",
+        "Exceeding the limit returns HTTP 429 with a Retry-After header",
+        "A single valid order can still be reuploaded (e.g., if first upload fails) up to the limit",
+        "Localhost IPs are exempt (consistent with existing order rate limiter)",
+        "Rate limit logic is covered by unit tests"
+      ],
+      "technicalNotes": [
+        "Reuse createRateLimiter() from src/lib/chat/rate-limit.ts — same factory pattern already used by /api/orders",
+        "Window: 60 * 60 * 1000ms (1 hour), max: 10",
+        "Extract IP from x-forwarded-for header (same pattern as orders route)",
+        "Same caveat applies: in-memory store is not production-safe on Vercel — coordinate with the distributed rate limiter story"
+      ],
+      "dependencies": [
+        "Migrate rate limiter from in-memory Map to a persistent store for Vercel deployments"
+      ],
+      "estimatedComplexity": "small",
+      "passes": true
+    },
+    {
+      "id": "US-318",
+      "title": "Add color contrast validation to ensure all text meets WCAG AA 4.5:1 ratio in both modes",
+      "priority": "medium",
+      "description": "The site uses a custom OKLCH earthy palette with terracotta/amber tones. Warm backgrounds at low lightness combined with muted text colors can easily fall below the 4.5:1 WCAG AA contrast ratio, particularly for secondary text (text-muted-foreground) on amber/terracotta backgrounds and for price text on card overlays.",
+      "acceptanceCriteria": [
+        "All body text and UI text (including muted-foreground) passes 4.5:1 contrast against its background in light mode",
+        "All body text passes 4.5:1 contrast against its background in dark mode",
+        "Large text (>= 18pt or 14pt bold) passes the relaxed 3:1 ratio",
+        "Price and dietary badge text passes on their respective card backgrounds",
+        "The operating hours alert passes contrast requirements in both its warning and info states",
+        "Verified via Lighthouse accessibility audit and manual spot-check with browser DevTools contrast checker"
+      ],
+      "technicalNotes": [
+        "Check --muted-foreground definition in globals.css — it is a common failure point at ~60% lightness on a 95% background",
+        "Use browser DevTools color picker (Color Contrast section) on muted text while inspecting the menu cards",
+        "Add a Playwright visual test that captures menu cards and runs axe-core contrast checks"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-319",
+      "title": "Enable static rendering on [locale] pages by implementing setRequestLocale",
+      "priority": "medium",
+      "description": "next-intl requires setRequestLocale() to be called in every layout and page that participates in static rendering. Without it, all locale-prefixed pages opt into dynamic (SSR) rendering, negating Next.js ISR and static build optimizations. For a menu page with revalidate = 3600, the failure to call setRequestLocale means every request hits the server instead of a cached response.",
+      "acceptanceCriteria": [
+        "setRequestLocale(locale) is called at the top of the [locale]/layout.tsx render function",
+        "setRequestLocale(locale) is called in all [locale]/* page components that receive locale from params",
+        "generateStaticParams() is exported from [locale]/layout.tsx returning all supported locales: ['en', 'ms', 'zh']",
+        "Running next build shows the home page and menu pages (/en/menu, /ms/menu, /zh/menu) as Static (●) in the build output, not Dynamic (λ)",
+        "A Vercel deployment shows cache HIT responses for /en, /ms, /zh on subsequent requests"
+      ],
+      "technicalNotes": [
+        "Import setRequestLocale from 'next-intl/server' and call it before any await in the component body",
+        "generateStaticParams must return [{ locale: 'en' }, { locale: 'ms' }, { locale: 'zh' }]",
+        "This is a next-intl 3.x breaking requirement documented at next-intl.dev/docs/routing/middleware",
+        "Pages that perform per-request auth checks (cookie reads) cannot be fully static — for those, use partial pre-rendering or dynamic segments with cached data"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-320",
+      "title": "Add WhatsApp notification delivery retry with exponential backoff for order submissions",
+      "priority": "medium",
+      "description": "Order submission currently sends a WhatsApp notification to the waiter as a fire-and-forget call. If the WhatsApp API call fails (network timeout, rate limit, provider outage), the order is saved but the waiter receives no notification — the cafe misses the order entirely. A retry mechanism with exponential backoff should be implemented.",
+      "acceptanceCriteria": [
+        "Failed WhatsApp API calls are retried up to 3 times with exponential backoff (1s, 2s, 4s delays)",
+        "After all retries are exhausted, a structured error is logged with the order ID for manual follow-up",
+        "The order is always saved to Neon first, before any notification attempt — a notification failure never rolls back the order save",
+        "A new DB column or log records the notification delivery status (pending, sent, failed) per order",
+        "Admin panel Orders tab shows a visual indicator when WhatsApp notification failed (e.g., a warning icon)",
+        "The notification retry logic is unit-tested: successful on retry, exhausted retries, and partial failure scenarios"
+      ],
+      "technicalNotes": [
+        "Implement a simple async retry helper: async function withRetry(fn, retries=3, baseDelayMs=1000)",
+        "The WhatsApp send call currently lives in the orders route — extract it to src/lib/notifications.ts for testability",
+        "Add notification_status TEXT DEFAULT 'pending' column to the orders table in the migration script",
+        "For a more robust solution, consider a background job (Vercel Cron) that re-attempts failed notifications every 5 minutes, querying WHERE notification_status = 'failed'",
+        "WhatsApp Business API best practice: respond 200 to webhook immediately, then process async"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-321",
+      "title": "Use Neon pooled connection string and prevent connection leaks in serverless route handlers",
+      "priority": "medium",
+      "description": "The db.ts Neon client uses the standard connection URL. On Vercel (serverless), each function invocation may open a new TCP connection that isn't properly closed, eventually exhausting PgBouncer's max_connections. The Neon docs specifically recommend using the pooled connection string (-pooler suffix) for serverless environments.",
+      "acceptanceCriteria": [
+        "DATABASE_URL in production uses the Neon pooled connection string (hostname ending in -pooler.neon.tech)",
+        "A separate DATABASE_URL_UNPOOLED env var is available for migrations (which require session mode)",
+        ".env.example is updated to document both variables and when to use each",
+        "No SET search_path statements or session-level configuration in any route handler (incompatible with PgBouncer transaction mode)",
+        "All schema-qualified queries use explicit schema.table notation instead of relying on search_path",
+        "A load test of 50 concurrent order submissions completes without 'too many clients' errors"
+      ],
+      "technicalNotes": [
+        "In src/lib/db.ts, the neon() call should use DATABASE_URL which points to the pooled endpoint",
+        "The @neondatabase/serverless driver over HTTP is optimal for single-query routes (all current routes qualify)",
+        "The inline DDL (CREATE TABLE IF NOT EXISTS, ALTER TABLE ADD COLUMN IF NOT EXISTS) in route handlers is a connection-count concern — coordinate with the migration script story",
+        "PgBouncer transaction mode limitation: temporary tables, SET statements, and SQL-level PREPARE are unavailable — audit all queries for these patterns"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-322",
+      "title": "Extract inline DDL from API route handlers into a proper migration script",
+      "priority": "medium",
+      "description": "The orders route handler contains CREATE TABLE IF NOT EXISTS and multiple ALTER TABLE ADD COLUMN IF NOT EXISTS statements that run on every request. This creates unnecessary DB round-trips on each order submission, slows response time, and is incompatible with Neon pooled connections in transaction mode. Schema changes belong in a migration script run once at deploy time.",
+      "acceptanceCriteria": [
+        "All CREATE TABLE IF NOT EXISTS and ALTER TABLE ADD COLUMN IF NOT EXISTS statements are removed from API route handlers",
+        "A new scripts/migrate.ts (or .sql) file contains all table creation and column addition DDL",
+        "package.json includes an npm run db:migrate script that executes scripts/migrate.ts against DATABASE_URL_UNPOOLED",
+        "Vercel deployment runs npm run db:migrate automatically before npm run build (via vercel.json buildCommand or package.json build script prefix)",
+        "Route handler response time for POST /api/orders improves by at least 50ms (no DDL round-trip)",
+        "CI pipeline runs npm run db:migrate in a test step to validate the migration is idempotent"
+      ],
+      "technicalNotes": [
+        "Use the direct (unpooled) connection string for migrations since they may require session-level commands",
+        "Structure migration as numbered files (001_create_orders.sql, 002_add_payment_columns.sql) for auditability",
+        "The site_settings table creation in site-settings.ts (ensureTable()) has the same problem and should be migrated too",
+        "Alternatively use a lightweight migration library (postgres-migrations, db-migrate) or write a single idempotent migrate.ts"
+      ],
+      "dependencies": [
+        "Use Neon pooled connection string and prevent connection leaks in serverless route handlers"
+      ],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-323",
+      "title": "Add skip-to-content link and landmark roles to the public layout",
+      "priority": "medium",
+      "description": "The site has no skip navigation link, meaning keyboard and screen reader users must tab through the entire header before reaching the main content. WCAG 2.1 SC 2.4.1 (Bypass Blocks) requires a mechanism to skip repetitive navigation. Landmark roles also help screen reader users jump directly to sections.",
+      "acceptanceCriteria": [
+        "A 'Skip to main content' link is the first focusable element in the DOM, visible on focus, and targets <main id='main-content'>",
+        "The <header>, <main>, <footer>, and nav elements use correct semantic HTML landmark roles",
+        "The chat widget and tray widget floating buttons have appropriate aria-label descriptions",
+        "Screen reader test confirms the page can be navigated by landmarks (region navigation in NVDA/VoiceOver)",
+        "The skip link is visually hidden until focused, then appears above the header (position: fixed, z-index above header)"
+      ],
+      "technicalNotes": [
+        "Add <a href='#main-content' className='sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:bg-background focus:px-4 focus:py-2'>Skip to content</a> as the first child of <body> in [locale]/layout.tsx",
+        "Add id='main-content' to the <main> element in the layout",
+        "Verify the Header component uses <header> semantic element and the Footer uses <footer>",
+        "The floating chat widget and tray widget should use aria-label to describe their purpose"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-324",
+      "title": "Implement dynamic og:image generation per locale using Next.js ImageResponse",
+      "priority": "low",
+      "description": "The current OG image is a single static /images/og-image.jpg for all pages and locales. Social shares of individual blog posts show a generic cafe image instead of the actual content. Next.js App Router supports dynamic OG image generation via ImageResponse that can render the post title and cafe name in the correct locale.",
+      "acceptanceCriteria": [
+        "Blog post pages generate a dynamic og:image showing the post title and cafe name in the post's locale",
+        "The OG image renders correctly at 1200x630px with readable text",
+        "The generated image is cached by Next.js (revalidate matches the page's ISR revalidate period)",
+        "Fallback to the static /images/og-image.jpg when the dynamic image generation fails",
+        "Facebook and Twitter card debugger tools show the correct per-page og:image URL",
+        "Menu page OG image shows the cafe name and 'Menu' label in the active locale"
+      ],
+      "technicalNotes": [
+        "Create src/app/[locale]/blog/[slug]/opengraph-image.tsx exporting ImageResponse",
+        "Use the Next.js edge-compatible ImageResponse from 'next/og'",
+        "Font must be loaded inline in the ImageResponse function (cannot use next/font) — use ArrayBuffer from a font URL",
+        "Keep the static og-image.jpg as the root layout fallback — only generate dynamic images for blog and menu pages"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
     }
   ]
 }
