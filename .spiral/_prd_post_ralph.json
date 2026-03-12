@@ -72,7 +72,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "medium",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-203",
@@ -105,7 +105,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "medium",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-204",
@@ -128,7 +128,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-205",
@@ -154,7 +154,7 @@
         "US-204"
       ],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-206",
@@ -183,7 +183,7 @@
         "US-203"
       ],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     }
   ]
 }
