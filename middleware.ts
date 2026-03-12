@@ -44,7 +44,7 @@ export async function middleware(request: NextRequest) {
 
   // For root path, redirect to admin-configured default locale
   if (pathname === "/") {
-    const { defaultLocale } = getSiteSettings();
+    const { defaultLocale } = await getSiteSettings();
     const locale = ["en", "ms", "zh"].includes(defaultLocale) ? defaultLocale : "en";
     return NextResponse.redirect(new URL(`/${locale}`, request.url));
   }
