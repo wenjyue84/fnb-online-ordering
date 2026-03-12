@@ -52,7 +52,7 @@ export default async function MenuPage({
   const chefsCat = activeDisplayCats.find((dc) => dc.name.toLowerCase().includes("chef"));
   const chefsCatId = chefsCat?.id?.toString() ?? null;
   const initialCategory: string | null = null;
-  const servingNowCategories = getServingNowCategories(previewTime);
+  const servingNowCategories = await getServingNowCategories(previewTime);
   const currentTime = getMalaysiaTimeString();
 
   return (

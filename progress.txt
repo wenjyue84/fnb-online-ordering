@@ -600,3 +600,94 @@ Here is the technical brief for the AI agent:
 
 ### Gotchas
 - layout.tsx at line 112 had `getOperatingStatus()` without await — TypeScript did NOT warn because it was being passed as `OperatingStatus` prop but Promise<OperatingStatus> is truthy. Must add await manually.
+## Iteration 1 - Thu, Mar 12, 2026 10:23:08 AM
+Completed: Migrate operating hours from JSON to Neon Postgres (ID: US-201) in 3m
+
+
+## Pre-analysis for US-202 (Gemini 2.5 Pro)
+This user story is for a Next.js/TypeScript project, not Frappe/Python. The goal is to move time slot configuration from a JSON file to a Neon Postgres database.
+
+**Technical Brief for US-202:**
+
+**1. Files to Modify:**
+*   `src/lib/time-slots.ts`: This is the main file. All FS logic will be replaced with DB logic.
+*   `src/app/api/admin/time-slots/route.ts`: The API handlers (`GET`, `POST`) will need to `await` the new async DB functions.
+*   `src/app/[locale]/menu/page.tsx`: This React Server Component will need to `await` `getServingNowCategories()`.
+*   Any other files that import functions from `time-slots.ts`, as the function signatures will change to return a `Promise`.
+
+**2. Involved Entities:**
+*   **Database Table:** `site_settings`
+*   **API Route:** `/api/admin/time-slots`
+
+**3. Implementation Approach:**
+*   Make `readTimeSlots()` and `writeTimeSlots()` in `src/lib/time-slots.ts` `async`.
+*   Use the `sql` template tag utility from `@/lib/db` for database operations.
+*   **`readTimeSlots`**: `SELECT value FROM site_settings WHERE key = 'time_slots'`. Parse the JSON value.
+*   **`writeTimeSlots`**: Use `INSERT INTO site_settings (key, value) VALUES ('time_slots', $1) ON CONFLICT (key) DO UPDATE SET value = $1`.
+*   Propagate `async/await` up the call stack for `getActiveSlot`, `getDefaultCategoryForTime`, and `getServingNowCategories`.
+*   Remove all `fs` imports (`readFileSync`, `writeFileSync`, `existsSync`) from `time-slots.ts`.
+
+**4. Gotchas & Edge Cases:**
+*   **Fallback:** `readTimeSlots` must handle DB errors or an empty result set by returning the hardcoded `DEFAULT_TIME_SLOTS`.
+*   **Data Type:** The data in the `value` column is JSON. It must be `JSON.stringify` before writing and `JSON.parse` after reading.
+*   **Async Propagation:** A missing `await` on a call to a modified function will be a common bug. A full TypeScript build (`npm run build`) is required to catch these issues.
+
+## Iteration 2 - Thu, Mar 12, 2026 10:24:33 AM
+Incomplete: Migrate time slots from JSON to Neon Postgres (ID: US-202) — attempt 1/3
+
+
+## Pre-analysis for US-202 (Gemini 2.5 Pro)
+**Subject: Technical Brief for US-202: Migrate Time Slots to Database**
+
+This brief outlines the implementation plan for moving time slot configuration from a JSON file to the Neon Postgres database, as requested in the user story.
+
+**1. Files to Modify:**
+*   `src/lib/time-slots.ts`: This is the primary file. All core logic for reading/writing time slots resides here. The functions will be refactored to be `async`.
+*   `src/app/api/admin/time-slots/route.ts`: The API endpoint for managing time slots. It needs to be updated to `await` the new async database functions.
+*   `src/app/[locale]/menu/page.tsx`: The main menu page component. It will need to `await` category data that is derived from the new async time slot functions.
+
+**2. Frappe Equivalents Involved:**
+*   **DocType/Table:** `site_settings`. The implementation will read and write a single row where the `key` column is `'time_slots'`. The configuration itself will be stored as a JSON string in the `value` column.
+*   **Hooks/Server-Side Logic:** The following functions are analogous to server-side scripts or hooks and will be affected:
+    *   `readTimeSlots()`: Replaces a file system read. It will become `async` and fetch data from the `site_settings` table.
+    *   `writeTimeSlots()`: Replaces a file system write. It will become `async` and perform an upsert into the `site_settings` table.
+    *   `getServingNowCategories()`, `getDefaultCategoryForTime()`: These are dependent server-side helpers that must also become `async`.
+
+**3. Recommended Implementation Approach:**
+*   Utilize the `sql` tagged template literal function exported from `@src/lib/db.ts` for all database queries.
+*   In `src/lib/time-slots.ts`, convert `readTimeSlots` and `writeTimeSlots` to `async` functions.
+    *   `readTimeSlots`: Implement a `SELECT value FROM site_settings WHERE key = 'time_slots'`. The function must fall back to returning the hardcoded `DEFAULT_TIME_SLOTS` constant if no record is found or if a database error occurs.
+    *   `writeTimeSlots`: Use an `INSERT ... ON CONFLICT (key) DO UPDATE` statement to create or update the settings record.
+*   Propagate `async`/`await` up the call stack. Any function that calls an async function (e.g., `getActiveSlot`, `getServingNowCategories`) must also be converted to `async` and use `await`.
+*   Update the API route and the React Server Component (`menu/page.tsx`) to correctly `await` the results from these new asynchronous functions.
+
+**4. Gotchas & Edge Cases:**
+*   **Fallback Reliability:** The database read must have robust `try...catch` block and fallback logic to return `DEFAULT_TIME_SLOTS`. This is critical to prevent site failure if the database row is missing or the connection is down.
+*   **Async Propagation:** A common source of error will be forgetting to make a calling function `async`, leading to unhandled Promises and type errors. The entire call chain from the database access to the UI component must be `async`.
+*   **File System Cleanup:** A key acceptance criterion is the complete removal of all `fs` module imports and their corresponding function calls (`readFileSync`, `writeFileSync`, etc.) from `src/lib/time-slots.ts`.
+*   **Build Verification:** After changes, `npm run build` must be executed to catch any TypeScript errors related to incorrect `async`/`await` implementation.
+
+## Iteration N - Story: US-202 - Migrate time slots from JSON to Neon Postgres
+
+### What was implemented
+- Removed `import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs"` and `import { join } from "path"` from `src/lib/time-slots.ts`
+- Added `import sql from "@/lib/db"`
+- Made `readTimeSlots()` async: reads `site_settings WHERE key = 'time_slots'`, validates `slots` array, falls back to DEFAULT_TIME_SLOTS
+- Made `writeTimeSlots()` async: upserts into `site_settings` using same pattern as availability.ts
+- Made `getActiveSlotForTime()` async: awaits `readTimeSlots()` internally
+- Made `getActiveSlot()` async: awaits `getActiveSlotForTime()`
+- Made `getDefaultCategoryForTime()` async: awaits both `getActiveSlotForTime()` and `getActiveSlot()`
+- Made `getServingNowCategories()` async: awaits both `getActiveSlotForTime()` and `getActiveSlot()`
+- Updated `src/app/api/admin/time-slots/route.ts`: GET awaits `readTimeSlots()`, POST awaits `writeTimeSlots()`
+- Updated `src/app/[locale]/menu/page.tsx` line 55: `await getServingNowCategories(previewTime)`
+- `npx tsc --noEmit` passes, `npx next build` passes
+
+### Patterns discovered
+- Same DB pattern as US-201: SELECT value FROM site_settings WHERE key = '...', upsert with ON CONFLICT
+- `getMalaysiaTime()` and `getMalaysiaTimeString()` are pure date utils — left sync (no DB)
+- `admin-time-settings.tsx` only imports types (TimeSlot, TimeSlotsConfig) — no changes needed
+
+### Gotchas
+- Previous attempt (iter 2) failed — likely timeout on build. Build takes ~15s compile + ~400ms static gen
+- Must propagate async through entire call chain: readTimeSlots → getActiveSlotForTime → getActiveSlot → getServingNowCategories
+
