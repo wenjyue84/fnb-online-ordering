@@ -3,6 +3,7 @@ import sql from "@/lib/db";
 import webpush from "web-push";
 import { createRateLimiter } from "@/lib/chat/rate-limit";
 import { OrderSubmitSchema } from "@/lib/schemas/order";
+import { getSiteSettings } from "@/lib/site-settings";
 
 // 5 orders per hour per IP
 const ordersRateLimiter = createRateLimiter({
@@ -24,8 +25,9 @@ async function sendPushToAllAdmins(itemCount: number, total: number) {
   if (!vapidPublicKey || !vapidPrivateKey) return;
   try {
     const subs = await sql<{ endpoint: string; p256dh: string; auth: string }>`SELECT endpoint, p256dh, auth FROM push_subscriptions`;
+    const { cafeName } = await getSiteSettings();
     const payload = JSON.stringify({
-      title: "🍽 New Order — Makan Moments",
+      title: `🍽 New Order — ${cafeName || "Cafe"}`,
       body: `${itemCount} item${itemCount !== 1 ? "s" : ""} — RM ${total.toFixed(2)}`,
       url: "/admin",
     });

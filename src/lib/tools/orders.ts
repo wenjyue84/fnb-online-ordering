@@ -1,6 +1,7 @@
 import sql from "@/lib/db";
 import { OrderSubmitSchema } from "@/lib/schemas/order";
 import webpush from "web-push";
+import { getSiteSettings } from "@/lib/site-settings";
 
 // Configure VAPID — only if keys are present
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -15,8 +16,9 @@ export async function sendPushToAllAdmins(itemCount: number, total: number): Pro
   if (!vapidPublicKey || !vapidPrivateKey) return;
   try {
     const subs = await sql<{ endpoint: string; p256dh: string; auth: string }>`SELECT endpoint, p256dh, auth FROM push_subscriptions`;
+    const { cafeName } = await getSiteSettings();
     const payload = JSON.stringify({
-      title: "🍽 New Order — Makan Moments",
+      title: `🍽 New Order — ${cafeName || "Cafe"}`,
       body: `${itemCount} item${itemCount !== 1 ? "s" : ""} — RM ${total.toFixed(2)}`,
       url: "/admin",
     });
