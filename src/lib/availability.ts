@@ -14,7 +14,7 @@ export interface OperatingHoursConfig {
 
 export type OperatingStatus = "open" | "after_last_order" | "closed";
 
-const DEFAULT_HOURS: OperatingHoursConfig = {
+export const DEFAULT_HOURS: OperatingHoursConfig = {
   openHour: 11, openMinute: 0, lastOrderHour: 22, lastOrderMinute: 30, closeHour: 23, closeMinute: 0,
 };
 
