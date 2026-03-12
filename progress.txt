@@ -1,3 +1,9 @@
+## US-302 — Replace CAFE.xxx in async RSC pages (PASSED)
+- Split site-settings.ts into site-settings-shared.ts (client-safe: interface + defaults) and site-settings.ts (server-only: DB queries)
+- Root cause of build failure: admin-settings-panel.tsx ("use client") imported DEFAULT_SETTINGS from site-settings.ts which chains to db.ts → env.ts → import "server-only"
+- Fix: client components import from @/lib/site-settings-shared, server components keep importing from @/lib/site-settings
+- All 5 target files (footer, json-ld, layout, about, contact) now use getSiteSettings() instead of CAFE constant
+
 ## Codebase Patterns
 
 - All test files share the same `getBaseUrl()` pattern: returns hardcoded URL in dev, falls back to `NEXT_PUBLIC_SITE_URL` env var in production
@@ -858,3 +864,76 @@ This user story pertains to a Next.js/TypeScript project, not Frappe/Python. The
 
 ### Gotchas
 - TypeScript error: local DEFAULT_SETTINGS in admin-settings-panel was missing the new fields
+## Iteration 1 - Thu, Mar 12, 2026 11:10:22 AM
+Completed: Extend SiteSettings with full cafe identity fields (ID: US-301) in 5m
+
+
+## Pre-analysis for US-302 (Gemini 2.5 Pro)
+**Technical Brief: US-302 - Dynamic Site Settings in RSC**
+
+This user story details a refactoring task within a **Next.js/TypeScript** application, not a Frappe/Python one. The goal is to replace a static `CAFE` constant object with dynamic data fetched via a server-side `getSiteSettings()` function in React Server Components (RSCs).
+
+**1. Files to Modify:**
+*   `src/components/layout/footer.tsx`
+*   `src/components/seo/json-ld.tsx`
+*   `src/app/[locale]/layout.tsx`
+*   `src/app/[locale]/about/page.tsx`
+*   `src/app/[locale]/contact/page.tsx`
+*   The `CAFE` constant will be removed from `@/lib/constants`.
+
+**2. Involved DocTypes/Hooks:**
+*   **Data Fetching:** The primary function is `getSiteSettings() from "@/lib/site-settings"`.
+*   **Data Source:** This replaces the static `CAFE` constant object.
+*   **No Frappe DocTypes** are involved; this is a frontend task.
+
+**3. Implementation Approach:**
+1.  In each specified file, convert the React component to an `async` function if it isn't already.
+2.  Add the call `const settings = await getSiteSettings();` at the top of each component.
+3.  Systematically replace all hardcoded `CAFE.property` usages (e.g., `CAFE.address`) with the dynamic `settings.property` equivalent.
+4.  Remove the `import { CAFE } from "@/lib/constants"` statement.
+5.  Add `import { getSiteSettings } from "@/lib/site-settings"` where needed.
+6.  Verify the changes by running `npm run build` to ensure no TypeScript errors.
+
+**4. Edge Cases & Gotchas:**
+*   **Project Mismatch:** The task is for Next.js/TypeScript, not Python/Frappe.
+*   **`about/page.tsx`:** The `CAFE.ambiance` property may not exist in the new `settings` object. If not, the acceptance criteria mandate hardcoding this array directly in the component.
+*   **`json-ld.tsx`:** The exported component functions here must be explicitly made `async`.
+*   **Metadata:** In `layout.tsx`, ensure the metadata object correctly uses the fetched `settings` for `cafeName` and `cafeTagline`.
+
+## Iteration 2 - Thu, Mar 12, 2026 11:14:37 AM
+Incomplete: Replace CAFE.xxx in async RSC pages and server components (ID: US-302) — attempt 1/3
+
+
+## Pre-analysis for US-302 (Gemini 2.5 Pro)
+Here is the technical brief for US-302:
+
+**1. Python Files to Modify:**
+
+This is a Next.js/TypeScript task, not Python. The following files require modification:
+*   `src/components/layout/footer.tsx`
+*   `src/components/seo/json-ld.tsx`
+*   `src/app/[locale]/layout.tsx`
+*   `src/app/[locale]/about/page.tsx`
+*   `src/app/[locale]/contact/page.tsx`
+
+**2. Frappe DocTypes / Hooks Involved:**
+
+The relevant entities are React Server Components and a data fetching function, not Frappe DocTypes.
+*   **Key Function:** `getSiteSettings` from `@/lib/site-settings` will be the new data source.
+*   **Constant to be Replaced:** The static `CAFE` object from `@/lib/constants` must be removed.
+
+**3. Recommended Implementation Approach:**
+
+1.  Iterate through each of the five specified `.tsx` files.
+2.  Make the React component function `async` if it is not already.
+3.  Add the call `const settings = await getSiteSettings();` at the beginning of each component.
+4.  Systematically replace all `CAFE.property` access with `settings.property`.
+5.  Remove the now-unused import statement for the `CAFE` constant.
+6.  Verify success by running `npm run build` to ensure no new errors are present.
+
+**4. Edge Cases and Gotchas:**
+
+*   **Asynchronicity:** Some components, like those in `json-ld.tsx`, may not be async. Their function signature must be changed to `async function...` to support `await`.
+*   **Missing Data:** In `about/page.tsx`, the `ambiance` array may not be present in the new `settings` object. The code should handle this gracefully by using a hardcoded inline array as a fallback.
+*   **Metadata:** Pay close attention to `layout.tsx` to ensure the page's `<title>` and metadata descriptions are correctly populated from the fetched `settings`.
+

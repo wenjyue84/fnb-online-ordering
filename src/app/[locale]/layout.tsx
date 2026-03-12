@@ -5,7 +5,7 @@ import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { routing } from "@/i18n/routing";
-import { CAFE } from "@/lib/constants";
+import { getSiteSettings } from "@/lib/site-settings";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { ChatWidgetLoader } from "@/components/chat/chat-widget-loader";
@@ -49,49 +49,53 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export function generateMetadata({
+export async function generateMetadata({
   params,
 }: {
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
-  return params.then(({ locale }) => {
-    const name = CAFE.name[locale as keyof typeof CAFE.name] || CAFE.name.en;
-    const tagline =
-      CAFE.tagline[locale as keyof typeof CAFE.tagline] || CAFE.tagline.en;
-    const siteUrl =
-      process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031";
+  const { locale } = await params;
+  const settings = await getSiteSettings();
+  const nameMap: Record<string, string> = {
+    en: settings.cafeName,
+    ms: settings.cafeNameMs,
+    zh: settings.cafeNameZh,
+  };
+  const name = nameMap[locale] || settings.cafeName;
+  const tagline = settings.cafeTagline;
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031";
 
-    return {
-      title: {
-        default: `${name} — ${tagline}`,
-        template: `%s | ${name}`,
+  return {
+    title: {
+      default: `${name} — ${tagline}`,
+      template: `%s | ${name}`,
+    },
+    description: `${name} — Thai-Malaysian fusion cafe in Skudai, Johor. ${tagline}`,
+    metadataBase: new URL(siteUrl),
+    alternates: {
+      canonical: `/${locale}`,
+      languages: {
+        en: "/en",
+        ms: "/ms",
+        zh: "/zh",
       },
-      description: `${name} — Thai-Malaysian fusion cafe in Skudai, Johor. ${tagline}`,
-      metadataBase: new URL(siteUrl),
-      alternates: {
-        canonical: `/${locale}`,
-        languages: {
-          en: "/en",
-          ms: "/ms",
-          zh: "/zh",
-        },
-      },
-      openGraph: {
-        type: "website",
-        locale: locale === "zh" ? "zh_CN" : locale === "ms" ? "ms_MY" : "en_US",
-        siteName: name,
-        title: `${name} — ${tagline}`,
-        description: `Thai-Malaysian fusion cafe in Skudai, Johor. Open daily 11AM-11PM.`,
-        images: [{ url: "/images/og-image.jpg", width: 1200, height: 630 }],
-      },
-      robots: { index: true, follow: true },
-      manifest: "/manifest.json",
-      icons: {
-        icon: "/favicon.ico",
-        apple: "/apple-touch-icon.png",
-      },
-    };
-  });
+    },
+    openGraph: {
+      type: "website",
+      locale: locale === "zh" ? "zh_CN" : locale === "ms" ? "ms_MY" : "en_US",
+      siteName: name,
+      title: `${name} — ${tagline}`,
+      description: `Thai-Malaysian fusion cafe in Skudai, Johor. Open daily 11AM-11PM.`,
+      images: [{ url: "/images/og-image.jpg", width: 1200, height: 630 }],
+    },
+    robots: { index: true, follow: true },
+    manifest: "/manifest.json",
+    icons: {
+      icon: "/favicon.ico",
+      apple: "/apple-touch-icon.png",
+    },
+  };
 }
 
 export default async function LocaleLayout({

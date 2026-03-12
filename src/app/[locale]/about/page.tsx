@@ -4,7 +4,6 @@ import path from "path";
 import matter from "gray-matter";
 import { cookies } from "next/headers";
 import { getTranslations } from "next-intl/server";
-import { CAFE } from "@/lib/constants";
 import { Leaf, Users, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import { COOKIE_NAME, verifyAdminToken } from "@/lib/auth";
@@ -99,7 +98,14 @@ export default async function AboutPage({
     return (
       <AboutInlineEditor
         content={content}
-        ambianceFeatures={CAFE.ambiance}
+        ambianceFeatures={[
+          "Corner shop unit",
+          "Natural ventilation",
+          "Indoor plants",
+          "Hand-drawn wall art",
+          "Power outlets available",
+          "Free WiFi",
+        ]}
       />
     );
   }
@@ -159,7 +165,14 @@ export default async function AboutPage({
           <div>
             <h2 className="mb-6 font-display text-2xl font-bold">{content.ambianceTitle}</h2>
             <div className="grid gap-3 sm:grid-cols-2">
-              {CAFE.ambiance.map((feature) => (
+              {[
+                "Corner shop unit",
+                "Natural ventilation",
+                "Indoor plants",
+                "Hand-drawn wall art",
+                "Power outlets available",
+                "Free WiFi",
+              ].map((feature) => (
                 <div
                   key={feature}
                   className="rounded-lg border border-border bg-card p-4 text-sm font-medium"

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { DEFAULT_SETTINGS } from "@/lib/site-settings";
-import type { SiteSettings } from "@/lib/site-settings";
+import { DEFAULT_SETTINGS } from "@/lib/site-settings-shared";
+import type { SiteSettings } from "@/lib/site-settings-shared";
 import { AdminOperatingHours } from "./admin-operating-hours";
 import { AdminTimeSettings } from "./admin-time-settings";
 import { AdminPushSettings } from "./admin-push-settings";

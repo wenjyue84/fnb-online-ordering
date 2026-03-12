@@ -1,4 +1,4 @@
-import { CAFE } from "@/lib/constants";
+import { getSiteSettings } from "@/lib/site-settings";
 
 interface JsonLdProps {
   data: Record<string, unknown>;
@@ -13,12 +13,14 @@ export function JsonLd({ data }: JsonLdProps) {
   );
 }
 
-export function RestaurantJsonLd() {
+export async function RestaurantJsonLd() {
+  const settings = await getSiteSettings();
+
   const data = {
     "@context": "https://schema.org",
     "@type": "Restaurant",
-    name: CAFE.name.en,
-    alternateName: [CAFE.name.ms, CAFE.name.zh],
+    name: settings.cafeName,
+    alternateName: [settings.cafeNameMs, settings.cafeNameZh],
     description:
       "Thai-Malaysian fusion cafe in Skudai, Johor. No Pork, No Lard, Halal-friendly.",
     url: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031",
@@ -58,9 +60,9 @@ export function RestaurantJsonLd() {
       (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031") +
       "/images/og-image.jpg",
     sameAs: [
-      CAFE.social.facebook,
-      CAFE.social.instagram,
-      CAFE.social.tiktok,
+      settings.social.facebook,
+      settings.social.instagram,
+      settings.social.tiktok,
     ],
     hasMenu: {
       "@type": "Menu",
@@ -100,25 +102,27 @@ export function RestaurantJsonLd() {
   return <JsonLd data={data} />;
 }
 
-export function MenuPageJsonLd() {
+export async function MenuPageJsonLd() {
+  const settings = await getSiteSettings();
+
   const data = {
     "@context": "https://schema.org",
     "@type": "Menu",
-    name: "Makan Moments Cafe Menu",
+    name: `${settings.cafeName} Menu`,
     description: "384+ Thai-Malaysian fusion dishes",
     url:
       (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031") +
       "/en/menu",
     mainEntity: {
       "@type": "Restaurant",
-      name: CAFE.name.en,
+      name: settings.cafeName,
     },
   };
 
   return <JsonLd data={data} />;
 }
 
-export function BlogPostJsonLd({
+export async function BlogPostJsonLd({
   title,
   description,
   datePublished,
@@ -131,6 +135,8 @@ export function BlogPostJsonLd({
   url: string;
   image?: string | null;
 }) {
+  const settings = await getSiteSettings();
+
   const data = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
@@ -140,11 +146,11 @@ export function BlogPostJsonLd({
     url,
     author: {
       "@type": "Organization",
-      name: CAFE.name.en,
+      name: settings.cafeName,
     },
     publisher: {
       "@type": "Organization",
-      name: CAFE.name.en,
+      name: settings.cafeName,
       url: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031",
     },
     ...(image && { image }),

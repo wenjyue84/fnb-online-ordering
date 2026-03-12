@@ -4,7 +4,7 @@ import path from "path";
 import matter from "gray-matter";
 import { cookies } from "next/headers";
 import { getTranslations } from "next-intl/server";
-import { CAFE } from "@/lib/constants";
+import { getSiteSettings } from "@/lib/site-settings";
 import { MapPin, Clock, Phone, Wifi, Facebook, Instagram } from "lucide-react";
 import { COOKIE_NAME, verifyAdminToken } from "@/lib/auth";
 import { ContactInlineEditor, type ContactContent } from "@/components/admin/contact-inline-editor";
@@ -63,15 +63,17 @@ export default async function ContactPage({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "contact" });
 
+  const settings = await getSiteSettings();
+
   const fallback: Record<string, string> = {
     title: t("title"),
     subtitle: t("subtitle"),
-    address: CAFE.address,
-    neighborhood: CAFE.neighborhood,
-    phone: CAFE.phone,
-    hoursDaily: CAFE.hours.daily,
-    hoursLastOrder: CAFE.hours.lastOrder,
-    googleMapsEmbed: CAFE.googleMapsEmbed,
+    address: settings.address,
+    neighborhood: settings.neighborhood,
+    phone: settings.phone,
+    hoursDaily: settings.displayHours.daily,
+    hoursLastOrder: settings.displayHours.lastOrder,
+    googleMapsEmbed: settings.googleMapsEmbed,
   };
 
   const content = readContactContent(fallback);
@@ -84,7 +86,7 @@ export default async function ContactPage({
     return (
       <ContactInlineEditor
         content={content}
-        social={CAFE.social}
+        social={settings.social}
         wifiPassword={t("wifiPassword")}
       />
     );
@@ -148,7 +150,7 @@ export default async function ContactPage({
             <h2 className="mb-3 font-semibold">{t("socialTitle")}</h2>
             <div className="flex gap-3">
               <a
-                href={CAFE.social.facebook}
+                href={settings.social.facebook}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm hover:bg-secondary/80"
@@ -156,7 +158,7 @@ export default async function ContactPage({
                 <Facebook className="h-4 w-4" /> Facebook
               </a>
               <a
-                href={CAFE.social.instagram}
+                href={settings.social.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm hover:bg-secondary/80"
