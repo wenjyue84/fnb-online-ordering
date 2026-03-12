@@ -34,7 +34,7 @@ export async function HeroSection({ heroTitle, heroTagline, heroSubtitle, signat
               item={signatureDish ?? null}
               cafeName={settings.cafeName}
               className="aspect-[2/1] shadow-2xl"
-              sizes="calc(100vw - 2rem)"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 1200px"
               priority
               fallbackBlurDataURL={HERO_BLUR.heroMobile}
             />

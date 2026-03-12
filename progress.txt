@@ -1421,3 +1421,51 @@ Completed: Add ARIA labels and keyboard navigation to the tray widget and order 
 ### Gotchas
 - prd.json requires UTF-8 encoding flag in Python (has non-ASCII chars from acceptance criteria)
 - Pre-existing lint warnings (menu-grid.tsx unused var, menu.ts unused func) — not related to this story
+## Iteration 8 - Thu, Mar 12, 2026  1:32:53 PM
+Completed: Ensure all menu item images have descriptive alt text pulled from item data (ID: US-314) in 4m
+
+
+## Pre-analysis for US-315 (Gemini 2.5 Pro)
+Based on the user story, here is a technical brief for the implementation task.
+
+**Objective:** Optimize the Largest Contentful Paint (LCP) for the mobile homepage by prioritizing the hero image.
+
+**File to Modify:**
+*   `src/components/home/hero-section.tsx`: This file contains the primary hero section component where the LCP image is rendered.
+
+**Framework Concepts:**
+*   **Next.js `<Image>` Component:** The core element to modify.
+*   **`priority={true}` Prop:** This Next.js prop automatically adds `<link rel="preload">` and `fetchpriority="high"` to the image, signaling the browser to download it sooner.
+*   **`sizes` Prop:** Essential for responsive images, it tells the browser which image size to download based on viewport width, preventing the download of unnecessarily large images on mobile.
+*   **Lighthouse Auditing:** The primary tool for verifying the performance improvements (LCP, performance score) in a simulated mobile environment.
+
+**Implementation Plan:**
+1.  Locate the `<Image>` component within `src/components/home/hero-section.tsx`.
+2.  Add the `priority={true}` prop to this component.
+3.  Add the `sizes="(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 1200px"` prop to optimize image selection across breakpoints.
+4.  Run a Lighthouse audit on the homepage (`/en`) using Chrome DevTools with mobile simulation.
+5.  Confirm the LCP is under 2.5s and performance/accessibility scores meet the acceptance criteria (>=85 and >=90, respectively).
+
+**Gotchas to Watch For:**
+*   Ensure the `priority` prop is only applied to the single, most critical LCP image on the page. Applying it to multiple images is counter-productive.
+*   Verify that the image is still being optimized to WebP/AVIF format by Next.js after the change.
+*   Use the DevTools Performance trace to confirm the hero image is correctly identified as the LCP element and its network request starts early.
+
+
+## Iteration - Story: US-315 — Add fetchpriority=high to the hero LCP image
+
+### What was implemented
+- hero-section.tsx: Updated mobile hero (lg:hidden) sizes from `calc(100vw - 2rem)` to `(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 1200px` (spec value)
+- Both mobile and desktop HeroDishCard already had `priority` prop set — no change needed
+- hero-dish-card.tsx: `priority` prop already passed through to `<Image>` on both the static fallback and the interactive card
+- next.config.ts: `formats: ["image/avif", "image/webp"]` already configured → images served as AVIF/WebP
+- layout.tsx: No render-blocking scripts/stylesheets in `<head>` — already clean
+- Fonts: `display: "swap"` on Playfair Display and Noto Sans; `preload: false` on Noto Sans SC to avoid CJK font blocking EN/MS locales
+
+### Patterns discovered
+- HeroDishCard is a "use client" component that wraps Next.js `<Image>` — Next.js still generates `<link rel="preload">` during SSR for `priority={true}` images even in client components
+- Dual-image pattern (mobile lg:hidden + desktop hidden lg:block): each image gets its own `sizes` and `priority` — mobile sizes target 0-1024px range, desktop targets 1024px+
+
+### Gotchas
+- Dev server crashed with OOM ("memory allocation of 8388608 bytes failed") — Lighthouse audit could not be run. All code requirements verified manually.
+- TypeScript check passes cleanly (npx tsc --noEmit = no output)
