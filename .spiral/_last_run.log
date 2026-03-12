@@ -389,3 +389,166 @@ C:\Users\Jyue\Documents\1-projects\Software Projects\fnb-online-ordering\src\lib
 PASS
   └─────────────────────────────────────┘
   ✓ All quality gates passed!
+warning: in the working copy of '.spiral/_last_run.log', LF will be replaced by CRLF the next time Git touches it
+[feature/iter-03 21f0a79] feat: US-309 - Add hreflang x-default tag to the multilingual sitemap and layout metadata
+ 1 file changed, 24 insertions(+)
+
+  ╔══════════════════════════════════════╗
+  ║  Iteration 4/10
+  Progress: [███████████░░░░░░░░░░░░░░░░░░░] 9/24 (37%)
+  ╚══════════════════════════════════════╝
+  [model] US-310 → sonnet (auto (score-based))
+
+  ┌─ Story ─────────────────────────────┐
+  │ ID:       US-310
+  │ Title:    Migrate rate limiter from in-memory Map to a persistent store for Vercel deployments
+  │ Priority: high
+  │ Deps:     none
+  │ Attempt:  1/3
+  │ Model:    sonnet (auto (score-based))
+  └─────────────────────────────────────┘
+
+  [baseline] Counting pre-story TS errors... 0 errors
+
+  [spawn] Fresh claude instance for US-310...
+  [precontext] Running Gemini 2.5 Pro pre-analysis...
+  [precontext] Gemini pre-analysis injected (25 lines)
+  ─────── AI Output Start (claude) ───────
+[2m[0:33][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[0:51][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[0:57][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[1:04][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[1:11][0m 📖 [36mRead[0m [2mrate-limit.ts[0m
+[2m[1:16][0m 📖 [36mRead[0m [2mdb.ts[0m
+[2m[1:17][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[1:26][0m 📖 [36mRead[0m [2mroute.ts[0m
+[2m[1:26][0m 📖 [36mRead[0m [2mroute.ts[0m
+[2m[2:16][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[2:20][0m 🔍 [36mGlob[0m [2m"src/**/*.test.ts"[0m
+[2m[2:20][0m 🔍 [36mGlob[0m [2m"vitest.config.*"[0m
+[2m[2:24][0m 📖 [36mRead[0m [2mvitest.config.ts[0m
+[2m[2:24][0m 📖 [36mRead[0m [2mutils.test.ts[0m
+[2m[3:29][0m [37mNow I have a clear picture. Let me implement US-310 — migrate rate limiter to Neon Postgres.[0m
+[2m[3:29][0m 🔨 [36mToolSearch[0m [2mselect:TodoWrite[0m
+[2m[3:37][0m 🔨 [36mTodoWrite[0m [2m[0m
+[2m[4:01][0m ✏️ [36mWrite[0m [2mrate-limit.ts[0m
+[2m[4:06][0m 🔨 [36mTodoWrite[0m [2m[0m
+[2m[4:09][0m [37mNow update the orders route to `await` the async limiter:[0m
+[2m[4:11][0m 🔧 [36mEdit[0m [2mroute.ts[0m
+[2m[4:16][0m 🔨 [36mTodoWrite[0m [2m[0m
+[2m[4:20][0m 🔧 [36mEdit[0m [2mroute.ts[0m
+[2m[4:24][0m 🔨 [36mTodoWrite[0m [2m[0m
+[2m[4:27][0m [37mNow write the unit tests:[0m
+[2m[4:50][0m ✏️ [36mWrite[0m [2mrate-limit.test.ts[0m
+[2m[4:59][0m 🔨 [36mTodoWrite[0m [2m[0m
+[2m[5:02][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[5:12][0m [37mThere's another caller. Let me check the admin login route:[0m
+[2m[5:13][0m 📖 [36mRead[0m [2mroute.ts[0m
+[2m[5:17][0m 🔧 [36mEdit[0m [2mroute.ts[0m
+[2m[5:20][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[5:27][0m [37mTypeScript is clean. Now run the tests:[0m
+[2m[5:28][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[5:38][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[5:46][0m [37mAll 10 tests pass. Now run lint:[0m
+[2m[5:46][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[6:02][0m [37mOnly pre-existing warnings — 0 errors. Now mark complete and commit:[0m
+[2m[6:04][0m 🔨 [36mTodoWrite[0m [2m[0m
+[2m[6:08][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[6:19][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[6:36][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[6:40][0m 🔨 [36mTodoWrite[0m [2m[0m
+[2m[6:43][0m [37mNow document learnings in progress.txt:[0m
+[2m[6:59][0m 💻 [36mBash[0m [2mcat >> "/c/Users/Jyue/Documents/1-projects/Software Projects...[0m
+[2m[7:07][0m [37mUS-310 is complete. Here's a summary of what was done:  **US-310 — Migrate rate limiter to Neon Post...[0m
+
+[32m[1m✓ Claude finished[0m [2m(37 tool calls in 7:13)[0m
+
+[2mStream ended (37 tool calls, 7:14 elapsed)[0m
+  ─────── AI Output End (claude) ─────────
+  [time] Story took 7m
+
+  [done] Story completed: Migrate rate limiter from in-memory Map to a persistent store for Vercel deployments
+  ┌─ Quality Gates ─────────────────────┐
+  │ [1/2] TypeScript... PASS (0 errors, baseline 0)
+  │ [2/2] Lint... 
+C:\Users\Jyue\Documents\1-projects\Software Projects\fnb-online-ordering\src\components\menu\menu-grid.tsx
+  211:5  warning  'isChefsPick' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Jyue\Documents\1-projects\Software Projects\fnb-online-ordering\src\lib\menu.ts
+  88:10  warning  'getSecondaryPhotosMap' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 2 problems (0 errors, 2 warnings)
+
+PASS
+  └─────────────────────────────────────┘
+  ✓ All quality gates passed!
+warning: in the working copy of '.spiral/_last_run.log', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'progress.txt', LF will be replaced by CRLF the next time Git touches it
+[feature/iter-03 ceb60e1] feat: US-310 - Migrate rate limiter from in-memory Map to a persistent store for Vercel deployments
+ 2 files changed, 112 insertions(+)
+
+  ╔══════════════════════════════════════╗
+  ║  Iteration 5/10
+  Progress: [████████████░░░░░░░░░░░░░░░░░░] 10/24 (41%)
+  ╚══════════════════════════════════════╝
+  [model] US-311 → opus (auto (score-based))
+
+  ┌─ Story ─────────────────────────────┐
+  │ ID:       US-311
+  │ Title:    Move uploaded payment screenshots to cloud storage instead of local filesystem
+  │ Priority: high
+  │ Deps:     none
+  │ Attempt:  1/3
+  │ Model:    opus (auto (score-based))
+  └─────────────────────────────────────┘
+
+  [baseline] Counting pre-story TS errors... 0 errors
+
+  [spawn] Fresh claude instance for US-311...
+  [precontext] Running Gemini 2.5 Pro pre-analysis...
+  [precontext] Gemini pre-analysis injected (24 lines)
+  ─────── AI Output Start (claude) ───────
+[2m[0:35][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[0:37][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[1:21][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[1:27][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[1:27][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[1:34][0m [37mLet me read the current payment upload route handler and check what storage-related packages are ava...[0m
+[2m[1:35][0m 🔍 [36mGlob[0m [2m"src/app/api/orders/[id]/payment/route.ts"[0m
+[2m[1:37][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[1:44][0m 🔍 [36mGlob[0m [2m"src/app/api/orders/**/payment/**"[0m
+[2m[1:44][0m 🔍 [36mGlob[0m [2m"src/app/api/orders/**/*.ts"[0m
+[2m[1:47][0m 📖 [36mRead[0m [2mroute.ts[0m
+[2m[1:51][0m 🔨 [36mToolSearch[0m [2mselect:TodoWrite[0m
+[2m[1:55][0m [37mNow let me check the admin panel to see how screenshots are displayed, and look at the `.env.example...[0m
+[2m[1:58][0m 🔨 [36mTodoWrite[0m [2m[0m
+[2m[1:59][0m 📖 [36mRead[0m [2m.env.example[0m
+[2m[2:01][0m 🔎 [36mGrep[0m [2m"payment_screenshot|screenshotUrl|screenshot"[0m
+[2m[2:12][0m [37mGood. I have a clear picture. The admin panel renders the screenshot URL in a standard `<img>` tag, ...[0m
+[2m[2:16][0m 🔨 [36mTodoWrite[0m [2m[0m
+[2m[2:17][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[2:26][0m 🔨 [36mTodoWrite[0m [2m[0m
+[2m[2:31][0m [37mNow let me refactor the payment upload route. I'll use Vercel Blob when `BLOB_READ_WRITE_TOKEN` is s...[0m
+[2m[3:01][0m 🔧 [36mEdit[0m [2mroute.ts[0m
+[2m[3:05][0m [37mNow I need to handle the Next.js image domain config for Vercel Blob URLs, and update `.env.example`...[0m
+[2m[3:10][0m 🔨 [36mTodoWrite[0m [2m[0m
+[2m[3:10][0m 📖 [36mRead[0m [2mnext.config.ts[0m
+[2m[3:15][0m [37mI need to add the Vercel Blob hostname to `remotePatterns`. The admin uses standard `<img>` tags (no...[0m
+[2m[3:16][0m 📖 [36mRead[0m [2madmin-order-card.tsx[0m
+[2m[3:21][0m [37mGood — it uses a standard `<img>` tag, not `<Image>`. External URLs will render fine without any con...[0m
+[2m[3:23][0m 🔧 [36mEdit[0m [2mnext.config.ts[0m
+[2m[3:26][0m [37mNow update `.env.example`:[0m
+[2m[3:28][0m 🔧 [36mEdit[0m [2m.env.example[0m
+[2m[3:38][0m 🔨 [36mTodoWrite[0m [2m[0m
+[2m[3:43][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[3:44][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[4:05][0m [37mTypeScript passes clean, lint has only pre-existing warnings (not from my changes). Let me verify th...[0m
+[2m[4:05][0m 📖 [36mRead[0m [2mroute.ts[0m
+[2m[4:14][0m [37mAll checks pass. Now let me update `prd.json` and `progress.txt`.[0m
+[2m[4:18][0m 🔨 [36mTodoWrite[0m [2m[0m
+[2m[4:20][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[4:25][0m 📖 [36mRead[0m [2mprogress.txt[0m
+[2m[4:37][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[4:41][0m [37mNow commit:[0m
+[2m[4:42][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
+[2m[4:59][0m 💻 [36mBash[0m [2mcd "/c/Users/Jyue/Documents/1-projects/Software Projects/fnb...[0m
