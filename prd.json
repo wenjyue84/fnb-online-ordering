@@ -116,14 +116,14 @@
       ],
       "technicalNotes": [
         "hero-dish-card.tsx: add 'cafeName?: string' to props interface; use cafeName || 'Cafe' in alt text",
-        "The parent (hero-section.tsx or home page RSC) must pass cafeName — if the parent is a server component it can call getSiteSettings(); if already a client component, cafeName must be threaded from the page RSC",
-        "contact-inline-editor.tsx: inspect usages — if it hardcodes 'Makan Moments' in a placeholder or label, replace with props.cafeName or import DEFAULT_SETTINGS.cafeName from site-settings"
+        "The parent (hero-section.tsx or home page RSC) must pass cafeName â€” if the parent is a server component it can call getSiteSettings(); if already a client component, cafeName must be threaded from the page RSC",
+        "contact-inline-editor.tsx: inspect usages â€” if it hardcodes 'Makan Moments' in a placeholder or label, replace with props.cafeName or import DEFAULT_SETTINGS.cafeName from site-settings"
       ],
       "dependencies": [
         "US-301"
       ],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-305",
