@@ -118,6 +118,10 @@ const migrations = [
   { name: "menu_items.archived", sql: "ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS archived BOOLEAN DEFAULT false" },
   // item_display_categories column additions
   { name: "item_display_categories.sort_order", sql: "ALTER TABLE item_display_categories ADD COLUMN IF NOT EXISTS sort_order INT NOT NULL DEFAULT 0" },
+  // tray_orders indexes for admin dashboard and status-filtered queries
+  { name: "idx_tray_orders_status", sql: "CREATE INDEX IF NOT EXISTS idx_tray_orders_status ON tray_orders(status)" },
+  { name: "idx_tray_orders_created_at", sql: "CREATE INDEX IF NOT EXISTS idx_tray_orders_created_at ON tray_orders(created_at DESC)" },
+  { name: "idx_tray_orders_status_created", sql: "CREATE INDEX IF NOT EXISTS idx_tray_orders_status_created ON tray_orders(status, created_at DESC)" },
 ];
 
 async function main() {

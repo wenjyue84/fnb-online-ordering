@@ -2369,3 +2369,46 @@ This user story focuses on improving the Progressive Web App (PWA) experience by
 - The callback reference must remain stable (defined outside component) to avoid duplicate reporting
 - `@vercel/speed-insights/next` is the correct import path for Next.js App Router (not `/react`)
 - Both components can coexist: useReportWebVitals for custom dev-mode logging, SpeedInsights for production Vercel dashboard
+## Iteration 7 - Thu, Mar 12, 2026  5:29:04 PM
+Incomplete: Add offline fallback page for PWA users (ID: US-341) — attempt 2/3
+
+
+## Pre-analysis for US-341 (Gemini 2.5 Pro)
+Here is the technical brief for implementing US-341.
+
+**Project:** Next.js PWA (not Frappe/Python)
+**Objective:** Create a custom offline fallback page.
+
+**1. Files to Modify:**
+*   `public/sw.js`: The service worker needs to be updated to cache the new offline page and serve it when navigation fails.
+*   `public/offline.html`: A new static HTML file to be created.
+
+**2. Involved Hooks/Frameworks:**
+*   This is a frontend task using the browser's Service Worker API, not Frappe.
+*   The logic will be implemented in JavaScript within the `install` and `fetch` event listeners of the service worker.
+
+**3. Implementation Approach:**
+*   Create a self-contained `public/offline.html` with inline CSS for styling, including the cafe logo and a "Try Again" button.
+*   In `public/sw.js`, increment the `CACHE_NAME` version to trigger a service worker update.
+*   Add `/offline.html` to the list of URLs to be precached during the `install` event.
+*   In the `fetch` event handler, modify the network-first strategy for navigation requests. Add a `.catch()` block to the network `fetch` call that returns `caches.match('/offline.html')` on failure.
+
+**4. Gotchas & Edge Cases:**
+*   The `offline.html` page must be fully self-contained. Any external resources it links to will also fail if the user is offline unless they are also explicitly cached.
+*   Ensure the fallback logic only triggers for page navigations (`event.request.mode === 'navigate'`) to avoid returning HTML for failed API or image requests.
+*   For multi-language support, hardcode all three language strings directly into the static `offline.html` page.
+
+
+## US-332 — Add database indexes on orders table for admin dashboard queries (PASSED)
+- Added 3 indexes to `scripts/migrate.mjs` as idempotent migration steps using `CREATE INDEX IF NOT EXISTS`:
+  - `idx_tray_orders_status` — single-column index on `status` for status-filtered queries
+  - `idx_tray_orders_created_at` — descending index on `created_at` for ORDER BY created_at DESC queries
+  - `idx_tray_orders_status_created` — composite index on `(status, created_at DESC)` for the common admin pattern of filtering by status + sorting by date
+- All 3 indexes verified created on Neon Postgres (migration ran successfully)
+- EXPLAIN output shows Seq Scan (expected with only ~5 rows; Postgres cost-based optimizer correctly prefers sequential scan for tiny tables; indexes activate at scale)
+- Table is `tray_orders` (not `orders` as stated in PRD) — adapted index names accordingly
+- Zero TS errors, zero new lint errors
+
+### Patterns discovered
+- The .env.local parser in migrate.mjs has a bug with Windows line endings (\r) — the regex `$` anchor doesn't match before `\r`. Workaround: set DATABASE_URL via shell export, or fix the regex to use `/\r?$/`
+- Neon Serverless Postgres EXPLAIN won't show Index Scan for tables with <~100 rows — this is normal Postgres behavior
