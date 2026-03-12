@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline — Makan Moments Cafe</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: #faf6f1;
+      color: #3d2e1f;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .logo {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 1.5rem;
+      opacity: 0.85;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      color: #8b5e3c;
+    }
+    .subtitle {
+      font-size: 0.95rem;
+      color: #6b5545;
+      margin-bottom: 2rem;
+    }
+    .offline-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.6;
+    }
+    .message {
+      margin-bottom: 0.5rem;
+      font-size: 1.1rem;
+      line-height: 1.6;
+    }
+    .message-secondary {
+      font-size: 0.9rem;
+      color: #7a6555;
+      margin-bottom: 0.35rem;
+    }
+    .divider {
+      width: 40px;
+      height: 2px;
+      background: #c9a882;
+      margin: 1.5rem auto;
+      border-radius: 1px;
+    }
+    .retry-btn {
+      display: inline-block;
+      margin-top: 1.5rem;
+      padding: 0.75rem 2rem;
+      background-color: #8b5e3c;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 44px;
+      text-decoration: none;
+      transition: background-color 0.2s;
+    }
+    .retry-btn:hover, .retry-btn:focus {
+      background-color: #704b30;
+      outline: 2px solid #c9a882;
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+  <img src="/images/logo.png" alt="Makan Moments Cafe" class="logo">
+  <h1>Makan Moments Cafe</h1>
+  <p class="subtitle">食光记忆 · Kafe Kenangan Makan</p>
+
+  <div class="divider"></div>
+
+  <p class="offline-icon" aria-hidden="true">📡</p>
+
+  <p class="message">You are currently offline</p>
+  <p class="message-secondary">Please check your internet connection and try again.</p>
+
+  <div class="divider"></div>
+
+  <p class="message-secondary">Anda sedang di luar talian. Sila semak sambungan internet anda.</p>
+  <p class="message-secondary">您目前处于离线状态。请检查您的网络连接。</p>
+
+  <button class="retry-btn" onclick="window.location.reload()">Try Again / Cuba Lagi / 重试</button>
+</body>
+</html>

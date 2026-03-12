@@ -1,8 +1,8 @@
 // Makan Moments Cafe — Service Worker
 // Handles: push notifications + basic shell caching
 
-const CACHE_NAME = "makan-moments-v1";
-const SHELL_URLS = ["/en", "/ms", "/zh", "/manifest.json"];
+const CACHE_NAME = "makan-moments-v2";
+const SHELL_URLS = ["/en", "/ms", "/zh", "/manifest.json", "/offline.html"];
 
 // Install: pre-cache shell URLs
 self.addEventListener("install", (event) => {
@@ -39,7 +39,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(event.request).catch(() =>
         caches.match(event.request).then(
-          (cached) => cached || caches.match("/en")
+          (cached) => cached || caches.match("/offline.html")
         )
       )
     );

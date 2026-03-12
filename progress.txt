@@ -1,3 +1,18 @@
+## US-341 — Add offline fallback page for PWA users (PASSED)
+- Created `public/offline.html` — fully self-contained offline page with inline CSS, cafe branding (logo, name, tagline), trilingual messaging (EN/MS/ZH), and a "Try Again" reload button
+- Earthy warm palette matching the site theme (#faf6f1 background, #8b5e3c accents)
+- Added `/offline.html` to `SHELL_URLS` in `public/sw.js` so it's pre-cached during SW install
+- Changed SW fetch fallback from `/en` to `/offline.html` — when navigation fails and no cached match exists, the offline page is served instead of the browser's generic error
+- Bumped `CACHE_NAME` from `makan-moments-v1` to `makan-moments-v2` to trigger cache refresh
+- Touch target on retry button is ≥ 44px per mobile-first design rules
+- Zero external resource dependencies — all CSS is inline, logo loads from cache
+- Zero TS errors, only pre-existing lint warning (unused `isChefsPick` in menu-grid.tsx)
+
+### Patterns discovered
+- SW offline fallback must be a static HTML file in `public/` — not a Next.js route — because the SW intercepts requests before Next.js routing
+- `CACHE_NAME` version bump is required whenever `SHELL_URLS` changes, otherwise existing SW installs won't pick up the new cached resource
+- The original fallback to `/en` was problematic: if the user was offline and `/en` wasn't cached (e.g. cache was evicted), nothing would render. A dedicated lightweight offline.html is more reliable
+
 ## US-340 — Add order expiry mechanism for stale pending_approval orders (PASSED)
 - Added `orderExpiryMinutes` field to `SiteSettings` interface and `DEFAULT_SETTINGS` (default: 240 = 4 hours)
 - Added lazy expiry SQL to `GET /api/admin/orders`: runs `UPDATE tray_orders SET status='expired' WHERE status='pending_approval' AND created_at < NOW() - MAKE_INTERVAL(mins => orderExpiryMinutes)` before fetching results
@@ -2792,4 +2807,44 @@ Here is the technical brief for user story US-341.
 *   Ensure the offline page logic is only triggered for navigation requests (`event.request.mode === 'navigate'`) to avoid breaking API or image fetches.
 *   The `offline.html` page must be dependency-free. All required CSS should be inlined, and any images should be embedded (e.g., as data URIs) or confirmed to be in the shell cache.
 *   Forgetting to update the `CACHE_NAME` is a common error that will prevent the new service worker from activating.
+
+
+
+## Pre-analysis for US-341 (Gemini 2.5 Pro)
+Here is the technical brief for implementing the PWA offline fallback page.
+
+***
+
+### **Technical Brief: US-341 Offline Fallback Page**
+
+**Objective:** Implement a custom, branded offline fallback page for PWA users when a network request for a new page fails and it's not in the cache. This is a Javascript/PWA task, not a Frappe/Python one.
+
+**1. Files to Modify / Create:**
+
+*   **`public/offline.html` (Create):** A new, static HTML file.
+*   **`public/sw.js` (Modify):** The existing service worker script.
+
+**2. PWA APIs & Concepts Involved:**
+
+*   **Service Worker:** `install` and `fetch` events.
+*   **Cache API:** `caches.open()`, `cache.addAll()`, `caches.match()`.
+
+**3. Recommended Implementation Approach:**
+
+1.  **Create `public/offline.html`:**
+    *   This page must be fully self-contained. All CSS should be in a `<style>` block.
+    *   Include basic branding: the cafe name and a reference to the logo (ensure the logo is also cached by the service worker, e.g., `/icon-192.png`).
+    *   Add the multi-language offline message: "You are offline / Anda di luar talian / 您已离线".
+    *   Include a "Try again" button that triggers `window.location.reload()`.
+
+2.  **Modify `public/sw.js`:**
+    *   **Increment `CACHE_NAME`:** Change the cache version string (e.g., `v1.0.1` -> `v1.0.2`) to force the service worker to update and re-cache assets.
+    *   **Cache Offline Page:** Add `'/offline.html'` to the `SHELL_URLS` (or equivalent) array that is cached during the `install` event.
+    *   **Update Fetch Handler:** Modify the `fetch` event listener. For navigation requests (`event.request.mode === 'navigate'`), the logic should first attempt to fetch from the network. If it fails, it should try to find a match in the cache. If no cache match is found, it must fall back to serving the cached `/offline.html`.
+
+**4. Edge Cases & Gotchas:**
+
+*   **Cache Invalidation:** You **must** update the `CACHE_NAME` constant in `sw.js`. Failure to do so will result in existing users not receiving the update.
+*   **Self-Contained Page:** Do not link to any external CSS, fonts, or images from `offline.html` unless they are guaranteed to be in the service worker cache. Inlining is safest.
+*   **Request Type:** Ensure the fallback logic specifically targets navigation requests to avoid incorrectly returning an HTML page for a failed API or image request.
 
