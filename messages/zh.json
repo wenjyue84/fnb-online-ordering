@@ -139,6 +139,7 @@
     "paymentUploadedMsg": "付款已收到 ✅ 等待确认中",
     "paymentUploadedSubMsg": "付款确认后我们将立即开始准备您的订单。",
     "preparingMsg": "您的订单正在准备中！",
+    "preparingConfirmedMsg": "订单已确认 — 厨房正在为您准备食物 🍳",
     "readyAt": "将于 {time} 完成",
     "readyMsg": "您的食物已备好 — 请到柜台领取！",
     "readySubMsg": "到达时请向工作人员展示此页面。",

@@ -43,6 +43,7 @@ export interface SiteSettings {
   geoLng: number;
   menuDescription: string;
   orderExpiryMinutes: number;
+  kitchenPin: string;
   ratingValue?: number;
   ratingCount?: number;
   ratingProvider?: string;
@@ -95,4 +96,5 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   geoLng: 103.7222,
   menuDescription: "Thai-Malaysian fusion dishes — rice, noodles, soups, beverages and more",
   orderExpiryMinutes: 240,
+  kitchenPin: "1234",
 };

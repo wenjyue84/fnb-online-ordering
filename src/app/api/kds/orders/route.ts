@@ -14,9 +14,11 @@ export async function GET() {
         status,
         contact_number,
         estimated_arrival,
+        estimated_ready,
+        payment_screenshot_url,
         created_at
       FROM tray_orders
-      WHERE status = 'preparing'
+      WHERE status IN ('approved', 'preparing')
       ORDER BY estimated_arrival ASC NULLS LAST
     `;
     return NextResponse.json({ orders: rows });

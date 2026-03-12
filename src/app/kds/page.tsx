@@ -16,6 +16,8 @@ interface KdsOrder {
   status: string;
   contact_number: string | null;
   estimated_arrival: string | null;
+  estimated_ready: string | null;
+  payment_screenshot_url: string | null;
   created_at: string;
 }
 
@@ -40,6 +42,41 @@ function formatDate(iso: string | null): string {
 
 function elapsedMinutes(createdAt: string): number {
   return Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000);
+}
+
+function etaRemainingMinutes(estimatedArrival: string | null): number | null {
+  if (!estimatedArrival) return null;
+  return Math.floor((new Date(estimatedArrival).getTime() - Date.now()) / 60000);
+}
+
+function getEtaClasses(estimatedArrival: string | null): { border: string; bg: string } {
+  const mins = etaRemainingMinutes(estimatedArrival);
+  if (mins === null) return { border: "border-gray-600", bg: "bg-gray-800" };
+  if (mins <= 5) return { border: "border-red-500", bg: "bg-red-950" };
+  if (mins <= 10) return { border: "border-yellow-500", bg: "bg-yellow-950/40" };
+  return { border: "border-green-600", bg: "bg-gray-800" };
+}
+
+function DepositBadge({ order }: { order: KdsOrder }) {
+  if (order.status === "approved") {
+    return (
+      <span className="inline-flex items-center rounded-full bg-amber-900/50 px-2.5 py-0.5 text-xs font-semibold text-amber-300">
+        Deposit Pending
+      </span>
+    );
+  }
+  if (order.payment_screenshot_url) {
+    return (
+      <span className="inline-flex items-center rounded-full bg-green-900/50 px-2.5 py-0.5 text-xs font-semibold text-green-300">
+        Paid ✓
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center rounded-full bg-gray-700 px-2.5 py-0.5 text-xs font-semibold text-gray-400">
+      No Deposit
+    </span>
+  );
 }
 
 function playNewOrderChime() {
@@ -100,8 +137,8 @@ interface OrderCardProps {
   order: KdsOrder;
   completedItems: Set<number>;
   onToggleItem: (itemIdx: number) => void;
-  onMarkReady: () => void;
-  isMarkingReady: boolean;
+  onAction: (action: "start" | "ready") => void;
+  isActing: boolean;
   isNew: boolean;
   onAcknowledge: () => void;
 }
@@ -110,8 +147,8 @@ function OrderCard({
   order,
   completedItems,
   onToggleItem,
-  onMarkReady,
-  isMarkingReady,
+  onAction,
+  isActing,
   isNew,
   onAcknowledge,
 }: OrderCardProps) {
@@ -124,27 +161,22 @@ function OrderCard({
     return () => clearInterval(interval);
   }, [order.created_at]);
 
-  const urgent = elapsed >= 20;
-  const allDone =
+  const isPreparing = order.status === "preparing";
+  const isApproved = order.status === "approved";
+  const allItemsDone =
+    isPreparing &&
     order.items.length > 0 &&
     order.items.every((_, i) => completedItems.has(i));
 
-  let borderClass = "border-gray-700";
-  let bgClass = "bg-gray-800";
-  if (isNew) {
-    borderClass = "border-yellow-400 animate-pulse";
-    bgClass = "bg-yellow-950/40";
-  } else if (allDone) {
-    borderClass = "border-green-500";
-    bgClass = "bg-gray-800";
-  } else if (urgent) {
-    borderClass = "border-red-500";
-    bgClass = "bg-red-950";
-  }
+  const { border, bg } = isNew
+    ? { border: "border-yellow-400 animate-pulse", bg: "bg-yellow-950/40" }
+    : getEtaClasses(order.estimated_arrival);
+
+  const etaMins = etaRemainingMinutes(order.estimated_arrival);
 
   return (
     <div
-      className={`rounded-2xl border-2 p-6 shadow-lg ${borderClass} ${bgClass}`}
+      className={`rounded-2xl border-2 p-6 shadow-lg ${border} ${bg}`}
       onClick={isNew ? onAcknowledge : undefined}
     >
       {/* NEW badge */}
@@ -165,90 +197,128 @@ function OrderCard({
         </div>
       )}
 
+      {/* Status + Deposit badges */}
+      <div className="mb-3 flex items-center gap-2">
+        <span
+          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide ${
+            isApproved
+              ? "bg-blue-900/50 text-blue-300"
+              : "bg-orange-900/50 text-orange-300"
+          }`}
+        >
+          {isApproved ? "Approved" : "Preparing"}
+        </span>
+        <DepositBadge order={order} />
+      </div>
+
       {/* Header */}
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">
-            Order
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Order</p>
           <p className="text-4xl font-black text-white">#{order.id}</p>
         </div>
         <div className="text-right">
-          <p className={`text-2xl font-bold ${urgent && !allDone ? "text-red-400" : "text-orange-400"}`}>
-            {elapsed}m
-          </p>
+          <p className="text-2xl font-bold text-orange-400">{elapsed}m</p>
           <p className="text-xs text-gray-400">elapsed</p>
         </div>
       </div>
 
       {/* ETA */}
       <div className="mb-5 rounded-xl bg-gray-900/60 px-4 py-3">
-        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">
-          Customer ETA
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Customer ETA</p>
         <p className="mt-0.5 text-xl font-bold text-white">
           {formatTime(order.estimated_arrival)}
           <span className="ml-2 text-base font-normal text-gray-400">
             {formatDate(order.estimated_arrival)}
           </span>
         </p>
+        {etaMins !== null && (
+          <p
+            className={`mt-0.5 text-sm font-semibold ${
+              etaMins <= 5
+                ? "text-red-400"
+                : etaMins <= 10
+                  ? "text-yellow-400"
+                  : "text-green-400"
+            }`}
+          >
+            {etaMins > 0 ? `${etaMins}m remaining` : "Customer arriving now"}
+          </p>
+        )}
       </div>
 
-      {/* Items — tap to complete */}
-      <ul className="space-y-1">
-        {order.items.map((item, i) => {
-          const done = completedItems.has(i);
-          return (
-            <li key={i}>
-              <button
-                onClick={() => onToggleItem(i)}
-                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors ${
-                  done
-                    ? "text-gray-400 hover:bg-gray-700/40"
-                    : "text-white hover:bg-gray-700/60"
-                }`}
-              >
-                {done ? (
-                  <CheckCircleIcon className="h-6 w-6 shrink-0 text-green-400" />
-                ) : (
-                  <CircleIcon className="h-6 w-6 shrink-0 text-gray-500" />
-                )}
-                <span
-                  className={`flex-1 text-lg font-semibold ${done ? "line-through" : ""}`}
-                >
-                  {item.name}
-                </span>
-                <span
-                  className={`shrink-0 rounded-lg px-3 py-1 text-lg font-black ${
-                    done ? "bg-gray-600 text-gray-400" : "bg-orange-500 text-white"
+      {/* Items — tap to complete (only for preparing orders) */}
+      {isPreparing ? (
+        <ul className="space-y-1">
+          {order.items.map((item, i) => {
+            const done = completedItems.has(i);
+            return (
+              <li key={i}>
+                <button
+                  onClick={() => onToggleItem(i)}
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors ${
+                    done
+                      ? "text-gray-400 hover:bg-gray-700/40"
+                      : "text-white hover:bg-gray-700/60"
                   }`}
                 >
-                  ×{item.quantity}
-                </span>
-              </button>
+                  {done ? (
+                    <CheckCircleIcon className="h-6 w-6 shrink-0 text-green-400" />
+                  ) : (
+                    <CircleIcon className="h-6 w-6 shrink-0 text-gray-500" />
+                  )}
+                  <span className={`flex-1 text-lg font-semibold ${done ? "line-through" : ""}`}>
+                    {item.name}
+                  </span>
+                  <span
+                    className={`shrink-0 rounded-lg px-3 py-1 text-lg font-black ${
+                      done ? "bg-gray-600 text-gray-400" : "bg-orange-500 text-white"
+                    }`}
+                  >
+                    ×{item.quantity}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <ul className="space-y-1">
+          {order.items.map((item, i) => (
+            <li key={i} className="flex items-center gap-3 rounded-xl px-3 py-2">
+              <span className="flex-1 text-lg font-semibold text-white">{item.name}</span>
+              <span className="shrink-0 rounded-lg bg-blue-600 px-3 py-1 text-lg font-black text-white">
+                ×{item.quantity}
+              </span>
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
+      )}
 
       {/* Footer */}
       <div className="mt-5 flex items-center justify-between border-t border-gray-700 pt-4">
-        <p className="text-sm text-gray-400">
-          {order.contact_number ?? "No contact"}
-        </p>
-        <p className="text-xl font-bold text-white">
-          RM {parseFloat(order.total).toFixed(2)}
-        </p>
+        <p className="text-sm text-gray-400">{order.contact_number ?? "No contact"}</p>
+        <p className="text-xl font-bold text-white">RM {parseFloat(order.total).toFixed(2)}</p>
       </div>
 
-      {/* Mark as Ready button — appears only when all items done */}
-      {allDone && (
+      {/* Action buttons */}
+      {isApproved && (
         <button
-          onClick={onMarkReady}
-          disabled={isMarkingReady}
-          className="mt-4 w-full rounded-xl bg-green-500 py-3 text-lg font-bold text-white transition-colors hover:bg-green-400 disabled:opacity-60"
+          onClick={() => onAction("start")}
+          disabled={isActing}
+          className="mt-4 w-full min-h-[56px] rounded-xl bg-blue-600 py-3 text-lg font-bold text-white transition-colors hover:bg-blue-500 disabled:opacity-60"
         >
-          {isMarkingReady ? "Marking Ready…" : "✅ Mark as Ready"}
+          {isActing ? "Starting…" : "▶ Start Preparing"}
+        </button>
+      )}
+
+      {isPreparing && allItemsDone && (
+        <button
+          onClick={() => onAction("ready")}
+          disabled={isActing}
+          className="mt-4 w-full min-h-[56px] rounded-xl bg-green-500 py-3 text-lg font-bold text-white transition-colors hover:bg-green-400 disabled:opacity-60"
+        >
+          {isActing ? "Marking Ready…" : "✅ Mark as Ready"}
         </button>
       )}
     </div>
@@ -261,13 +331,11 @@ export default function KdsPage() {
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [completedItems, setCompletedItems] = useState<Map<number, Set<number>>>(new Map());
-  const [markingReady, setMarkingReady] = useState<Set<number>>(new Set());
+  const [actingOn, setActingOn] = useState<Set<number>>(new Set());
   const [newOrderIds, setNewOrderIds] = useState<Set<number>>(new Set());
   const [muted, setMuted] = useState(false);
 
-  // Track previous order IDs across fetches (not state — no re-render needed)
   const prevOrderIdsRef = useRef<Set<number> | null>(null);
-  // Track auto-dismiss timers
   const dismissTimersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
 
   const acknowledgeOrder = useCallback((orderId: number) => {
@@ -303,15 +371,12 @@ export default function KdsPage() {
           .filter((id) => !prevOrderIdsRef.current!.has(id));
 
         if (arrivedIds.length > 0) {
-          if (!muted) {
-            playNewOrderChime();
-          }
+          if (!muted) playNewOrderChime();
           setNewOrderIds((prev) => {
             const next = new Set(prev);
             arrivedIds.forEach((id) => next.add(id));
             return next;
           });
-          // Auto-dismiss each new order after 60s
           arrivedIds.forEach((id) => {
             const existing = dismissTimersRef.current.get(id);
             if (existing) clearTimeout(existing);
@@ -328,9 +393,7 @@ export default function KdsPage() {
         }
       }
 
-      // Update prevOrderIds to current set
       prevOrderIdsRef.current = new Set(incoming.map((o) => o.id));
-
       setOrders(incoming);
       setLastRefresh(new Date());
       setError(null);
@@ -347,7 +410,6 @@ export default function KdsPage() {
     return () => clearInterval(interval);
   }, [fetchOrders]);
 
-  // Cleanup dismiss timers on unmount
   useEffect(() => {
     const timers = dismissTimersRef.current;
     return () => {
@@ -369,42 +431,48 @@ export default function KdsPage() {
     });
   }, []);
 
-  const markReady = useCallback(
-    async (orderId: number) => {
-      setMarkingReady((prev) => new Set(prev).add(orderId));
+  const handleAction = useCallback(
+    async (orderId: number, action: "start" | "ready") => {
+      setActingOn((prev) => new Set(prev).add(orderId));
       try {
-        const res = await fetch(`/api/kds/orders/${orderId}/ready`, {
-          method: "POST",
+        const res = await fetch(`/api/kds/orders/${orderId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action }),
         });
         if (!res.ok) {
           const body = (await res.json()) as { error?: string };
           throw new Error(body.error ?? `HTTP ${res.status}`);
         }
-        // Optimistic removal from list
+        // Remove from list optimistically
         setOrders((prev) => prev.filter((o) => o.id !== orderId));
         setCompletedItems((prev) => {
           const next = new Map(prev);
           next.delete(orderId);
           return next;
         });
-        // Also remove from newOrderIds if present
         setNewOrderIds((prev) => {
           const next = new Set(prev);
           next.delete(orderId);
           return next;
         });
+        // Refresh to pick up updated status
+        void fetchOrders();
       } catch (err) {
-        alert(err instanceof Error ? err.message : "Failed to mark order ready");
+        alert(err instanceof Error ? err.message : "Failed to update order");
       } finally {
-        setMarkingReady((prev) => {
+        setActingOn((prev) => {
           const next = new Set(prev);
           next.delete(orderId);
           return next;
         });
       }
     },
-    []
+    [fetchOrders]
   );
+
+  const approvedCount = orders.filter((o) => o.status === "approved").length;
+  const preparingCount = orders.filter((o) => o.status === "preparing").length;
 
   return (
     <div className="min-h-screen bg-gray-900 px-4 py-6">
@@ -413,11 +481,10 @@ export default function KdsPage() {
         <div>
           <h1 className="text-3xl font-black text-white">Kitchen Display</h1>
           <p className="text-sm text-gray-400">
-            Orders in preparation — auto-refreshes every 15s
+            ↻ Auto-refresh every 15s
           </p>
         </div>
         <div className="flex items-center gap-4">
-          {/* Mute toggle */}
           <button
             onClick={() => setMuted((m) => !m)}
             title={muted ? "Unmute alerts" : "Mute alerts"}
@@ -429,22 +496,26 @@ export default function KdsPage() {
           >
             {muted ? "🔇 Muted" : "🔔 Sound On"}
           </button>
-
           <div className="text-right">
-            <p className="text-2xl font-bold text-orange-400">{orders.length}</p>
-            <p className="text-xs text-gray-400">preparing</p>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="text-xs text-gray-500">
               Updated{" "}
               {lastRefresh.toLocaleTimeString("en-MY", {
                 hour: "2-digit",
                 minute: "2-digit",
               })}
             </p>
+            <p className="mt-1 text-xs text-gray-400">
+              {approvedCount > 0 && (
+                <span className="mr-2 text-blue-400">{approvedCount} approved</span>
+              )}
+              {preparingCount > 0 && (
+                <span className="text-orange-400">{preparingCount} preparing</span>
+              )}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* States */}
       {loading && (
         <div className="flex h-64 items-center justify-center">
           <p className="text-2xl text-gray-400">Loading orders…</p>
@@ -465,22 +536,22 @@ export default function KdsPage() {
 
       {!loading && !error && orders.length === 0 && (
         <div className="flex h-64 flex-col items-center justify-center gap-4 text-center">
-          <p className="text-6xl">✅</p>
-          <p className="text-2xl font-bold text-gray-300">All clear!</p>
-          <p className="text-gray-500">No orders currently being prepared.</p>
+          <p className="text-6xl">🎉</p>
+          <p className="text-2xl font-bold text-gray-300">No active orders — kitchen is clear</p>
+          <p className="text-gray-500">All orders have been handled.</p>
         </div>
       )}
 
       {!loading && !error && orders.length > 0 && (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {orders.map((order) => (
             <OrderCard
               key={order.id}
               order={order}
               completedItems={completedItems.get(order.id) ?? new Set()}
               onToggleItem={(idx) => toggleItem(order.id, idx)}
-              onMarkReady={() => void markReady(order.id)}
-              isMarkingReady={markingReady.has(order.id)}
+              onAction={(action) => void handleAction(order.id, action)}
+              isActing={actingOn.has(order.id)}
               isNew={newOrderIds.has(order.id)}
               onAcknowledge={() => acknowledgeOrder(order.id)}
             />

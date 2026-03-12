@@ -290,6 +290,23 @@ export function AdminSettingsPanel({ displayCategories }: AdminSettingsPanelProp
               </label>
 
               <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Kitchen Display PIN</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={settings.kitchenPin ?? "1234"}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/\D/g, "").slice(0, 6);
+                    setField("kitchenPin", v);
+                  }}
+                  className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                  placeholder="1234"
+                  maxLength={6}
+                />
+                <p className="mt-1 text-xs text-gray-500">4–6 digit PIN for kitchen staff to access the KDS screen at /kds.</p>
+              </div>
+
+              <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
                   Accepted payment methods
                 </label>

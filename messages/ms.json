@@ -139,6 +139,7 @@
     "paymentUploadedMsg": "Bayaran diterima ✅ menunggu pengesahan",
     "paymentUploadedSubMsg": "Kami akan mula menyediakan pesanan anda setelah bayaran disahkan.",
     "preparingMsg": "Pesanan anda sedang disediakan!",
+    "preparingConfirmedMsg": "Pesanan disahkan — dapur sedang menyediakan makanan anda 🍳",
     "readyAt": "Siap pada {time}",
     "readyMsg": "Makanan anda sudah sedia — sila ke kaunter!",
     "readySubMsg": "Tunjukkan halaman ini kepada kakitangan semasa tiba.",

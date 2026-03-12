@@ -42,3 +42,6 @@ export async function verifyKdsToken(token: string): Promise<boolean> {
     return false;
   }
 }
+
+// Alias for kitchen display auth (same token, different name per PRD)
+export const verifyKitchenToken = verifyKdsToken;

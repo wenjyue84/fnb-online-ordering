@@ -139,6 +139,7 @@
     "paymentUploadedMsg": "Payment received ✅ waiting for confirmation",
     "paymentUploadedSubMsg": "We’ll start preparing your order once payment is confirmed.",
     "preparingMsg": "Your order is being prepared!",
+    "preparingConfirmedMsg": "Order confirmed — kitchen is preparing your food 🍳",
     "readyAt": "Ready at {time}",
     "readyMsg": "Your food is ready — please come to the counter!",
     "readySubMsg": "Show this page to the staff when you arrive.",

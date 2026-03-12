@@ -32,6 +32,8 @@ interface OrderData {
 interface TnGSettings {
   tngPhone: string;
   tngQrUrl: string;
+  depositRequired: boolean;
+  orderExpiryMinutes: number;
 }
 
 type UploadState = "idle" | "uploading" | "success" | "error";
@@ -253,7 +255,7 @@ export default function OrderStatusPage() {
   const t = useTranslations("orderStatus");
 
   const [order, setOrder] = useState<OrderData | null>(null);
-  const [tng, setTng] = useState<TnGSettings>({ tngPhone: "", tngQrUrl: "" });
+  const [tng, setTng] = useState<TnGSettings>({ tngPhone: "", tngQrUrl: "", depositRequired: false, orderExpiryMinutes: 240 });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -455,7 +457,7 @@ export default function OrderStatusPage() {
                 href={`https://wa.me/${phoneToWaMe("012-708 8789")}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white"
+                className="mt-3 inline-flex min-h-[44px] items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white"
               >
                 <PhoneCall className="h-4 w-4" />
                 {t("contactUs")}
@@ -475,7 +477,7 @@ export default function OrderStatusPage() {
               <p className="mt-1 text-sm text-orange-600">{t("expiredMsg")}</p>
               <Link
                 href="/"
-                className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white"
+                className="mt-3 inline-flex min-h-[44px] items-center gap-1.5 rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-medium text-white"
               >
                 {t("backHome")}
               </Link>
@@ -485,8 +487,8 @@ export default function OrderStatusPage() {
       )}
 
       {/* Stage-specific info cards */}
-      {/* Inline payment section — shown when order is approved */}
-      {order.status === "approved" && (
+      {/* Inline payment section — shown when approved AND deposit is required */}
+      {order.status === "approved" && tng.depositRequired && (
         <PaymentSection
           order={order}
           tng={tng}
@@ -518,7 +520,7 @@ export default function OrderStatusPage() {
       {order.status === "preparing" && (
         <div className="mb-4 rounded-2xl border border-green-200 bg-green-50 p-4">
           <p className="text-sm font-semibold text-green-800">
-            {t("preparingMsg")}
+            {tng.depositRequired ? t("preparingMsg") : t("preparingConfirmedMsg")}
           </p>
           {order.estimatedReady && (
             <p className="mt-1 text-sm text-green-700">

@@ -9,5 +9,7 @@ export async function GET() {
   return Response.json({
     tngPhone: settings.tng_phone ?? "",
     tngQrUrl: settings.tng_qr_url ?? "",
+    depositRequired: settings.depositRequired ?? false,
+    orderExpiryMinutes: settings.orderExpiryMinutes ?? 240,
   });
 }

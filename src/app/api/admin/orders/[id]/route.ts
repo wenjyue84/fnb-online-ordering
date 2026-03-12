@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import sql from "@/lib/db";
 import { OrderPatchSchema } from "@/lib/schemas/order";
+import { getSiteSettings } from "@/lib/site-settings";
 
 export const runtime = "nodejs";
 
@@ -44,19 +45,25 @@ export async function PATCH(
 
     // Approve order
     if (action === "approve") {
-      if (!estimatedReady) {
-        return NextResponse.json({ error: "estimatedReady is required to approve" }, { status: 400 });
-      }
-      const readyAt = new Date(estimatedReady);
-      if (isNaN(readyAt.getTime())) {
+      const settings = await getSiteSettings();
+      const newStatus = settings.depositRequired ? "approved" : "preparing";
+      const readyAt = estimatedReady ? new Date(estimatedReady) : null;
+      if (estimatedReady && readyAt && isNaN(readyAt.getTime())) {
         return NextResponse.json({ error: "estimatedReady is not a valid date" }, { status: 400 });
       }
-      const rows = await sql`
-        UPDATE tray_orders
-        SET status = 'approved', estimated_ready = ${readyAt.toISOString()}
-        WHERE id = ${orderId}
-        RETURNING id, status, estimated_ready
-      `;
+      const rows = readyAt
+        ? await sql`
+            UPDATE tray_orders
+            SET status = ${newStatus}, estimated_ready = ${readyAt.toISOString()}
+            WHERE id = ${orderId}
+            RETURNING id, status, estimated_ready
+          `
+        : await sql`
+            UPDATE tray_orders
+            SET status = ${newStatus}
+            WHERE id = ${orderId}
+            RETURNING id, status, estimated_ready
+          `;
       if (rows.length === 0) return NextResponse.json({ error: "Order not found" }, { status: 404 });
       return NextResponse.json(rows[0]);
     }
