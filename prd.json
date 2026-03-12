@@ -67,18 +67,18 @@
         "npm run build passes with no TypeScript errors"
       ],
       "technicalNotes": [
-        "footer.tsx: add 'import { getSiteSettings } from \"@/lib/site-settings\"' and 'const settings = await getSiteSettings()' — it is already an async RSC (uses getTranslations)",
+        "footer.tsx: add 'import { getSiteSettings } from \"@/lib/site-settings\"' and 'const settings = await getSiteSettings()' â€” it is already an async RSC (uses getTranslations)",
         "json-ld.tsx: make the component functions async, add getSiteSettings() call at top of each exported component that needs cafe data",
-        "layout.tsx: already async — add getSiteSettings() call alongside getOperatingStatus(); use settings.cafeName for metadata title, settings.cafeTagline for description",
+        "layout.tsx: already async â€” add getSiteSettings() call alongside getOperatingStatus(); use settings.cafeName for metadata title, settings.cafeTagline for description",
         "about/page.tsx: if it uses CAFE.ambiance and ambiance is not in SiteSettings, just hardcode the array inline or remove the CAFE dependency gracefully",
-        "contact/page.tsx: straightforward swap — settings.address, settings.phone, settings.neighborhood, settings.displayHours.daily, settings.displayHours.lastOrder, settings.social, settings.googleMapsEmbed",
+        "contact/page.tsx: straightforward swap â€” settings.address, settings.phone, settings.neighborhood, settings.displayHours.daily, settings.displayHours.lastOrder, settings.social, settings.googleMapsEmbed",
         "After changes: remove 'import { CAFE } from \"@/lib/constants\"' from all modified files"
       ],
       "dependencies": [
         "US-301"
       ],
       "estimatedComplexity": "large",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-303",
