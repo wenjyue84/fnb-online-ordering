@@ -178,7 +178,7 @@
     "arrivalLabel": "Anggaran Masa Ketibaan",
     "arrivalMin": "Minimum 15 minit dari sekarang",
     "arrivalRequired": "Masa ketibaan diperlukan",
-    "arrivalTooSoon": "Masa ketibaan mestilah sekurang-kurangnya 15 minit dari sekarang",
+    "arrivalTooSoon": "Masa ketibaan terawal ialah {time}. Sila pilih masa yang lebih lewat.",
     "submitError": "Gagal menghantar pesanan. Sila cuba lagi.",
     "submit": "Sahkan Pra-Pesanan",
     "submitting": "Menghantar…",

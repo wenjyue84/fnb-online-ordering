@@ -178,7 +178,7 @@
     "arrivalLabel": "Estimated Arrival Time",
     "arrivalMin": "Minimum 15 minutes from now",
     "arrivalRequired": "Arrival time is required",
-    "arrivalTooSoon": "Arrival time must be at least 15 minutes from now",
+    "arrivalTooSoon": "Earliest arrival is {time}. Please select a later time.",
     "submitError": "Failed to submit order. Please try again.",
     "submit": "Confirm Pre-Order",
     "submitting": "Submitting…",

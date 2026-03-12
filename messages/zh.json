@@ -178,7 +178,7 @@
     "arrivalLabel": "预计到达时间",
     "arrivalMin": "至少需提前15分钟",
     "arrivalRequired": "请填写到达时间",
-    "arrivalTooSoon": "到达时间必须在15分钟后",
+    "arrivalTooSoon": "最早到达时间为 {time}，请选择更晚的时间。",
     "submitError": "提交订单失败，请重试。",
     "submit": "确认预订",
     "submitting": "提交中…",

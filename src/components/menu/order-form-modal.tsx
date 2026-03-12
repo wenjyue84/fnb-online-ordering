@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { X } from "lucide-react";
+import { X, AlertCircle } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
 
 interface OrderItem {
@@ -121,7 +121,7 @@ export function OrderFormModal({ items, total, onSuccess, onClose }: OrderFormMo
       selected.setDate(selected.getDate() + 1);
     }
     if (selected.getTime() - now.getTime() < 14 * 60 * 1000) {
-      setTimeError(t("arrivalTooSoon"));
+      setTimeError(t("arrivalTooSoon", { time: getMinArrivalTime() }));
       return false;
     }
     setTimeError("");
@@ -213,9 +213,16 @@ export function OrderFormModal({ items, total, onSuccess, onClose }: OrderFormMo
                   setContactNumber(e.target.value);
                   if (contactError) validateContact(e.target.value);
                 }}
-                className="w-full rounded-xl border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                aria-invalid={!!contactError}
+                aria-describedby={contactError ? "ofm-contact-error" : undefined}
+                className={`w-full rounded-xl border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${contactError ? "border-red-500" : ""}`}
               />
-              {contactError && <p className="text-xs text-red-500">{contactError}</p>}
+              {contactError && (
+                <p id="ofm-contact-error" className="flex items-center gap-1 text-xs text-red-500" role="alert" aria-live="polite">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  {contactError}
+                </p>
+              )}
               <p className="text-xs text-muted-foreground">
                 {t.rich("dataDisclosure", {
                   privacyLink: (chunks) => (
@@ -241,10 +248,17 @@ export function OrderFormModal({ items, total, onSuccess, onClose }: OrderFormMo
                   setArrivalTime(e.target.value);
                   if (timeError) validateTime(e.target.value);
                 }}
-                className="w-full rounded-xl border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                aria-invalid={!!timeError}
+                aria-describedby={timeError ? "ofm-arrival-error" : "ofm-arrival-hint"}
+                className={`w-full rounded-xl border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${timeError ? "border-red-500" : ""}`}
               />
-              <p className="text-xs text-muted-foreground">{t("arrivalMin")}</p>
-              {timeError && <p className="text-xs text-red-500">{timeError}</p>}
+              <p id="ofm-arrival-hint" className="text-xs text-muted-foreground">{t("arrivalMin")}</p>
+              {timeError && (
+                <p id="ofm-arrival-error" className="flex items-center gap-1 text-xs text-red-500" role="alert" aria-live="polite">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  {timeError}
+                </p>
+              )}
             </div>
 
             {/* Order summary */}
