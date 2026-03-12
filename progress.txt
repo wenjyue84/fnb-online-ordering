@@ -1,3 +1,16 @@
+## US-324 — Implement dynamic og:image generation per locale (PASSED)
+- Created src/app/[locale]/blog/[slug]/opengraph-image.tsx — generates 1200x630 PNG with post title, cafe name (locale-aware), tagline, and locale badge
+- Created src/app/[locale]/menu/opengraph-image.tsx — generates 1200x630 PNG with "Menu" label (localized for zh), cafe name, tagline, and cuisine type pills
+- Both use ImageResponse from next/og with revalidate=3600 matching page ISR period
+- Both have try/catch fallbacks to hardcoded DEFAULT_SETTINGS values if DB is unavailable
+- Removed manual `images` override from blog [slug]/page.tsx generateMetadata so opengraph-image.tsx takes effect
+- Root layout's static og-image.jpg reference remains as fallback for pages without opengraph-image.tsx
+- Build output confirms both routes registered: /[locale]/blog/[slug]/opengraph-image and /[locale]/menu/opengraph-image
+
+### Patterns discovered
+- Next.js opengraph-image.tsx auto-generates og:image metadata; manual `images` in generateMetadata overrides it — must remove manual images to let the file-based approach work
+- ImageResponse from 'next/og' works without font loading for system sans-serif; custom fonts require ArrayBuffer fetch
+
 ## US-322 — Extract inline DDL from API route handlers into migration script (PASSED)
 - Created scripts/migrate.mjs (already existed from prior partial attempt) with 15 idempotent DDL statements
 - Tables: site_settings, tray_orders, rate_limit_log, push_subscriptions, category_highlights
@@ -1946,4 +1959,76 @@ This is a Next.js task, not Frappe/Python. The goal is to dynamically generate O
 *   **Styling:** Only a limited subset of CSS is supported (Flexbox, inline styles, Tailwind).
 *   **Error Handling:** If `opengraph-image.tsx` throws an error during data fetching or rendering, Next.js will automatically fall back to the `og:image` defined in the parent layout, fulfilling the requirement.
 *   **Caching:** The generated image is cached like a page. Add a `revalidate` export to the file to control the ISR period, matching it with the corresponding page's revalidation setting.
+
+
+
+## Pre-analysis for US-324 (Gemini 2.5 Pro)
+This user story is for a Next.js/TypeScript project, not a Frappe/Python one.
+
+Here is the technical brief for implementing dynamic Open Graph images in your Next.js application:
+
+**File Modifications:**
+
+*   **Create:** `src/app/[locale]/blog/[slug]/opengraph-image.tsx` to generate images for individual blog posts.
+*   **Create:** `src/app/[locale]/menu/opengraph-image.tsx` to generate an image for the menu page.
+*   **Verify:** `src/app/[locale]/layout.tsx` to ensure it provides a static fallback `og:image`.
+*   **Verify:** `src/lib/data.ts` or similar data-fetching modules to understand how to retrieve blog post titles and site settings.
+
+**Key Next.js APIs & DocTypes:**
+
+*   **`ImageResponse` from `next/og`:** The core API for generating the dynamic image stream.
+*   **Route Segment Config:** You'll export a `runtime = 'edge'` variable in the `opengraph-image.tsx` files.
+*   **`generateImageMetadata`:** While not strictly necessary if you only have one image, it's good practice for more complex scenarios.
+*   **i18n:** You will need to access locale strings from `messages/[locale].json` for UI text like "Menu".
+
+**Implementation Approach:**
+
+1.  In `src/app/[locale]/blog/[slug]/opengraph-image.tsx`, create an async function that receives `{ params: { slug, locale } }`.
+2.  Inside, fetch the specific blog post's title and the site name using your existing data-fetching functions.
+3.  Fetch a local font file (e.g., from `public/fonts`) as an `ArrayBuffer`.
+4.  Return a new `ImageResponse` containing a simple React component (a `div` with flexbox) that displays the post title and site name. Pass the font data into the `ImageResponse` options.
+5.  Repeat the process for `src/app/[locale]/menu/opengraph-image.tsx`, replacing the post title with the translated "Menu" string from your i18n provider.
+
+**Gotchas & Edge Cases:**
+
+*   **Font Loading:** The font *must* be fetched and passed as an `ArrayBuffer` directly into the `ImageResponse` options. Using CSS `@font-face` or `next/font` will not work in the Edge runtime.
+*   **Data Fetching:** Ensure your data-fetching logic is compatible with the Edge runtime. Avoid using Node.js-specific APIs if possible.
+*   **Error Handling:** The `ImageResponse` generation can fail. The root layout's static `og:image` will act as the fallback, but consider adding `try...catch` blocks if your data fetching is complex.
+*   **Caching:** The generated images are cached alongside the page. The `revalidate` setting for the page will also apply to the OG image.
+
+## Iteration 5 - Thu, Mar 12, 2026  3:30:32 PM
+Incomplete: Implement dynamic og:image generation per locale using Next.js ImageResponse (ID: US-324) — attempt 2/3
+
+
+## Pre-analysis for US-324 (Gemini 2.5 Pro)
+Here is the technical brief for implementing dynamic `og:image` generation:
+
+**Objective:** Implement dynamic Open Graph (OG) images for blog posts and the menu page based on content locale.
+
+**Files to Create/Modify:**
+
+*   `src/app/[locale]/blog/[slug]/opengraph-image.tsx`: (New) Generates OG image for individual blog posts.
+*   `src/app/[locale]/menu/opengraph-image.tsx`: (New) Generates OG image for the main menu page.
+*   `src/app/[locale]/layout.tsx`: (Modify) Ensure root layout provides a static fallback `og:image` for other pages.
+
+**Key Next.js Elements:**
+
+*   **Route Handlers:** Use the file-based `opengraph-image.tsx` convention in the App Router.
+*   **API:** `ImageResponse` from the `next/og` module is used to generate images from JSX.
+
+**Implementation Approach:**
+
+1.  In the blog `[slug]` directory, create `opengraph-image.tsx`.
+2.  Define an async function that receives `{ params }` to get the post `slug` and `locale`.
+3.  Fetch the corresponding blog post title and cafe name.
+4.  Fetch a required font file (e.g., from `/public/fonts/`) as an `ArrayBuffer`.
+5.  Return an `ImageResponse` with JSX/Tailwind elements rendering the text, sized to 1200x630.
+6.  Repeat for the menu page, using the `locale` to fetch a translated "Menu" label.
+
+**Gotchas & Edge Cases:**
+
+*   `ImageResponse` runs in an edge environment; ensure any data-fetching is edge-compatible.
+*   `next/font` cannot be used; fonts must be fetched manually and passed as an `ArrayBuffer`.
+*   Fallback: If generation fails, Next.js automatically uses the OG image from the parent layout.
+*   Set the `revalidate` option to match the parent page's caching strategy.
 
