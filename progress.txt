@@ -1256,3 +1256,64 @@ This technical brief is for a **Next.js / TypeScript** project, as all technical
 ### Gotchas
 - Vercel Blob `put()` requires `BLOB_READ_WRITE_TOKEN` env var — auto-provisioned when connecting a Vercel Blob store in the Vercel dashboard
 - No files written to local filesystem in production (Vercel's read-only FS constraint satisfied)
+## Iteration 5 - Thu, Mar 12, 2026  1:15:49 PM
+Completed: Move uploaded payment screenshots to cloud storage instead of local filesystem (ID: US-311) in 6m
+
+
+## Pre-analysis for US-312 (Gemini 2.5 Pro)
+Here is the technical brief for implementing the security headers user story.
+
+**Objective:** Implement robust HTTP security headers in the Next.js application to mitigate XSS, clickjacking, and other common web vulnerabilities.
+
+**File to Modify:**
+*   `next.config.ts`
+
+**Involved Framework Concepts:**
+*   Next.js Middleware/Headers: The primary mechanism will be the `async headers()` function in the Next.js configuration.
+
+**Recommended Implementation Approach:**
+1.  Export an `async function headers()` from `next.config.ts`.
+2.  Return an array containing a single header configuration object with `source: '/(.*)'` to match all routes.
+3.  Inside this object, define the `headers` array with the following key-value pairs:
+    *   `X-Content-Type-Options`: `nosniff`
+    *   `X-Frame-Options`: `SAMEORIGIN`
+    *   `Referrer-Policy`: `strict-origin-when-cross-origin`
+    *   `Permissions-Policy`: `geolocation=(), microphone=()`
+    *   `Content-Security-Policy`: Construct a policy string. See below.
+
+**Content-Security-Policy (CSP) Details:**
+The CSP is critical and must be carefully constructed:
+*   `default-src 'self';`
+*   `img-src 'self' [image-optimization-domain] data:;` (The Next.js image domain needs to be identified and added).
+*   `font-src [google-fonts-domain];` (e.g., `fonts.gstatic.com`).
+*   `connect-src 'self' [groq-api-domain] [openrouter-api-domain];`
+*   `style-src 'self' 'unsafe-inline';` (Required for Tailwind styles as per technical notes).
+*   `script-src 'self' 'unsafe-eval';` (Often needed for Next.js in dev, but aim to remove for production if possible).
+
+**Edge Cases & Gotchas:**
+*   **CSP is strict:** The app must be thoroughly tested post-implementation on all pages and in all languages (EN, MS, ZH) to find and fix any console violations (e.g., blocked scripts, styles, or images).
+*   **External Services:** The exact domains for Google Fonts, image hosting, and the AI chat APIs (Groq/OpenRouter) must be correctly identified and allowlisted in the CSP.
+*   **HSTS:** Do not add the `Strict-Transport-Security` header here; it should be handled at the Vercel/CDN layer.
+*   **Verification:** Use an external tool like securityheaders.com to validate the implementation and achieve the target grade.
+
+
+
+## Iteration - Story: US-312 — Set security headers (CSP, X-Frame-Options, X-Content-Type-Options)
+
+### What was implemented
+- Changed X-Frame-Options from DENY to SAMEORIGIN per acceptance criteria
+- All other headers were already present from a previous iteration:
+  - X-Content-Type-Options: nosniff
+  - Referrer-Policy: strict-origin-when-cross-origin
+  - Permissions-Policy: camera=(), microphone=(), geolocation=()
+  - CSP: default-src 'self'; img-src 'self' data: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; frame-src 'self' https://www.google.com https://maps.google.com
+
+### Patterns discovered
+- AI chat API calls (Groq/OpenRouter) are server-side only — browser never calls those domains directly, so they don't need CSP connect-src allowlisting
+- Vercel Blob image URLs are covered by img-src 'self' data: https: (broad https: allows all HTTPS image sources)
+- Google Maps embed on /contact needs frame-src allowlist for google.com domains
+
+### Gotchas
+- DENY vs SAMEORIGIN: DENY is stricter but acceptance criteria specified SAMEORIGIN
+- Dev mode adds localhost:3002 to frame-src for Rainbow AI admin iframe
+- HSTS should be applied at Vercel/CDN level, not in Next.js headers()
