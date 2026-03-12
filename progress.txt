@@ -1,3 +1,10 @@
+## US-323 — Add skip-to-content link and landmark roles (PASSED)
+- Added skip-to-content link as first focusable element in [locale]/layout.tsx body
+- Added id="main-content" to <main> element for skip link target
+- Added aria-label="Main navigation" and aria-label="Mobile navigation" to header.tsx nav elements
+- Existing accessibility: chat widget already has aria-label, tray widget has aria-label + aria-expanded, +/- buttons have descriptive labels, semantic HTML landmarks (<header>, <main>, <footer>, <nav>) already in use
+- Skip link uses sr-only + focus:not-sr-only pattern with z-50 to appear above header
+
 ## US-302 — Replace CAFE.xxx in async RSC pages (PASSED)
 - Split site-settings.ts into site-settings-shared.ts (client-safe: interface + defaults) and site-settings.ts (server-only: DB queries)
 - Root cause of build failure: admin-settings-panel.tsx ("use client") imported DEFAULT_SETTINGS from site-settings.ts which chains to db.ts → env.ts → import "server-only"
@@ -1694,3 +1701,60 @@ Here is the technical brief for implementing US-324:
 - `setRequestLocale` must be called before any `await` in the component body per next-intl docs
 - Pages that call `cookies()` (home, menu, about, contact, blog) cannot be fully static — they use cookies for admin inline editing detection
 - `generateStaticParams` in the layout enables the static path but individual pages opt into dynamic rendering when they use dynamic APIs like `cookies()`
+## Iteration 3 - Thu, Mar 12, 2026  3:00:40 PM
+Incomplete: Implement dynamic og:image generation per locale using Next.js ImageResponse (ID: US-324) — attempt 2/3
+
+
+## Pre-analysis for US-324 (Gemini 2.5 Pro)
+This user story is for a **Next.js/TypeScript** project, not Frappe/Python. The following technical brief is based on the Next.js implementation detailed in the story JSON.
+
+***
+
+**Subject: Technical Brief for US-324: Dynamic OG Image Generation in Next.js**
+
+**1. Files to Create/Modify:**
+*   **Create:** `src/app/[locale]/blog/[slug]/opengraph-image.tsx`
+*   **Create:** `src/app/[locale]/menu/opengraph-image.tsx`
+*   **Verify:** `src/app/[locale]/layout.tsx` (to ensure it contains the static fallback `og:image` in its metadata).
+
+**2. Key Next.js Concepts & APIs:**
+*   **File-based Metadata:** The implementation relies on the App Router's convention of using a special `opengraph-image.tsx` file to dynamically generate images for a route segment.
+*   **Core API:** The `ImageResponse` constructor from `next/og` is the central piece of technology to use. Note that this code is executed on the Edge.
+
+**3. Recommended Implementation Approach:**
+*   Each `opengraph-image.tsx` file should export a default async function that accepts `{ params }` as an argument.
+*   Inside this function, use the `params` (`locale`, `slug`) to fetch the relevant data (e.g., post title).
+*   Construct the image content using JSX, passing the fetched data into your component structure.
+*   Return a new `ImageResponse` with the JSX content and options specifying dimensions (1200x630) and font data.
+
+**4. Edge Cases & Gotchas:**
+*   **Font Loading:** `next/font` is incompatible with `ImageResponse`. You must fetch a font file (e.g., `.ttf` or `.otf`) as an `ArrayBuffer` and pass it in the `ImageResponse` options.
+*   **Error Handling:** Ensure the static `og-image.jpg` in the root layout works as a fallback if dynamic generation fails.
+*   **Styling:** `ImageResponse` only supports a subset of CSS, primarily Flexbox for layout. Tailwind CSS utility classes work well.
+*   **Caching:** The image is cached according to the page's `revalidate` setting. Ensure this is configured correctly for both the page and the image generation.
+
+
+## Pre-analysis for US-324 (Gemini 2.5 Pro)
+Here is a technical brief for the user story.
+
+**Objective**: Implement dynamic Open Graph (OG) images for blog posts and the menu page using Next.js `ImageResponse`.
+
+**Files to Create/Modify**:
+*   `src/app/[locale]/blog/[slug]/opengraph-image.tsx`: To generate OG images for individual blog posts.
+*   `src/app/[locale]/menu/opengraph-image.tsx`: To generate a dynamic OG image for the main menu page.
+*   `src/app/[locale]/layout.tsx`: Ensure the root layout's metadata provides the static fallback `og-image.jpg`.
+
+**Implementation Plan**:
+1.  For blog posts, create `opengraph-image.tsx`. It will export an async `generateImage({ params })` function.
+2.  Inside, fetch post data using `params.slug` and `params.locale` to get the title.
+3.  Use `ImageResponse` from `next/og` to render a JSX component with the post title and cafe name.
+4.  For the menu page, create a similar `opengraph-image.tsx` that renders "Menu" and the cafe name in the correct locale.
+5.  Load a font (e.g., Inter) by `fetch`ing its URL and passing the `ArrayBuffer` to `ImageResponse`'s `fonts` option.
+6.  The `revalidate` export should match the page's Incremental Static Regeneration (ISR) period.
+
+**Gotchas & Edge Cases**:
+*   The generation function runs in an Edge runtime environment; avoid using Node.js-specific APIs.
+*   Fonts cannot be loaded via `next/font`; they must be fetched and embedded directly.
+*   Ensure graceful failure; if image generation fails, Next.js should fall back to the static OG image defined in the root layout.
+*   Confirm the final image size is 1200x630px as per Open Graph standards.
+

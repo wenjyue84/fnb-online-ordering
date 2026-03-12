@@ -72,7 +72,7 @@ export function Header() {
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav aria-label="Main navigation" className="hidden items-center gap-1 md:flex">
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.key}
@@ -109,7 +109,7 @@ export function Header() {
       {/* Mobile Nav */}
       {mobileOpen && (
         <div className="border-t border-border bg-background px-4 pb-4 md:hidden">
-          <nav className="flex flex-col gap-1 pt-2">
+          <nav aria-label="Mobile navigation" className="flex flex-col gap-1 pt-2">
             {NAV_ITEMS.map((item) => (
               <Link
                 key={item.key}
