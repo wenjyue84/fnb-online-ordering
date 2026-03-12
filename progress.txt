@@ -1,3 +1,17 @@
+## US-327 — Add visible focus indicators for all interactive elements (PASSED)
+- Added global `:focus-visible` fallback in globals.css `@layer base` — 2px solid outline using `var(--ring)` with 2px offset; provides keyboard focus indicator for all elements as safety net
+- Upgraded button.tsx (shadcn/ui) from `focus-visible:ring-1` to `focus-visible:ring-2` — meets WCAG 2.4.7 minimum 2px requirement
+- Fixed bottom-search-bar.tsx — bare `outline-none` had no focus replacement; added `focus-visible:ring-2 focus-visible:ring-primary`
+- Fixed admin-categories-panel.tsx — bare `outline-none` on display name edit input had no focus replacement; added `focus-visible:ring-1 focus-visible:ring-amber-400`
+- Fixed [locale]/error.tsx — changed `focus:outline-none focus:ring-2` to `focus-visible:outline-none focus-visible:ring-2` so focus ring only shows on keyboard navigation
+- Most admin inputs use `outline-none focus:ring-*` pattern (outline removed, ring on focus) — these are functional and not broken; the global fallback adds an extra safety net
+- Zero TS errors, zero new lint errors
+
+### Patterns discovered
+- Tailwind v4 `outline-none` removes outline unconditionally — any element with it MUST have a replacement focus indicator (ring, border change, etc.)
+- Global `:focus-visible` in `@layer base` has low specificity — component Tailwind utilities override it naturally
+- Admin inputs overwhelmingly use `focus:` (not `focus-visible:`) with ring replacements — functional but shows ring on mouse click too; not worth mass-changing for admin-only pages
+
 ## US-326 — Add PDPA-compliant privacy notice and data collection disclosure (PASSED)
 - Created src/app/[locale]/privacy/page.tsx — full privacy policy page with 8 sections (controller, data collected, purpose, retention, rights, third-party, cookies, changes)
 - Added "privacy" namespace to all 3 locale files (messages/en.json, ms.json, zh.json) with 30+ translation keys each
@@ -2115,4 +2129,37 @@ Here is a technical brief for a **Next.js/TypeScript developer** based on the pr
 *   Verify that the new `/privacy` route is correctly handled by the i18n routing `middleware.ts`.
 *   The disclosures must be clearly visible within their respective components without breaking the existing UI flow.
 *   Keep legal/compliance team in the loop to approve the text content before merging.
+
+## Iteration 2 - Thu, Mar 12, 2026  4:46:56 PM
+Completed: Add PDPA-compliant privacy notice and data collection disclosure (ID: US-326) in 13m
+
+
+## Pre-analysis for US-327 (Gemini 2.5 Pro)
+This user story is for a **Next.js/TailwindCSS frontend**, not a Frappe/Python application. The technical brief should be used for a frontend developer or agent.
+
+---
+
+**Technical Brief: US-327 Focus Indicators**
+
+**1. Core Files to Modify:**
+*   `src/app/globals.css` (or equivalent global stylesheet): To add a site-wide default focus style.
+*   `src/components/ui/button.tsx`: Audit for `focus:outline-none` and apply `focus-visible` ring styles.
+*   `src/components/ui/input.tsx`: Verify focus rings are present and meet contrast requirements.
+*   `src/components/ui/select.tsx`, `checkbox.tsx`, `switch.tsx`: Ensure all form elements have visible focus states.
+*   Any custom interactive components (e.g., filter pills, tray/cart widgets).
+
+**2. DocTypes & Hooks Involved:**
+*   None. This is a CSS and frontend component task. No backend DocTypes or hooks are affected.
+
+**3. Implementation Approach:**
+*   In the primary global stylesheet, add a default, high-contrast `:focus-visible` rule as a fallback. (e.g., `outline: 2px solid blue; outline-offset: 2px;`).
+*   Audit all interactive `shadcn/ui` components and any custom ones. Remove any `focus:outline-none` utility classes.
+*   Replace them with Tailwind's `focus-visible` variants, such as `focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`.
+*   Manually verify every interactive element referenced in the acceptance criteria via keyboard (Tab/Shift+Tab).
+
+**4. Edge Cases & Gotchas:**
+*   Use `:focus-visible` exclusively to avoid rings appearing on mouse clicks.
+*   Check for CSS specificity issues where component-level styles might override the new global default.
+*   Elements made clickable via JavaScript (e.g., `role="button"`) may need `tabindex="0"` to be included in the keyboard navigation flow.
+*   Ensure the chosen focus ring color has a 3:1 contrast ratio against all adjacent background colors where components are used.
 

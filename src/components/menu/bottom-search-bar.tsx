@@ -27,7 +27,7 @@ export function BottomSearchBar({ search, onSearchChange }: BottomSearchBarProps
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search menu..."
-          className="bg-transparent outline-none min-w-0 w-32 placeholder:text-muted-foreground text-foreground"
+          className="bg-transparent outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-w-0 w-32 placeholder:text-muted-foreground text-foreground"
           aria-label="Search menu items"
         />
         {search !== "" && (

@@ -210,7 +210,7 @@ export function AdminCategoriesPanel({
                           if (e.key === "Enter") saveDisplayEdit(cat.id);
                           if (e.key === "Escape") setEditDisplayId(null);
                         }}
-                        className="rounded border border-amber-300 px-2 py-1 text-sm outline-none"
+                        className="rounded border border-amber-300 px-2 py-1 text-sm outline-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400"
                         onClick={(e) => e.stopPropagation()}
                       />
                     ) : (

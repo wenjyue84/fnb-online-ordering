@@ -48,7 +48,7 @@ export default function LocaleError({
         <p className="mt-2 text-sm text-muted-foreground">{t.body}</p>
         <button
           onClick={reset}
-          className="mt-6 inline-flex items-center rounded-lg bg-orange-600 px-6 py-3 text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+          className="mt-6 inline-flex items-center rounded-lg bg-orange-600 px-6 py-3 text-white hover:bg-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
         >
           {t.retry}
         </button>

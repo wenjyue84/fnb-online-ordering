@@ -161,6 +161,14 @@
     @apply border-border;
   }
 
+  /* US-327: Global focus-visible fallback (WCAG 2.4.7 Level AA)
+     Provides a visible 2px outline for all keyboard-focused elements.
+     Components with their own focus-visible styles override this via specificity. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
   body {
     @apply bg-background text-foreground;
     -webkit-tap-highlight-color: transparent;
