@@ -11,6 +11,8 @@ import { useTray } from "@/lib/tray-context";
 
 interface HeroDishCardProps {
   item: MenuItem | null;
+  /** Cafe name for alt text */
+  cafeName?: string;
   /** Tailwind classes for the card wrapper — include aspect ratio and shadow here */
   className?: string;
   sizes?: string;
@@ -21,6 +23,7 @@ interface HeroDishCardProps {
 
 export function HeroDishCard({
   item,
+  cafeName = "Cafe",
   className,
   sizes = "100vw",
   priority = false,
@@ -78,7 +81,7 @@ export function HeroDishCard({
       <div className={cn("relative w-full overflow-hidden rounded-2xl", className)}>
         <Image
           src="/images/hero/hero-mobile.webp"
-          alt="Makan Moments Cafe"
+          alt={cafeName}
           fill
           className="object-cover img-scale"
           sizes={sizes}
@@ -111,7 +114,7 @@ export function HeroDishCard({
       >
         <Image
           src={mainSrc}
-          alt={`${item.nameEn} — Signature dish at Makan Moments Cafe`}
+          alt={`${item.nameEn} — Signature dish at ${cafeName}`}
           fill
           className="object-cover img-scale"
           sizes={sizes}

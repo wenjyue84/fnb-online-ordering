@@ -8,6 +8,10 @@ const withBundleAnalyzer = withBundleAnalyzerFactory({
 });
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    // Fix workspace root detection — prevents Turbopack from selecting parent package-lock.json
+    root: ".",
+  },
   experimental: {
     // nodeMiddleware is supported in Next.js 15.1+ but not yet typed
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment

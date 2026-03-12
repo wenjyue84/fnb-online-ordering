@@ -88,6 +88,7 @@ export default async function ContactPage({
         content={content}
         social={settings.social}
         wifiPassword={t("wifiPassword")}
+        cafeName={settings.cafeName}
       />
     );
   }

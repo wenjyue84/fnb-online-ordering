@@ -937,3 +937,24 @@ The relevant entities are React Server Components and a data fetching function, 
 *   **Missing Data:** In `about/page.tsx`, the `ambiance` array may not be present in the new `settings` object. The code should handle this gracefully by using a hardcoded inline array as a fallback.
 *   **Metadata:** Pay close attention to `layout.tsx` to ensure the page's `<title>` and metadata descriptions are correctly populated from the fetched `settings`.
 
+
+## Iteration 3 - Thu, Mar 12, 2026 - Story: US-302 - Replace CAFE.xxx in async RSC pages and server components
+
+### What was implemented
+- All 5 target files (footer.tsx, json-ld.tsx, layout.tsx, about/page.tsx, contact/page.tsx) were already migrated from CAFE imports to getSiteSettings() in the previous iteration
+- Fixed pre-existing Turbopack build failure caused by server-only import chain: admin-time-settings.tsx ("use client") → @/lib/time-slots → db.ts → env.ts → "server-only"
+- Created `src/lib/time-slots-shared.ts` with types/constants (same pattern as site-settings-shared.ts)
+- Updated time-slots.ts to re-export from shared file
+- Updated admin-time-settings.tsx to import from time-slots-shared
+- Added turbopack.root config in next.config.ts to fix workspace root detection
+- npm run build now passes successfully
+
+### Patterns discovered
+- Client components ("use client") cannot transitively import modules that use "server-only" even via type-only imports — Turbopack evaluates the full module
+- Pattern: split server modules into *-shared.ts (types + constants only) for client-safe imports
+- Existing pattern: site-settings-shared.ts was already created for this purpose
+- Turbopack workspace root detection can pick up parent directory package-lock.json, causing confusing path resolution — fix with turbopack.root in next.config.ts
+
+### Gotchas
+- The build failure was pre-existing (not caused by US-302 changes) but blocked the acceptance criteria
+- Even `import type` from a module triggers full module evaluation in Turbopack bundler
