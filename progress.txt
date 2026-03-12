@@ -1,3 +1,17 @@
+## US-333 — Add Suspense streaming boundaries to slow data-fetching page sections (PASSED)
+- Menu page: extracted DB-fetching logic (menu items, display categories, highlights) into `MenuContent` async RSC, wrapped in `<Suspense>` with `MenuGridSkeleton` (filter pills + card grid skeleton)
+- Home page: extracted `HighlightsWithData` async RSC that fetches featured items independently, wrapped in `<Suspense>` with `HighlightsSkeleton` (title + 6-card grid skeleton matching actual Highlights layout)
+- Blog page: extracted `BlogPostGrid` async RSC that fetches blog posts, wrapped in `<Suspense>` with `BlogGridSkeleton` (featured post + 4-card grid skeleton)
+- Static content (page headers, hero section, preorder banner, admin edit banner) renders immediately above Suspense boundaries
+- All skeletons match actual content dimensions (same grid columns, aspect ratios, padding) to prevent CLS
+- Admin path on home page bypasses Suspense (fetches all data upfront for HomeInlineEditor)
+- Zero TS errors, zero new lint errors
+
+### Patterns discovered
+- To stream with Suspense in Next.js App Router, the async data fetch must happen inside a child RSC, not at the top level of the page component
+- `MenuPageJsonLd` moved inside the Suspense boundary since it depends on menu items data
+- Admin preview banner kept outside MenuContent Suspense since it only needs `getMalaysiaTimeString()` (sync)
+
 ## US-330 — Add MenuSection schema.org structured data for individual menu items (PASSED)
 - Enhanced `MenuPageJsonLd` in `src/components/seo/json-ld.tsx` to accept optional `items` and `locale` props
 - When items are provided, groups them by POS category into `@type: MenuSection` entries
@@ -2412,3 +2426,29 @@ Here is the technical brief for implementing US-341.
 ### Patterns discovered
 - The .env.local parser in migrate.mjs has a bug with Windows line endings (\r) — the regex `$` anchor doesn't match before `\r`. Workaround: set DATABASE_URL via shell export, or fix the regex to use `/\r?$/`
 - Neon Serverless Postgres EXPLAIN won't show Index Scan for tables with <~100 rows — this is normal Postgres behavior
+
+
+## Pre-analysis for US-341 (Gemini 2.5 Pro)
+Based on the user story JSON, here is a technical brief for implementing the PWA offline fallback page. Note: The story describes a JavaScript PWA feature for a web app, not a Frappe/Python task.
+
+**1. Python Files to Modify / Key Files:**
+*   `public/sw.js`: This is the primary file. The service worker logic needs modification.
+*   `public/offline.html`: A new static HTML file must be created at this path.
+
+**2. Frappe DocTypes or Hooks / Key Concepts:**
+*   No Frappe DocTypes are involved.
+*   This task involves PWA Service Worker lifecycle hooks:
+    *   `install` event: To add `/offline.html` to the shell cache.
+    *   `fetch` event: To intercept failed navigation requests and serve the offline page as a fallback.
+
+**3. Recommended Implementation Approach:**
+1.  Create `public/offline.html`. It should be self-contained with inline CSS, the cafe logo, and a "You are offline" message in English, Malay, and Chinese.
+2.  In `public/sw.js`, find the `CACHE_NAME` constant and increment its version string to trigger a cache update for users.
+3.  Add `'/offline.html'` to the list of URLs cached during the `install` event (likely an array like `SHELL_URLS`).
+4.  Modify the `fetch` event handler. For navigation requests (`event.request.mode === 'navigate'`), wrap the `fetch` call in a `.catch()` block. Inside the catch, return a call to `caches.match('/offline.html')`.
+
+**4. Edge Cases or Gotchas:**
+*   **Self-Contained Page:** `offline.html` must not have external dependencies. Any images it uses (like a logo) must also be added to the service worker cache.
+*   **Cache Busting:** You *must* update the `CACHE_NAME` version in `sw.js`, or the new service worker will not be installed, and the offline page will never be cached.
+*   **Request Mode:** The fallback logic must apply only to `'navigate'` requests to avoid incorrectly returning an HTML page for a failed API or image call.
+
