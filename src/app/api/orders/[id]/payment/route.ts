@@ -3,8 +3,16 @@ import sql from "@/lib/db";
 import { put } from "@vercel/blob";
 import fs from "fs";
 import path from "path";
+import { createRateLimiter } from "@/lib/chat/rate-limit";
 
 export const runtime = "nodejs";
+
+// 10 upload attempts per IP per hour — prevents storage exhaustion / DoS
+const paymentRateLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10,
+  name: "POST /api/orders/[id]/payment",
+});
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -72,6 +80,21 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Rate limiting — 10 uploads per IP per hour
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "127.0.0.1";
+  const rateCheck = await paymentRateLimiter(ip);
+  if (!rateCheck.allowed) {
+    return NextResponse.json(
+      { error: "Too many upload attempts. Please try again later." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rateCheck.retryAfter ?? 3600) },
+      }
+    );
+  }
+
   try {
     const { id } = await params;
     const orderId = parseInt(id, 10);

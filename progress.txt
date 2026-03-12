@@ -1469,3 +1469,56 @@ Based on the user story, here is a technical brief for the implementation task.
 ### Gotchas
 - Dev server crashed with OOM ("memory allocation of 8388608 bytes failed") — Lighthouse audit could not be run. All code requirements verified manually.
 - TypeScript check passes cleanly (npx tsc --noEmit = no output)
+## Iteration 9 - Thu, Mar 12, 2026  1:42:55 PM
+Completed: Add fetchpriority=high to the hero LCP image and audit Largest Contentful Paint on mobile (ID: US-315) in 9m
+
+
+## Pre-analysis for US-324 (Gemini 2.5 Pro)
+This user story is for a **Next.js/TypeScript** project, not Frappe/Python. Here is the technical brief for implementing dynamic OG images:
+
+**Technical Brief: US-324 Dynamic OG Images**
+
+**1. Files to Modify/Create:**
+
+*   `src/app/[locale]/blog/[slug]/opengraph-image.tsx` (new file)
+*   `src/app/[locale]/menu/opengraph-image.tsx` (new file)
+*   `src/app/[locale]/layout.tsx` (to confirm fallback)
+*   A data fetching function to get blog post details by slug.
+*   Translation files (e.g., `messages/en.json`) for UI strings.
+
+**2. Framework APIs Involved:**
+
+*   Next.js App Router file-based metadata (`opengraph-image.tsx`).
+*   `next/og`'s `ImageResponse` constructor for Edge-runtime image generation.
+
+**3. Implementation Approach:**
+
+*   In `opengraph-image.tsx` for the blog, create an `async` function that accepts `{ params }`.
+*   Fetch post data (title) and site data (cafe name) within this function.
+*   Fetch a suitable font file (e.g., from `/public/fonts/`) as an `ArrayBuffer`.
+*   Return a new `ImageResponse` containing JSX to layout the text. Pass the font buffer in the options.
+*   Replicate the process for the `menu` route, using the translated "Menu" label.
+*   Ensure the root layout's `metadata` object defines the static fallback `ogImage`.
+
+**4. Edge Cases & Gotchas:**
+
+*   **Font Handling:** `next/font` cannot be used. Fonts must be fetched and passed as an `ArrayBuffer` directly into `ImageResponse`.
+*   **Data Fetching:** All data calls inside `opengraph-image.tsx` must be Edge-compatible (`fetch`).
+*   **Error Handling:** If data fetching fails, the function should error, letting Next.js fall back to the `og:image` defined in the parent layout.
+*   **Caching:** Export a `revalidate` constant to align the image's cache lifetime with the page's.
+
+
+## Iteration - Story: US-317 — Add rate limiting to the payment upload endpoint
+
+### What was implemented
+- payment/route.ts: Added `createRateLimiter` import and a `paymentRateLimiter` instance (windowMs: 1 hour, max: 10, name: "POST /api/orders/[id]/payment")
+- Payment route: Extracts IP from `x-forwarded-for` header (same pattern as orders route), checks rate limit before processing. Returns HTTP 429 + `Retry-After` header if exceeded
+- unit.ts: Added two unit tests — `unit-payment-rate-limiter-config` (verifies factory returns a function, localhost exempt) and `unit-ip-extraction` (verifies IP parsing from x-forwarded-for header)
+
+### Patterns discovered
+- `createRateLimiter` is DB-backed (Neon Postgres `rate_limit_log` table) — safe across multiple Vercel isolates
+- Rate check must happen BEFORE the `try {}` block so 429 is returned early without consuming the request body
+- `_resetTableState()` is exported for resetting the bootstrap flag between tests
+
+### Gotchas
+- Unit tests run in browser context (admin Tests tab) so they cannot test real DB calls — localhost exempt path + config checks are the testable surface

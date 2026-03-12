@@ -440,7 +440,7 @@
         "Migrate rate limiter from in-memory Map to a persistent store for Vercel deployments"
       ],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-318",

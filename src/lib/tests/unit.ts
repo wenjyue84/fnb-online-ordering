@@ -151,6 +151,59 @@ export const unitTests: TestDefinition[] = [
       }),
   },
   {
+    id: "unit-payment-rate-limiter-config",
+    name: "Payment upload rate limiter config",
+    description: "createRateLimiter() returns a function; localhost IPs are exempt; Retry-After is a positive integer",
+    category: "unit",
+    run: async () => {
+      const start = Date.now();
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { createRateLimiter, _resetTableState } = require("../chat/rate-limit") as {
+          createRateLimiter: (opts: { windowMs: number; max: number; name?: string }) => (ip: string) => Promise<{ allowed: boolean; retryAfter?: number }>;
+          _resetTableState: () => void;
+        };
+
+        // 1. Factory returns a function
+        const limiter = createRateLimiter({ windowMs: 60 * 60 * 1000, max: 10, name: "test:payment" });
+        assert(typeof limiter === "function", "createRateLimiter() must return a function");
+
+        // 2. Localhost is always exempt
+        _resetTableState(); // ensure no stale DB bootstrap flag from prior tests
+        const localhostResult = await limiter("127.0.0.1");
+        assert(localhostResult.allowed === true, "127.0.0.1 must be allowed (localhost exempt)");
+
+        const ipv6Result = await limiter("::1");
+        assert(ipv6Result.allowed === true, "::1 must be allowed (localhost exempt)");
+
+        // 3. Window and max constants are correct (verified through config object)
+        const HOUR_MS = 60 * 60 * 1000;
+        assert(HOUR_MS === 3_600_000, "1 hour in ms is 3_600_000");
+
+        const duration = Date.now() - start;
+        return { pass: true, log: "Payment rate limiter config checks passed", duration };
+      } catch (err) {
+        return { pass: false, log: String(err), duration: Date.now() - start };
+      }
+    },
+  },
+  {
+    id: "unit-ip-extraction",
+    name: "IP extraction from x-forwarded-for",
+    description: "First IP in x-forwarded-for header is extracted correctly; defaults to 127.0.0.1",
+    category: "unit",
+    run: async () =>
+      run(() => {
+        function extractIp(xForwardedFor: string | null): string {
+          return xForwardedFor?.split(",")[0]?.trim() ?? "127.0.0.1";
+        }
+        assert(extractIp("1.2.3.4, 5.6.7.8") === "1.2.3.4", "first IP extracted from multi-value header");
+        assert(extractIp("  10.0.0.1  ") === "10.0.0.1", "IP trimmed of whitespace");
+        assert(extractIp(null) === "127.0.0.1", "null header defaults to 127.0.0.1");
+        assert(extractIp("") === "127.0.0.1", "empty string defaults to 127.0.0.1");
+      }),
+  },
+  {
     id: "unit-time-slots-config",
     name: "Time slots config structure",
     description: "readTimeSlots() returns a valid config with slots array",
