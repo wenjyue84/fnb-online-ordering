@@ -712,3 +712,29 @@ This brief outlines the implementation plan for moving time slot configuration f
 ### Gotchas
 - 5 callers (not 4 as PRD suggested) — ai-waiter/status/route.ts was also a caller
 
+## Iteration 3 - Thu, Mar 12, 2026 10:35:36 AM
+Completed: Migrate time slots from JSON to Neon Postgres (ID: US-202) in 10m
+
+
+## Iteration 11 - Story: US-204 - Add seed verification script
+
+### What was implemented
+- Created `scripts/verify-seed.mjs` with pattern matching `seed-settings.mjs`:
+  - Loads DATABASE_URL from .env.local using fs/regex pattern (no dotenv package)
+  - Queries `site_settings` for all 4 required keys using neon()
+  - Prints "✓ PASS: All 4 settings keys present in DB" if all keys found
+  - Prints "✗ MISSING keys in site_settings:" + list if any keys missing
+  - Exits 0 on success, exits 1 on missing keys or DB errors
+- Updated prd.json: US-204 marked passes: true
+
+### Patterns discovered
+- Node scripts in this project use fs.readFileSync for .env.local parsing, not dotenv package
+- Pattern: `const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/)` captures key=value pairs
+- neon() creates SQL client from DATABASE_URL; results are arrays of objects
+
+### Gotchas
+- None — straightforward verification script following established pattern
+
+## Iteration 11 - Thu, Mar 12, 2026 10:37:00 AM
+Completed: Add seed verification script (ID: US-204) in 2m
+
