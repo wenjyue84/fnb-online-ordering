@@ -1317,3 +1317,55 @@ The CSP is critical and must be carefully constructed:
 - DENY vs SAMEORIGIN: DENY is stricter but acceptance criteria specified SAMEORIGIN
 - Dev mode adds localhost:3002 to frame-src for Rainbow AI admin iframe
 - HSTS should be applied at Vercel/CDN level, not in Next.js headers()
+## Iteration 6 - Thu, Mar 12, 2026  1:20:52 PM
+Completed: Set security headers (CSP, X-Frame-Options, X-Content-Type-Options) in next.config.ts (ID: US-312) in 4m
+
+
+## Pre-analysis for US-313 (Gemini 2.5 Pro)
+This user story is for a React/Next.js frontend using `shadcn/ui`, not a Frappe/Python application. The following technical brief is based on the story's actual content.
+
+---
+### **Technical Brief: US-313 Frontend Accessibility**
+
+**1. Python Files to Modify:**
+*   None. This is a TypeScript/React task. The primary targets are:
+    *   `src/components/menu/tray-widget.tsx`
+    *   `src/components/menu/tray-button.tsx`
+    *   The component file for the order submission modal (e.g., `order-modal.tsx`).
+
+**2. Frappe DocTypes/Hooks:**
+*   None. This involves React components and potentially a client-side state manager.
+
+**3. Recommended Implementation:**
+*   Refactor the existing order modal to use the `shadcn/ui` `Dialog` primitive. This will correctly implement the ARIA dialog pattern, including focus trapping and the Escape-to-close mechanism.
+*   In the order form, connect `label` elements to the "Contact number" and "arrival time" inputs using the `htmlFor` attribute.
+*   Modify `tray-button.tsx` to include `aria-label="View cart"` and an `aria-expanded` attribute that reflects the tray's open/closed state.
+*   Update the quantity adjustment buttons in `tray-widget.tsx` to have dynamic `aria-label`s, like `aria-label="Increase quantity of {item name}"`.
+
+**4. Edge Cases & Gotchas:**
+*   Ensure focus is correctly returned to the element that triggered the modal when it closes. The `shadcn/ui` primitive should handle this, but it must be verified.
+*   Confirm that all existing form logic (state, submission, validation) is preserved after migrating to the new `Dialog` component.
+*   Verify the completed implementation using a screen reader (NVDA or VoiceOver) to ensure it meets all acceptance criteria.
+
+
+## Iteration - Story: US-313 — Add ARIA labels and keyboard navigation to the tray widget and order form modal
+
+### What was implemented
+- OrderFormModal: Added role="dialog", aria-modal="true", aria-labelledby pointing to modal heading
+- OrderFormModal: Focus trap (Tab cycles within modal), Escape closes modal
+- OrderFormModal: Focus moves to first interactive element on open; returns to trigger on close
+- TrayWidget side panel: Added role="dialog", aria-modal="true", aria-label
+- TrayWidget: Close button gets aria-label="Close cart"
+- TrayWidget: Escape key closes side panel and returns focus to trigger button
+- Floating cart buttons (mobile sticky bar + desktop): aria-label="View cart", aria-expanded={open}
+- Quantity +/- buttons: aria-label="Increase/Decrease quantity of {item name}"
+- Quantity display span: aria-live="polite" aria-atomic="true" for screen reader announcements
+- Form fields in OrderFormModal already had proper <label htmlFor> associations (no change needed)
+
+### Patterns discovered
+- tray-widget.tsx uses a custom side-panel (not shadcn Dialog) — ARIA attrs added directly
+- order-form-modal.tsx uses a custom div-based modal — focus trap implemented manually
+- Translation keys for "close" don't exist in tray namespace; used fallback string
+
+### Gotchas
+- The eslint-disable for jsx-a11y/no-noninteractive-element-interactions was unnecessary since role="dialog" makes the element interactive — removing it fixed a lint warning

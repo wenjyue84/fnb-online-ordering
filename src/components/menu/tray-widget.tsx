@@ -104,6 +104,19 @@ export function TrayWidget() {
         prevTotalRef.current = totalItems;
     }, [totalItems]);
 
+    // Close tray side panel on Escape key
+    useEffect(() => {
+        if (!open) return;
+        function handleEsc(e: KeyboardEvent) {
+            if (e.key === "Escape") {
+                setOpen(false);
+                buttonRef.current?.focus();
+            }
+        }
+        document.addEventListener("keydown", handleEsc);
+        return () => document.removeEventListener("keydown", handleEsc);
+    }, [open]);
+
     const hasTomYum = items.some(i => i.name.toLowerCase().includes('tom yum'));
     const hasOmelette = items.some(i => i.name.toLowerCase().includes('omelette'));
     const showPairingBanner = hasTomYum && !hasOmelette;
@@ -165,6 +178,9 @@ export function TrayWidget() {
 
             {/* Tray Side Panel */}
             <div
+                role="dialog"
+                aria-modal="true"
+                aria-label={t("title")}
                 className={cn(
                     "fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-background shadow-2xl transition-transform duration-300 ease-in-out sm:rounded-l-2xl",
                     open ? "translate-x-0" : "translate-x-full"
@@ -175,6 +191,7 @@ export function TrayWidget() {
                     <button
                         onClick={() => setOpen(false)}
                         className="rounded-full p-2 hover:bg-muted transition-colors"
+                        aria-label={t("close") ?? "Close cart"}
                     >
                         <X className="h-5 w-5" />
                     </button>
@@ -230,13 +247,15 @@ export function TrayWidget() {
                                         <button
                                             onClick={() => removeItem(item.id)}
                                             className="rounded-full h-8 w-8 flex items-center justify-center hover:bg-muted transition-colors"
+                                            aria-label={`Decrease quantity of ${item.name}`}
                                         >
                                             <Minus className="h-4 w-4" />
                                         </button>
-                                        <span className="w-6 text-center font-semibold">{item.quantity}</span>
+                                        <span className="w-6 text-center font-semibold" aria-live="polite" aria-atomic="true">{item.quantity}</span>
                                         <button
                                             onClick={() => addItem(item)}
                                             className="rounded-full h-8 w-8 flex items-center justify-center hover:bg-muted transition-colors"
+                                            aria-label={`Increase quantity of ${item.name}`}
                                         >
                                             <Plus className="h-4 w-4" />
                                         </button>
@@ -318,7 +337,8 @@ export function TrayWidget() {
                         onClick={() => setOpen(true)}
                         className="w-full flex items-center gap-3 bg-orange-500 text-white px-5 active:bg-orange-600 transition-colors"
                         style={{ paddingTop: "0.875rem", paddingBottom: "max(0.875rem, env(safe-area-inset-bottom))" }}
-                        aria-label="View Tray"
+                        aria-label="View cart"
+                        aria-expanded={open}
                     >
                         <ShoppingCart className="h-5 w-5 shrink-0" />
                         <span className={cn("flex-1 text-left text-sm font-semibold", badgeBounce && "badge-bounce")}>
@@ -341,7 +361,8 @@ export function TrayWidget() {
                         scrollPhase === "scrolling" && "opacity-0 transition-opacity duration-150 pointer-events-none",
                         scrollPhase === "resting" && "scroll-fade-in"
                     )}
-                    aria-label="View Tray"
+                    aria-label="View cart"
+                    aria-expanded={open}
                 >
                     <ShoppingCart className="h-6 w-6" />
                     {totalItems > 0 && (

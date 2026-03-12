@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -37,8 +37,60 @@ export function OrderFormModal({ items, total, onSuccess, onClose }: OrderFormMo
   const [timeError, setTimeError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [orderId, setOrderId] = useState<number | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   const minTime = useMemo(() => getMinArrivalTime(), []);
+
+  // Save the element that had focus before modal opened, restore on close
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement as HTMLElement | null;
+    return () => {
+      previousFocusRef.current?.focus();
+    };
+  }, []);
+
+  // Move focus into modal on mount and when step changes
+  useEffect(() => {
+    const modal = modalRef.current;
+    if (!modal) return;
+    const focusable = modal.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusable.length > 0) {
+      focusable[0].focus();
+    }
+  }, [step]);
+
+  // Focus trap: cycle Tab within modal; Escape closes
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      onClose();
+      return;
+    }
+    if (e.key === "Tab") {
+      const modal = modalRef.current;
+      if (!modal) return;
+      const focusable = modal.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    }
+  }, [onClose]);
 
   function validateContact(value: string): boolean {
     const normalized = value.replace(/[\s-]/g, "");
@@ -123,9 +175,16 @@ export function OrderFormModal({ items, total, onSuccess, onClose }: OrderFormMo
       />
 
       {/* Modal */}
-      <div className="fixed inset-x-4 top-1/2 z-[61] -translate-y-1/2 rounded-2xl bg-background shadow-2xl max-w-sm mx-auto">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="order-modal-heading"
+        onKeyDown={handleKeyDown}
+        className="fixed inset-x-4 top-1/2 z-[61] -translate-y-1/2 rounded-2xl bg-background shadow-2xl max-w-sm mx-auto"
+      >
         <div className="flex items-center justify-between border-b p-4">
-          <h2 className="text-lg font-bold">
+          <h2 id="order-modal-heading" className="text-lg font-bold">
             {step === 1 ? t("title") : t("titleConfirm")}
           </h2>
           <button
