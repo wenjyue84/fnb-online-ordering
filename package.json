@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --port 3031",
     "dev:portless": "NEXT_TELEMETRY_DISABLED=1 NEXT_DIST_DIR=/tmp/fnb-ordering-next portless --app-port 3031 fnb-ordering next dev --port 3031",
-    "build": "next build",
+    "build": "node scripts/migrate.mjs && next build",
     "postbuild": "echo 'Sitemap generated dynamically by src/app/sitemap.ts'",
     "start": "next start",
     "test": "vitest run",
@@ -13,6 +13,7 @@
     "rainbow": "cd backend && npx tsx watch src/index.ts",
     "rainbow:build": "cd backend && npx tsc -p tsconfig.json",
     "rainbow:start": "cd backend && node dist/index.js",
+    "db:migrate": "node scripts/migrate.mjs",
     "seed:display-categories": "node scripts/seed-display-categories.mjs",
     "dev:rainbow": "cd rainbow-ai && npm run dev",
     "dev:all": "concurrently --names \"next,rainbow\" \"npm run dev\" \"npm run dev:rainbow\""

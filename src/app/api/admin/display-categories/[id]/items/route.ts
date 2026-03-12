@@ -8,21 +8,12 @@ function revalidateMenu() {
 
 export const runtime = "nodejs";
 
-// Lazy migration: ensure sort_order column exists on item_display_categories
-let schemaReady = false;
-async function ensureSchema() {
-  if (schemaReady) return;
-  await sql`ALTER TABLE item_display_categories ADD COLUMN IF NOT EXISTS sort_order INT NOT NULL DEFAULT 0`;
-  schemaReady = true;
-}
-
 // GET /api/admin/display-categories/[id]/items — list items in a display category
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  await ensureSchema();
 
   const rows = await sql`
     SELECT mi.id, mi.name_en, mi.code, mi.price, idc.sort_order
@@ -67,7 +58,6 @@ export async function PATCH(
     return NextResponse.json({ error: "itemIds must be an array" }, { status: 400 });
   }
 
-  await ensureSchema();
   await Promise.all(
     itemIds.map((itemId, idx) =>
       sql`

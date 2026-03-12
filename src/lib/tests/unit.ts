@@ -159,9 +159,8 @@ export const unitTests: TestDefinition[] = [
       const start = Date.now();
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { createRateLimiter, _resetTableState } = require("../chat/rate-limit") as {
+        const { createRateLimiter } = require("../chat/rate-limit") as {
           createRateLimiter: (opts: { windowMs: number; max: number; name?: string }) => (ip: string) => Promise<{ allowed: boolean; retryAfter?: number }>;
-          _resetTableState: () => void;
         };
 
         // 1. Factory returns a function
@@ -169,7 +168,6 @@ export const unitTests: TestDefinition[] = [
         assert(typeof limiter === "function", "createRateLimiter() must return a function");
 
         // 2. Localhost is always exempt
-        _resetTableState(); // ensure no stale DB bootstrap flag from prior tests
         const localhostResult = await limiter("127.0.0.1");
         assert(localhostResult.allowed === true, "127.0.0.1 must be allowed (localhost exempt)");
 

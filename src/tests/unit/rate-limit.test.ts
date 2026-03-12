@@ -6,25 +6,21 @@ vi.mock("@/lib/db", () => ({
 }));
 
 import sql from "@/lib/db";
-import { createRateLimiter, checkRateLimit, _resetTableState } from "@/lib/chat/rate-limit";
+import { createRateLimiter, checkRateLimit } from "@/lib/chat/rate-limit";
 
 // sql is a tagged template literal — each call goes through this mock
 const mockSql = vi.mocked(sql);
 
 /** Helper: make sql return different values based on the query text */
 function setupSqlMock(countForInsert: number) {
-  mockSql.mockImplementation((strings: TemplateStringsArray) => {
-    const query = strings[0] ?? "";
-    if (query.includes("CREATE TABLE")) return Promise.resolve([]) as ReturnType<typeof sql>;
-    if (query.includes("DELETE FROM rate_limit_log")) return Promise.resolve([]) as ReturnType<typeof sql>;
-    // INSERT ... RETURNING count
+  mockSql.mockImplementation(() => {
+    // INSERT ... RETURNING count (table creation handled by scripts/migrate.mjs)
     return Promise.resolve([{ count: countForInsert }]) as ReturnType<typeof sql>;
   });
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
-  _resetTableState(); // ensure ensureTable() runs fresh for each test
 });
 
 // ── createRateLimiter ────────────────────────────────────────────────────────
@@ -82,11 +78,7 @@ describe("createRateLimiter", () => {
 describe("checkRateLimit", () => {
   it("allows a chat request when both per-minute and per-day counts are below limits", async () => {
     let callCount = 0;
-    mockSql.mockImplementation((strings: TemplateStringsArray) => {
-      const query = strings[0] ?? "";
-      if (query.includes("CREATE TABLE") || query.includes("DELETE FROM")) {
-        return Promise.resolve([]) as ReturnType<typeof sql>;
-      }
+    mockSql.mockImplementation(() => {
       callCount++;
       // Return count=1 for both minute and day windows
       return Promise.resolve([{ count: 1 }]) as ReturnType<typeof sql>;
@@ -98,11 +90,7 @@ describe("checkRateLimit", () => {
   });
 
   it("blocks chat when per-minute limit is exceeded", async () => {
-    mockSql.mockImplementation((strings: TemplateStringsArray) => {
-      const query = strings[0] ?? "";
-      if (query.includes("CREATE TABLE") || query.includes("DELETE FROM")) {
-        return Promise.resolve([]) as ReturnType<typeof sql>;
-      }
+    mockSql.mockImplementation(() => {
       return Promise.resolve([{ count: 11 }]) as ReturnType<typeof sql>; // exceeds 10/min
     });
 
@@ -113,11 +101,7 @@ describe("checkRateLimit", () => {
 
   it("blocks chat when per-day limit is exceeded", async () => {
     let insertCallCount = 0;
-    mockSql.mockImplementation((strings: TemplateStringsArray) => {
-      const query = strings[0] ?? "";
-      if (query.includes("CREATE TABLE") || query.includes("DELETE FROM")) {
-        return Promise.resolve([]) as ReturnType<typeof sql>;
-      }
+    mockSql.mockImplementation(() => {
       insertCallCount++;
       // First increment (minute) passes, second (day) exceeds limit
       const count = insertCallCount === 1 ? 5 : 101;

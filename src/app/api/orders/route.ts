@@ -94,31 +94,6 @@ export async function POST(request: NextRequest) {
     const { items, total, contactNumber: normalizedPhone, estimatedArrival } = parsed.data;
     const arrivalTime = new Date(estimatedArrival);
 
-    // Ensure table exists with full schema (idempotent)
-    await sql`
-      CREATE TABLE IF NOT EXISTS tray_orders (
-        id                     SERIAL PRIMARY KEY,
-        items                  JSONB NOT NULL,
-        total                  NUMERIC(8,2) NOT NULL,
-        status                 TEXT NOT NULL DEFAULT 'pending_approval',
-        contact_number         TEXT,
-        estimated_arrival      TIMESTAMPTZ,
-        estimated_ready        TIMESTAMPTZ,
-        rejection_reason       TEXT,
-        payment_screenshot_url TEXT,
-        notification_status    TEXT NOT NULL DEFAULT 'pending',
-        created_at             TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `;
-
-    // Add missing columns to pre-existing tables (idempotent migration)
-    await sql`ALTER TABLE tray_orders ADD COLUMN IF NOT EXISTS contact_number TEXT`;
-    await sql`ALTER TABLE tray_orders ADD COLUMN IF NOT EXISTS estimated_arrival TIMESTAMPTZ`;
-    await sql`ALTER TABLE tray_orders ADD COLUMN IF NOT EXISTS estimated_ready TIMESTAMPTZ`;
-    await sql`ALTER TABLE tray_orders ADD COLUMN IF NOT EXISTS rejection_reason TEXT`;
-    await sql`ALTER TABLE tray_orders ADD COLUMN IF NOT EXISTS payment_screenshot_url TEXT`;
-    await sql`ALTER TABLE tray_orders ADD COLUMN IF NOT EXISTS notification_status TEXT NOT NULL DEFAULT 'pending'`;
-
     const rows = await sql`
       INSERT INTO tray_orders (items, total, status, contact_number, estimated_arrival)
       VALUES (

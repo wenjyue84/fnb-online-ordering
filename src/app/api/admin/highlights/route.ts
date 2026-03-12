@@ -4,19 +4,8 @@ import { createErrorResponse } from "@/lib/api-response";
 
 export const runtime = "nodejs";
 
-// Ensure table exists (idempotent)
-async function ensureTable() {
-  await sql`
-    CREATE TABLE IF NOT EXISTS category_highlights (
-      category TEXT PRIMARY KEY,
-      item_id  TEXT NOT NULL
-    )
-  `;
-}
-
 // GET /api/admin/highlights — returns { [category]: item_id }
 export async function GET() {
-  await ensureTable();
   const rows = await sql`SELECT category, item_id FROM category_highlights`;
   const result: Record<string, string> = {};
   for (const row of rows) {
@@ -27,7 +16,6 @@ export async function GET() {
 
 // POST /api/admin/highlights — body: { category, itemId }
 export async function POST(request: NextRequest) {
-  await ensureTable();
   const body = await request.json() as { category?: string; itemId?: string };
   const { category, itemId } = body;
   if (!category || !itemId) {
@@ -43,7 +31,6 @@ export async function POST(request: NextRequest) {
 
 // DELETE /api/admin/highlights — body: { category }
 export async function DELETE(request: NextRequest) {
-  await ensureTable();
   const body = await request.json() as { category?: string };
   const { category } = body;
   if (!category) {

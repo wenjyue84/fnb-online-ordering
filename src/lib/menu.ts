@@ -7,14 +7,6 @@ import { join } from "path";
 
 const MENU_IMAGES_DIR = join(process.cwd(), "public", "images", "menu");
 
-// Idempotent migration — ensures the archived column exists before any SELECT references it
-let _archivedColumnReady = false;
-async function ensureArchivedColumn() {
-  if (_archivedColumnReady) return;
-  await sql`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS archived BOOLEAN DEFAULT false`;
-  _archivedColumnReady = true;
-}
-
 /** Cached filesystem scan for primary + secondary photos (5-min TTL) */
 let _photosCache: {
   primary: Record<string, string>;
@@ -160,7 +152,7 @@ async function getItemDisplayCategoryMap(): Promise<Record<string, string[]>> {
 
 // Public menu — available items filtered by Malaysia time, with rules applied
 export async function getMenuItems(): Promise<MenuItemWithRules[]> {
-  await ensureArchivedColumn();
+
   const [rows, rules, displayCatMap] = await Promise.all([
     sql`SELECT * FROM menu_items WHERE available = true AND (archived IS NULL OR archived = false) ORDER BY sort_order ASC, name_en ASC`,
     getActiveRules(),
@@ -177,7 +169,7 @@ export async function getMenuItems(): Promise<MenuItemWithRules[]> {
 const MIN_HIGHLIGHTS = 6;
 
 export async function getFeaturedItems(): Promise<MenuItemWithRules[]> {
-  await ensureArchivedColumn();
+
   const [rows, rules, displayCatMap] = await Promise.all([
     sql`SELECT * FROM menu_items WHERE available = true AND (archived IS NULL OR archived = false) ORDER BY sort_order ASC`,
     getActiveRules(),
@@ -203,7 +195,7 @@ export async function getFeaturedItems(): Promise<MenuItemWithRules[]> {
 
 // Admin — all items, no availability filter
 export async function getAllMenuItemsForAdmin(): Promise<MenuItem[]> {
-  await ensureArchivedColumn();
+
   const [rows, displayCatMap] = await Promise.all([
     sql`SELECT * FROM menu_items ORDER BY sort_order ASC, name_en ASC`,
     getItemDisplayCategoryMap(),
@@ -215,7 +207,7 @@ export async function getAllMenuItemsForAdmin(): Promise<MenuItem[]> {
 
 // Admin — all items with rule effects computed (for admin visibility)
 export async function getAllMenuItemsWithRulesForAdmin(): Promise<MenuItemWithRules[]> {
-  await ensureArchivedColumn();
+
   const [rows, rules, displayCatMap] = await Promise.all([
     sql`SELECT * FROM menu_items ORDER BY sort_order ASC, name_en ASC`,
     getActiveRules(),

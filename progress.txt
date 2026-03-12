@@ -1,3 +1,15 @@
+## US-322 — Extract inline DDL from API route handlers into migration script (PASSED)
+- Created scripts/migrate.mjs (already existed from prior partial attempt) with 15 idempotent DDL statements
+- Tables: site_settings, tray_orders, rate_limit_log, push_subscriptions, category_highlights
+- Columns: tray_orders (6 cols), menu_items (3 cols: image_position, is_signature, archived), item_display_categories.sort_order
+- Removed inline DDL from 6 source files: orders/route.ts, site-settings.ts, rate-limit.ts, push-subscribe/route.ts, highlights/route.ts, display-categories/[id]/items/route.ts, menu/[id]/route.ts, menu.ts
+- Removed ensureTable/ensureSchema/ensureArchivedColumn functions and their module-level flags (_archivedColumnReady, schemaReady, tableReady)
+- Removed _resetTableState export from rate-limit.ts; updated 2 test files that imported it
+- Added "db:migrate": "node scripts/migrate.mjs" to package.json
+- Build script updated to "node scripts/migrate.mjs && next build" — migrations run automatically on Vercel deploy
+- Uses DATABASE_URL_UNPOOLED (direct Neon endpoint) when available, falls back to DATABASE_URL
+- All 48 tests pass, zero TS errors, zero lint errors
+
 ## US-321 — Neon pooled connection string and connection leak prevention (PASSED)
 - Updated .env.example to document pooled (-pooler.neon.tech) vs unpooled (direct) connection strings
 - Added DATABASE_URL_UNPOOLED as optional env var in env.ts (for migrations, falls back to DATABASE_URL)
@@ -1897,4 +1909,41 @@ This user story is for a Next.js/TypeScript project, not a Frappe/Python one. He
 *   **Styling:** Styling is limited to a subset of CSS properties compatible with Satori (the underlying library). Use flexbox for layout.
 *   **Error Handling:** Next.js should automatically fall back to the `og:image` defined in the parent layout (`src/app/[locale]/layout.tsx`) if generation fails. This must be verified.
 *   **Caching:** The generated image's caching is tied to the page's `revalidate` setting. Ensure this is configured correctly for both blog posts and the menu page.
+
+## Iteration 3 - Thu, Mar 12, 2026  3:20:43 PM
+Incomplete: Implement dynamic og:image generation per locale using Next.js ImageResponse (ID: US-324) — attempt 2/3
+
+
+## Pre-analysis for US-324 (Gemini 2.5 Pro)
+### Technical Brief: US-324 Dynamic OG:Image Generation
+
+This is a Next.js task, not Frappe/Python. The goal is to dynamically generate Open Graph images for blog and menu pages using `next/og`.
+
+**1. Files to Modify/Create:**
+*   `src/app/[locale]/blog/[slug]/opengraph-image.tsx` (New file)
+*   `src/app/[locale]/menu/opengraph-image.tsx` (New file)
+*   `src/app/[locale]/layout.tsx` (Verify static fallback `og:image` is defined here)
+*   A utility file to fetch blog post data (e.g., `src/lib/posts.ts`)
+*   A utility file for internationalization (i18n) if not already present (e.g., `src/i18n/utils.ts`)
+
+**2. Next.js App Router Concepts Involved:**
+*   **File-based Metadata:** Specifically the `opengraph-image.tsx` special file.
+*   **Edge Runtime:** `ImageResponse` runs on the edge.
+*   **Data Fetching:** In Server Components to get post titles and cafe settings.
+
+**3. Recommended Implementation Approach:**
+1.  **Blog Image:** Create `src/app/[locale]/blog/[slug]/opengraph-image.tsx`.
+    *   It should be an async function that accepts `{ params: { slug, locale } }`.
+    *   Fetch the post title using the `slug` and site name from a data source.
+    *   Use `ImageResponse` from `next/og` to return a JSX structure styled with Tailwind/inline styles, displaying the fetched title and site name.
+2.  **Menu Image:** Create `src/app/[locale]/menu/opengraph-image.tsx`.
+    *   Fetch translations for "Menu" and the site name based on the `locale` param.
+    *   Use `ImageResponse` to render these translated strings.
+3.  **Root Fallback:** Ensure the root layout (`src/app/[locale]/layout.tsx`) defines a static `metadata` object with an `openGraph` image pointing to `/images/og-image.jpg`. This will serve as the fallback.
+
+**4. Edge Cases & Gotchas:**
+*   **Font Loading:** You cannot use `next/font`. Fonts must be fetched as an `ArrayBuffer` within the `opengraph-image.tsx` file itself and passed to `ImageResponse`.
+*   **Styling:** Only a limited subset of CSS is supported (Flexbox, inline styles, Tailwind).
+*   **Error Handling:** If `opengraph-image.tsx` throws an error during data fetching or rendering, Next.js will automatically fall back to the `og:image` defined in the parent layout, fulfilling the requirement.
+*   **Caching:** The generated image is cached like a page. Add a `revalidate` export to the file to control the ISR period, matching it with the corresponding page's revalidation setting.
 

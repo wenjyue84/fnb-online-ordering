@@ -556,7 +556,7 @@
         "Use Neon pooled connection string and prevent connection leaks in serverless route handlers"
       ],
       "estimatedComplexity": "medium",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-323",

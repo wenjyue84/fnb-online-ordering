@@ -3,19 +3,6 @@ import sql from "@/lib/db";
 
 export const runtime = "nodejs";
 
-// Ensure the push_subscriptions table exists (idempotent).
-async function ensureTable() {
-  await sql`
-    CREATE TABLE IF NOT EXISTS push_subscriptions (
-      id         SERIAL PRIMARY KEY,
-      endpoint   TEXT NOT NULL UNIQUE,
-      p256dh     TEXT NOT NULL,
-      auth       TEXT NOT NULL,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `;
-}
-
 // POST /api/admin/push-subscribe — save or update a push subscription.
 // Protected by middleware (admin-only route).
 export async function POST(request: NextRequest) {
@@ -32,8 +19,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    await ensureTable();
 
     await sql`
       INSERT INTO push_subscriptions (endpoint, p256dh, auth)
@@ -58,7 +43,6 @@ export async function DELETE(request: NextRequest) {
     if (!endpoint) {
       return NextResponse.json({ error: "endpoint required" }, { status: 400 });
     }
-    await ensureTable();
     await sql`DELETE FROM push_subscriptions WHERE endpoint = ${endpoint}`;
     return NextResponse.json({ ok: true });
   } catch (err) {

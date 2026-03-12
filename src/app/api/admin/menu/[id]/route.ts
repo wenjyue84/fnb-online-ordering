@@ -33,11 +33,6 @@ export async function PATCH(
     archived,
   } = body;
 
-  // Ensure columns exist (idempotent migrations)
-  await sql`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS image_position TEXT DEFAULT '50% 50%'`;
-  await sql`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS is_signature BOOLEAN DEFAULT false`;
-  await sql`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS archived BOOLEAN DEFAULT false`;
-
   // Only one item can be the signature dish — clear others before setting this one
   if (isSignature === true) {
     await sql`UPDATE menu_items SET is_signature = false WHERE is_signature = true AND id != ${id}`;

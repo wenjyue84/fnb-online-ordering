@@ -3,24 +3,6 @@ import sql from "@/lib/db";
 // Localhost IPs are exempt from rate limiting (test runner, dev tools)
 const LOCALHOST_IPS = new Set(["127.0.0.1", "::1", "localhost", "::ffff:127.0.0.1"]);
 
-// One-time table bootstrap per cold start
-let tableReady = false;
-async function ensureTable(): Promise<void> {
-  if (tableReady) return;
-  await sql`
-    CREATE TABLE IF NOT EXISTS rate_limit_log (
-      ip           TEXT        NOT NULL,
-      endpoint     TEXT        NOT NULL,
-      window_start TIMESTAMPTZ NOT NULL,
-      count        INT         NOT NULL DEFAULT 0,
-      PRIMARY KEY (ip, endpoint, window_start)
-    )
-  `;
-  // Fire-and-forget cleanup — remove entries older than 2 days to prevent unbounded growth
-  sql`DELETE FROM rate_limit_log WHERE window_start < NOW() - INTERVAL '2 days'`.catch(() => {});
-  tableReady = true;
-}
-
 /** Atomically increment the counter for the given key and return the new count. */
 async function incrementCount(
   ip: string,
@@ -43,6 +25,8 @@ async function incrementCount(
  * Creates a single-window rate limiter backed by Neon Postgres.
  * Safe across multiple Vercel serverless isolates — state is shared via DB.
  *
+ * Table creation is handled by scripts/migrate.mjs (run at deploy time).
+ *
  * @example
  * const limiter = createRateLimiter({ windowMs: 60_000, max: 5, name: 'POST /api/orders' });
  * const result = await limiter(ip);
@@ -60,8 +44,6 @@ export function createRateLimiter(options: {
   ): Promise<{ allowed: boolean; retryAfter?: number }> {
     // Exempt localhost — used by the admin test runner and dev tools
     if (LOCALHOST_IPS.has(ip)) return { allowed: true };
-
-    await ensureTable();
 
     const now = Date.now();
     // Align to nearest window boundary so all requests in the same window share the same key
@@ -93,8 +75,6 @@ export async function checkRateLimit(
 ): Promise<{ allowed: boolean; retryAfter?: number }> {
   if (LOCALHOST_IPS.has(ip)) return { allowed: true };
 
-  await ensureTable();
-
   const now = Date.now();
 
   // Per-minute check
@@ -120,9 +100,4 @@ export async function checkRateLimit(
   }
 
   return { allowed: true };
-}
-
-// Exported for testing only — allows resetting the table-bootstrap flag between test runs
-export function _resetTableState(): void {
-  tableReady = false;
 }
