@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     headersList.get("x-real-ip") ||
     "unknown";
 
-  const rateCheck = checkRateLimit(ip);
+  const rateCheck = await checkRateLimit(ip);
   if (!rateCheck.allowed) {
     return new Response(
       JSON.stringify({ error: "Rate limit exceeded" }),

@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     "127.0.0.1";
-  const rateCheck = loginRateLimiter(ip);
+  const rateCheck = await loginRateLimiter(ip);
   if (!rateCheck.allowed) {
     return NextResponse.json(
       { error: "Too many login attempts. Please try again later." },
