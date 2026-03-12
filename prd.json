@@ -1,13 +1,13 @@
 {
   "productName": "fnb-online-ordering",
   "branchName": "feature/iter-03",
-  "overview": "Iteration 3: Complete CAFE constant migration. The CAFE constant in src/lib/constants.ts has 34 usages across 13 files — all hardcoded Makan Moments values. Extend SiteSettings to include all cafe identity fields (address, phone, social, tagline, etc.), replace every CAFE.xxx reference with getSiteSettings(), and remove the CAFE constant. After this iteration, zero hardcoded cafe identity strings remain in runtime code.",
+  "overview": "Iteration 3: Complete CAFE constant migration. The CAFE constant in src/lib/constants.ts has 34 usages across 13 files \u00e2\u20ac\u201d all hardcoded Makan Moments values. Extend SiteSettings to include all cafe identity fields (address, phone, social, tagline, etc.), replace every CAFE.xxx reference with getSiteSettings(), and remove the CAFE constant. After this iteration, zero hardcoded cafe identity strings remain in runtime code.",
   "goals": [
     "Extend SiteSettings interface with full cafe identity fields (address, phone, social, tagline, displayHours, neighborhood, wifi, dietary, googleMapsEmbed)",
     "Replace all 34 CAFE.xxx usages across 13 files with DB-backed settings",
     "Server components: await getSiteSettings() directly; client components: receive cafeName prop from parent RSC",
     "Remove CAFE constant from constants.ts (keep SPECIAL_DISPLAY_CATEGORIES and MENU_CATEGORIES)",
-    "Zero runtime reads from CAFE constant — all cafe identity is DB-authoritative",
+    "Zero runtime reads from CAFE constant \u00e2\u20ac\u201d all cafe identity is DB-authoritative",
     "Clean up pre-existing uncommitted changes"
   ],
   "userStories": [
@@ -67,11 +67,11 @@
         "npm run build passes with no TypeScript errors"
       ],
       "technicalNotes": [
-        "footer.tsx: add 'import { getSiteSettings } from \"@/lib/site-settings\"' and 'const settings = await getSiteSettings()' â€” it is already an async RSC (uses getTranslations)",
+        "footer.tsx: add 'import { getSiteSettings } from \"@/lib/site-settings\"' and 'const settings = await getSiteSettings()' \u00e2\u20ac\u201d it is already an async RSC (uses getTranslations)",
         "json-ld.tsx: make the component functions async, add getSiteSettings() call at top of each exported component that needs cafe data",
-        "layout.tsx: already async â€” add getSiteSettings() call alongside getOperatingStatus(); use settings.cafeName for metadata title, settings.cafeTagline for description",
+        "layout.tsx: already async \u00e2\u20ac\u201d add getSiteSettings() call alongside getOperatingStatus(); use settings.cafeName for metadata title, settings.cafeTagline for description",
         "about/page.tsx: if it uses CAFE.ambiance and ambiance is not in SiteSettings, just hardcode the array inline or remove the CAFE dependency gracefully",
-        "contact/page.tsx: straightforward swap â€” settings.address, settings.phone, settings.neighborhood, settings.displayHours.daily, settings.displayHours.lastOrder, settings.social, settings.googleMapsEmbed",
+        "contact/page.tsx: straightforward swap \u00e2\u20ac\u201d settings.address, settings.phone, settings.neighborhood, settings.displayHours.daily, settings.displayHours.lastOrder, settings.social, settings.googleMapsEmbed",
         "After changes: remove 'import { CAFE } from \"@/lib/constants\"' from all modified files"
       ],
       "dependencies": [
@@ -93,9 +93,9 @@
         "npm run build passes"
       ],
       "technicalNotes": [
-        "admin/[tab]/page.tsx: server page â€” add getSiteSettings() call, use settings.cafeName in the h1 title element",
-        "kds/layout.tsx: server layout â€” export async function or use generateMetadata pattern with getSiteSettings()",
-        "admin-settings-panel.tsx: likely 'use client' â€” import DEFAULT_SETTINGS from '@/lib/site-settings' and use DEFAULT_SETTINGS.cafeName as placeholder instead of hardcoded string"
+        "admin/[tab]/page.tsx: server page \u00e2\u20ac\u201d add getSiteSettings() call, use settings.cafeName in the h1 title element",
+        "kds/layout.tsx: server layout \u00e2\u20ac\u201d export async function or use generateMetadata pattern with getSiteSettings()",
+        "admin-settings-panel.tsx: likely 'use client' \u00e2\u20ac\u201d import DEFAULT_SETTINGS from '@/lib/site-settings' and use DEFAULT_SETTINGS.cafeName as placeholder instead of hardcoded string"
       ],
       "dependencies": [
         "US-301"
@@ -116,8 +116,8 @@
       ],
       "technicalNotes": [
         "hero-dish-card.tsx: add 'cafeName?: string' to props interface; use cafeName || 'Cafe' in alt text",
-        "The parent (hero-section.tsx or home page RSC) must pass cafeName â€” if the parent is a server component it can call getSiteSettings(); if already a client component, cafeName must be threaded from the page RSC",
-        "contact-inline-editor.tsx: inspect usages â€” if it hardcodes 'Makan Moments' in a placeholder or label, replace with props.cafeName or import DEFAULT_SETTINGS.cafeName from site-settings"
+        "The parent (hero-section.tsx or home page RSC) must pass cafeName \u00e2\u20ac\u201d if the parent is a server component it can call getSiteSettings(); if already a client component, cafeName must be threaded from the page RSC",
+        "contact-inline-editor.tsx: inspect usages \u00e2\u20ac\u201d if it hardcodes 'Makan Moments' in a placeholder or label, replace with props.cafeName or import DEFAULT_SETTINGS.cafeName from site-settings"
       ],
       "dependencies": [
         "US-301"
@@ -139,7 +139,7 @@
         "npm run lint passes"
       ],
       "technicalNotes": [
-        "Only remove the CAFE export â€” keep SPECIAL_DISPLAY_CATEGORIES (used by menu filter) and MENU_CATEGORIES (used for POS section grouping)",
+        "Only remove the CAFE export \u00e2\u20ac\u201d keep SPECIAL_DISPLAY_CATEGORIES (used by menu filter) and MENU_CATEGORIES (used for POS section grouping)",
         "Search for any remaining CAFE. references before deleting: grep -r 'CAFE\\.' src/",
         "Pre-existing uncommitted changes in menu-card.tsx: stage and commit these before or as part of this story",
         "After removing CAFE from constants.ts, run npm run build to catch any missed references"
@@ -170,7 +170,7 @@
       "technicalNotes": [
         "Import DEFAULT_SETTINGS from '@/lib/site-settings'",
         "Use describe/it/expect from vitest",
-        "Tests are pure unit tests â€” no DB calls, no async, just asserting DEFAULT_SETTINGS shape",
+        "Tests are pure unit tests \u00e2\u20ac\u201d no DB calls, no async, just asserting DEFAULT_SETTINGS shape",
         "Existing tests in src/tests/unit/utils.test.ts have ~23 tests; add 6+ here to reach 29+"
       ],
       "dependencies": [
