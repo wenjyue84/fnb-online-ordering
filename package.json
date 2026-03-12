@@ -8,6 +8,7 @@
     "build": "next build",
     "postbuild": "next-sitemap",
     "start": "next start",
+    "test": "vitest run",
     "lint": "eslint",
     "rainbow": "cd backend && npx tsx watch src/index.ts",
     "rainbow:build": "cd backend && npx tsc -p tsconfig.json",
@@ -55,6 +56,7 @@
     "eslint-config-next": "16.1.6",
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.0.18"
   }
 }
