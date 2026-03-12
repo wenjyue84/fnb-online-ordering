@@ -170,14 +170,14 @@
       "technicalNotes": [
         "Import DEFAULT_SETTINGS from '@/lib/site-settings'",
         "Use describe/it/expect from vitest",
-        "Tests are pure unit tests — no DB calls, no async, just asserting DEFAULT_SETTINGS shape",
+        "Tests are pure unit tests â€” no DB calls, no async, just asserting DEFAULT_SETTINGS shape",
         "Existing tests in src/tests/unit/utils.test.ts have ~23 tests; add 6+ here to reach 29+"
       ],
       "dependencies": [
         "US-301"
       ],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     }
   ]
 }
