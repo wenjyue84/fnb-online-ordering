@@ -24,7 +24,8 @@
     "add": "Add",
     "added": "Added",
     "favorites": "Favorites",
-    "noFavorites": "No favorites yet — tap the heart icon on items you love"
+    "noFavorites": "No favorites yet — tap the heart icon on items you love",
+    "privacyPolicy": "Privacy Policy"
   },
   "home": {
     "heroTitle": "Thai-Malaysian Fusion",
@@ -185,7 +186,8 @@
     "awaitingConfirmation": "Awaiting confirmation",
     "whatNext": "What happens next?",
     "whatNextDesc": "Our team will review your order and confirm it shortly. You’ll see the status update in your order history.",
-    "orderNumber": "Order #{id}"
+    "orderNumber": "Order #{id}",
+    "dataDisclosure": "Your contact number is used only to notify you about this order. See our <privacyLink>Privacy Policy</privacyLink>."
   },
   "paymentPage": {
     "title": "Complete Payment",
@@ -208,6 +210,45 @@
     "successTitle": "Payment Received ✅",
     "successDesc": "Thank you! We’re confirming your payment now. Your order will be prepared shortly.",
     "successCta": "View Order Status",
-    "backToStatus": "Back to Order Status"
+    "backToStatus": "Back to Order Status",
+    "dataDisclosure": "Your payment screenshot is used solely for payment verification and will be deleted after confirmation."
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "description": "How we collect, use, and protect your personal data.",
+    "lastUpdated": "Last updated: 12 March 2026",
+    "controllerTitle": "Data Controller",
+    "controllerDesc": "Makan Moments Cafe (Kafe Kenangan Makan) is the data controller responsible for your personal data. You can contact us at:",
+    "dataCollectedTitle": "Data We Collect",
+    "dataCollectedDesc": "When you use our pre-order service, we collect the following personal data:",
+    "dataPhone": "Contact phone number — to notify you about your order status",
+    "dataPayment": "Payment screenshot — to verify your Touch & Go deposit",
+    "dataOrder": "Order details — items, quantity, total amount, and estimated arrival time",
+    "purposeTitle": "Purpose of Collection",
+    "purposeDesc": "We collect your personal data solely for the following purposes under the Personal Data Protection Act 2010 (Act 709):",
+    "purpose1": "Processing and fulfilling your pre-order",
+    "purpose2": "Sending order status notifications via WhatsApp",
+    "purpose3": "Verifying payment deposits",
+    "purpose4": "Improving our service quality",
+    "retentionTitle": "Data Retention",
+    "retentionDesc": "Your personal data is retained only as long as necessary:",
+    "retention1": "Order records: retained for 90 days after order completion, then automatically deleted",
+    "retention2": "Payment screenshots: deleted within 7 days after payment confirmation",
+    "retention3": "Contact numbers: deleted together with the associated order record",
+    "rightsTitle": "Your Rights",
+    "rightsDesc": "Under the PDPA 2010, you have the right to:",
+    "right1": "Access your personal data held by us",
+    "right2": "Request correction of inaccurate personal data",
+    "right3": "Request deletion of your personal data",
+    "right4": "Withdraw consent for data processing",
+    "rightsContact": "To exercise any of these rights, please contact us using the details above.",
+    "thirdPartyTitle": "Third-Party Disclosure",
+    "thirdPartyDesc": "We do not sell or share your personal data with third parties, except:",
+    "thirdParty1": "WhatsApp messaging service — to deliver order notifications to your phone number",
+    "thirdParty2": "Our database hosting provider (Neon) — for secure data storage",
+    "cookiesTitle": "Cookies & Local Storage",
+    "cookiesDesc": "Our website uses browser local storage to save your order history and tray contents for your convenience. No tracking cookies are used for advertising purposes.",
+    "changesTitle": "Changes to This Policy",
+    "changesDesc": "We may update this privacy policy from time to time. Any changes will be posted on this page with an updated revision date."
   }
 }

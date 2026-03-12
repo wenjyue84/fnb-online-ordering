@@ -1,3 +1,19 @@
+## US-326 — Add PDPA-compliant privacy notice and data collection disclosure (PASSED)
+- Created src/app/[locale]/privacy/page.tsx — full privacy policy page with 8 sections (controller, data collected, purpose, retention, rights, third-party, cookies, changes)
+- Added "privacy" namespace to all 3 locale files (messages/en.json, ms.json, zh.json) with 30+ translation keys each
+- Added "privacyPolicy" key to common namespace for footer link
+- Footer (src/components/layout/footer.tsx) now has a Privacy Policy link using next-intl's locale-aware Link component
+- Order form modal (order-form-modal.tsx) shows inline disclosure below contact number field: "Your contact number is used only to notify you about this order. See our Privacy Policy." with rich text link to /privacy
+- Payment page (payment/page.tsx) shows disclosure below upload button: "Your payment screenshot is used solely for payment verification and will be deleted after confirmation."
+- Privacy policy references Malaysia PDPA 2010 (Act 709) and covers: data controller identity, data collected (phone, payment screenshot, order details), purpose of collection, retention periods (90 days orders, 7 days screenshots), user rights (access, correction, deletion, consent withdrawal), third-party disclosure, cookies/localStorage, and policy changes
+- All content served from i18n translation files — no hardcoded strings
+- Zero TS errors, zero new lint errors
+
+### Patterns discovered
+- next-intl t.rich() uses XML-like tags in translation strings (<privacyLink>text</privacyLink>) for rich text with components
+- Footer is a server component using getTranslations; Link from @/i18n/navigation works in RSC context
+- Order form modal is a client component; used useLocale() to construct locale-prefixed href for privacy link
+
 ## US-325 — Add global-error.tsx and per-route error boundaries (PASSED)
 - Created src/app/global-error.tsx — root-level error boundary with own <html><body>, trilingual messages (EN/MS/ZH), reset() button, inline styles (no Tailwind since root layout is replaced)
 - Created src/app/[locale]/error.tsx — segment-level error boundary using Tailwind classes, locale-aware message from URL path, reset() button
@@ -2066,4 +2082,37 @@ This technical brief outlines the implementation for Next.js error boundaries ba
 *   `global-error.tsx` rendering its own `<html>/<body>` is non-negotiable; otherwise, it will fail.
 *   Route-level `error.tsx` will not catch errors from its sibling `layout.tsx` in the same directory; the boundary one level up the tree handles that.
 *   These boundaries only handle rendering exceptions, not event handler errors, which must be managed with standard `try/catch` and component state.
+
+## Iteration 1 - Thu, Mar 12, 2026  4:33:32 PM
+Completed: Add global-error.tsx and per-route error boundaries (ID: US-325) in 5m
+
+
+## Pre-analysis for US-326 (Gemini 2.5 Pro)
+This user story describes a frontend feature for a Next.js application, not a Frappe/Python one. The file structure (`next.config.ts`, `src/app`, `middleware.ts`) and technical notes (`Next.js <Link>`) confirm this.
+
+Here is a technical brief for a **Next.js/TypeScript developer** based on the provided JSON:
+
+**Project:** Next.js (App Router) with `next-intl` for i18n.
+
+**Objective:** Implement a PDPA-compliant privacy notice and disclosures.
+
+**Files to Modify:**
+*   `messages/en.json`, `messages/ms.json`, `messages/zh.json`: To add all new text content for the privacy page and disclosures.
+*   `src/app/[locale]/privacy/page.tsx`: (New file) The main privacy policy page component.
+*   `src/components/layout/Footer.tsx`: To add the link to the privacy page.
+*   `src/components/modals/OrderSubmitModal.tsx` (or similar): To add the order submission disclosure.
+*   `src/components/payment/PaymentUpload.tsx` (or similar): To add the payment screenshot disclosure.
+
+**Implementation Approach:**
+1.  Define all privacy text (full policy, footer link text, and short disclosures) in `messages/en.json` and get them translated for `ms.json` and `zh.json`.
+2.  Create the new static route by adding the file `src/app/[locale]/privacy/page.tsx`.
+3.  This new page component should use the `useTranslations` hook from `next-intl` to render the policy content from the JSON message files.
+4.  In the footer component, use the Next.js `<Link>` component and the `useTranslations` hook to render the localized link.
+5.  Locate the order and payment components and insert the small disclosure texts using the same translation hook.
+
+**Gotchas to Watch For:**
+*   Ensure the privacy page is statically generated (SSG) for performance.
+*   Verify that the new `/privacy` route is correctly handled by the i18n routing `middleware.ts`.
+*   The disclosures must be clearly visible within their respective components without breaking the existing UI flow.
+*   Keep legal/compliance team in the loop to approve the text content before merging.
 

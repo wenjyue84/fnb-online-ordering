@@ -273,6 +273,10 @@ export default function PaymentPage() {
         >
           {uploading ? t("uploading") : t("submitBtn")}
         </button>
+
+        <p className="mt-3 text-xs text-stone-400">
+          {t("dataDisclosure")}
+        </p>
       </div>
 
       <div className="mt-6 text-center">

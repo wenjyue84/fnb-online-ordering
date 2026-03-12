@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { X } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 interface OrderItem {
   id: string;
@@ -30,6 +30,7 @@ function getMinArrivalTime(): string {
 
 export function OrderFormModal({ items, total, onSuccess, onClose }: OrderFormModalProps) {
   const t = useTranslations("orderForm");
+  const locale = useLocale();
   const [step, setStep] = useState<1 | 2>(1);
   const [contactNumber, setContactNumber] = useState("");
   const [arrivalTime, setArrivalTime] = useState("");
@@ -215,6 +216,15 @@ export function OrderFormModal({ items, total, onSuccess, onClose }: OrderFormMo
                 className="w-full rounded-xl border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
               {contactError && <p className="text-xs text-red-500">{contactError}</p>}
+              <p className="text-xs text-muted-foreground">
+                {t.rich("dataDisclosure", {
+                  privacyLink: (chunks) => (
+                    <a href={`/${locale}/privacy`} target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">
+                      {chunks}
+                    </a>
+                  ),
+                })}
+              </p>
             </div>
 
             {/* Arrival time */}

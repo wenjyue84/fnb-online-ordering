@@ -24,7 +24,8 @@
     "add": "Tambah",
     "added": "Ditambah",
     "favorites": "Kegemaran",
-    "noFavorites": "Tiada kegemaran lagi — ketik ikon hati pada item yang anda sukai"
+    "noFavorites": "Tiada kegemaran lagi — ketik ikon hati pada item yang anda sukai",
+    "privacyPolicy": "Dasar Privasi"
   },
   "home": {
     "heroTitle": "Gabungan Thai-Malaysia",
@@ -185,7 +186,8 @@
     "awaitingConfirmation": "Menunggu pengesahan",
     "whatNext": "Apa yang berlaku seterusnya?",
     "whatNextDesc": "Pasukan kami akan menyemak pesanan anda dan mengesahkannya tidak lama lagi. Anda akan melihat kemas kini status dalam sejarah pesanan anda.",
-    "orderNumber": "Pesanan #{id}"
+    "orderNumber": "Pesanan #{id}",
+    "dataDisclosure": "Nombor telefon anda hanya digunakan untuk memaklumkan anda tentang pesanan ini. Lihat <privacyLink>Dasar Privasi</privacyLink> kami."
   },
   "paymentPage": {
     "title": "Lengkapkan Bayaran",
@@ -208,6 +210,45 @@
     "successTitle": "Bayaran Diterima ✅",
     "successDesc": "Terima kasih! Kami sedang mengesahkan bayaran anda. Pesanan anda akan disediakan tidak lama lagi.",
     "successCta": "Lihat Status Pesanan",
-    "backToStatus": "Kembali ke Status Pesanan"
+    "backToStatus": "Kembali ke Status Pesanan",
+    "dataDisclosure": "Tangkapan skrin bayaran anda digunakan semata-mata untuk pengesahan bayaran dan akan dipadam selepas pengesahan."
+  },
+  "privacy": {
+    "title": "Dasar Privasi",
+    "description": "Bagaimana kami mengumpul, menggunakan, dan melindungi data peribadi anda.",
+    "lastUpdated": "Kemas kini terakhir: 12 Mac 2026",
+    "controllerTitle": "Pengawal Data",
+    "controllerDesc": "Kafe Kenangan Makan (Makan Moments Cafe) adalah pengawal data yang bertanggungjawab ke atas data peribadi anda. Anda boleh menghubungi kami di:",
+    "dataCollectedTitle": "Data yang Kami Kumpul",
+    "dataCollectedDesc": "Apabila anda menggunakan perkhidmatan pra-pesanan kami, kami mengumpul data peribadi berikut:",
+    "dataPhone": "Nombor telefon — untuk memaklumkan anda tentang status pesanan",
+    "dataPayment": "Tangkapan skrin bayaran — untuk mengesahkan deposit Touch & Go anda",
+    "dataOrder": "Butiran pesanan — item, kuantiti, jumlah, dan anggaran masa ketibaan",
+    "purposeTitle": "Tujuan Pengumpulan",
+    "purposeDesc": "Kami mengumpul data peribadi anda semata-mata untuk tujuan berikut di bawah Akta Perlindungan Data Peribadi 2010 (Akta 709):",
+    "purpose1": "Memproses dan memenuhi pra-pesanan anda",
+    "purpose2": "Menghantar pemberitahuan status pesanan melalui WhatsApp",
+    "purpose3": "Mengesahkan deposit bayaran",
+    "purpose4": "Meningkatkan kualiti perkhidmatan kami",
+    "retentionTitle": "Penyimpanan Data",
+    "retentionDesc": "Data peribadi anda disimpan hanya selama yang diperlukan:",
+    "retention1": "Rekod pesanan: disimpan selama 90 hari selepas pesanan selesai, kemudian dipadam secara automatik",
+    "retention2": "Tangkapan skrin bayaran: dipadam dalam tempoh 7 hari selepas pengesahan bayaran",
+    "retention3": "Nombor telefon: dipadam bersama rekod pesanan yang berkaitan",
+    "rightsTitle": "Hak Anda",
+    "rightsDesc": "Di bawah PDPA 2010, anda mempunyai hak untuk:",
+    "right1": "Mengakses data peribadi anda yang disimpan oleh kami",
+    "right2": "Meminta pembetulan data peribadi yang tidak tepat",
+    "right3": "Meminta penghapusan data peribadi anda",
+    "right4": "Menarik balik persetujuan untuk pemprosesan data",
+    "rightsContact": "Untuk melaksanakan mana-mana hak ini, sila hubungi kami menggunakan butiran di atas.",
+    "thirdPartyTitle": "Pendedahan Pihak Ketiga",
+    "thirdPartyDesc": "Kami tidak menjual atau berkongsi data peribadi anda dengan pihak ketiga, kecuali:",
+    "thirdParty1": "Perkhidmatan mesej WhatsApp — untuk menghantar pemberitahuan pesanan ke nombor telefon anda",
+    "thirdParty2": "Penyedia hosting pangkalan data kami (Neon) — untuk penyimpanan data yang selamat",
+    "cookiesTitle": "Kuki & Storan Tempatan",
+    "cookiesDesc": "Laman web kami menggunakan storan tempatan pelayar untuk menyimpan sejarah pesanan dan kandungan tray anda. Tiada kuki penjejakan digunakan untuk tujuan pengiklanan.",
+    "changesTitle": "Perubahan pada Dasar Ini",
+    "changesDesc": "Kami mungkin mengemas kini dasar privasi ini dari semasa ke semasa. Sebarang perubahan akan disiarkan di halaman ini dengan tarikh semakan yang dikemas kini."
   }
 }

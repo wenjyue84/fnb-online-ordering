@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { Facebook, Instagram, Phone, MapPin, Clock } from "lucide-react";
 import Image from "next/image";
+import { Link } from "@/i18n/navigation";
 import { getSiteSettings } from "@/lib/site-settings";
 
 export async function Footer() {
@@ -104,6 +105,11 @@ export async function Footer() {
         <div className="mt-8 border-t border-border pt-6 text-center text-xs text-muted-foreground">
           <p>
             &copy; {new Date().getFullYear()} {settings.cafeName} ({settings.cafeNameMs}). All rights reserved.
+          </p>
+          <p className="mt-2">
+            <Link href="/privacy" className="underline hover:text-primary transition-colors">
+              {t("privacyPolicy")}
+            </Link>
           </p>
         </div>
       </div>

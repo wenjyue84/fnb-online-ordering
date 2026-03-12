@@ -24,7 +24,8 @@
     "add": "加入",
     "added": "已加入",
     "favorites": "收藏",
-    "noFavorites": "还没有收藏 — 点击喜欢菜品上的心形图标"
+    "noFavorites": "还没有收藏 — 点击喜欢菜品上的心形图标",
+    "privacyPolicy": "隐私政策"
   },
   "home": {
     "heroTitle": "泰马融合料理",
@@ -185,7 +186,8 @@
     "awaitingConfirmation": "待确认",
     "whatNext": "接下来会发生什么？",
     "whatNextDesc": "我们的团队将会审查您的订单并尽快确认。您可以在订单历史中查看状态更新。",
-    "orderNumber": "订单 #{id}"
+    "orderNumber": "订单 #{id}",
+    "dataDisclosure": "您的联系电话仅用于通知您有关此订单的信息。请参阅我们的<privacyLink>隐私政策</privacyLink>。"
   },
   "paymentPage": {
     "title": "完成付款",
@@ -208,6 +210,45 @@
     "successTitle": "付款已收到 ✅",
     "successDesc": "谢谢！我们正在确认您的付款，您的订单将很快开始准备。",
     "successCta": "查看订单状态",
-    "backToStatus": "返回订单状态"
+    "backToStatus": "返回订单状态",
+    "dataDisclosure": "您的付款截图仅用于付款验证，确认后将被删除。"
+  },
+  "privacy": {
+    "title": "隐私政策",
+    "description": "我们如何收集、使用和保护您的个人数据。",
+    "lastUpdated": "最后更新：2026年3月12日",
+    "controllerTitle": "数据控制者",
+    "controllerDesc": "食光记忆（Makan Moments Cafe）是负责您个人数据的数据控制者。您可以通过以下方式联系我们：",
+    "dataCollectedTitle": "我们收集的数据",
+    "dataCollectedDesc": "当您使用我们的预订服务时，我们会收集以下个人数据：",
+    "dataPhone": "联系电话 — 用于通知您订单状态",
+    "dataPayment": "付款截图 — 用于验证您的Touch & Go存款",
+    "dataOrder": "订单详情 — 菜品、数量、总额和预计到达时间",
+    "purposeTitle": "收集目的",
+    "purposeDesc": "根据《2010年个人数据保护法》（第709号法令），我们收集您的个人数据仅用于以下目的：",
+    "purpose1": "处理和完成您的预订",
+    "purpose2": "通过WhatsApp发送订单状态通知",
+    "purpose3": "验证付款存款",
+    "purpose4": "提高我们的服务质量",
+    "retentionTitle": "数据保留",
+    "retentionDesc": "您的个人数据仅在必要时保留：",
+    "retention1": "订单记录：在订单完成后保留90天，之后自动删除",
+    "retention2": "付款截图：在付款确认后7天内删除",
+    "retention3": "联系电话：与相关订单记录一同删除",
+    "rightsTitle": "您的权利",
+    "rightsDesc": "根据PDPA 2010，您有权：",
+    "right1": "访问我们持有的您的个人数据",
+    "right2": "要求更正不准确的个人数据",
+    "right3": "要求删除您的个人数据",
+    "right4": "撤回数据处理的同意",
+    "rightsContact": "如需行使上述任何权利，请通过上述方式联系我们。",
+    "thirdPartyTitle": "第三方披露",
+    "thirdPartyDesc": "我们不会将您的个人数据出售或分享给第三方，除了：",
+    "thirdParty1": "WhatsApp消息服务 — 用于向您的电话号码发送订单通知",
+    "thirdParty2": "我们的数据库托管服务商（Neon）— 用于安全的数据存储",
+    "cookiesTitle": "Cookie和本地存储",
+    "cookiesDesc": "我们的网站使用浏览器本地存储来保存您的订单历史和托盘内容。不使用任何广告追踪Cookie。",
+    "changesTitle": "政策变更",
+    "changesDesc": "我们可能会不时更新此隐私政策。任何更改将在此页面发布，并附上更新的修订日期。"
   }
 }
