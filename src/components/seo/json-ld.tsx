@@ -15,28 +15,28 @@ export function JsonLd({ data }: JsonLdProps) {
 
 export async function RestaurantJsonLd() {
   const settings = await getSiteSettings();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031";
 
   const data = {
     "@context": "https://schema.org",
     "@type": "Restaurant",
     name: settings.cafeName,
     alternateName: [settings.cafeNameMs, settings.cafeNameZh],
-    description:
-      "Thai-Malaysian fusion cafe in Skudai, Johor. No Pork, No Lard, Halal-friendly.",
-    url: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031",
-    telephone: "+60127088789",
+    description: `${settings.cuisineTypes.join(", ")} cafe in ${settings.addressLocality}, ${settings.addressRegion}. ${settings.dietary.join(", ")}.`,
+    url: siteUrl,
+    telephone: settings.phone,
     address: {
       "@type": "PostalAddress",
-      streetAddress: "Ground Floor 61, Jalan Impian Emas 5/1",
-      addressLocality: "Skudai",
-      addressRegion: "Johor",
-      postalCode: "81300",
-      addressCountry: "MY",
+      streetAddress: settings.streetAddress,
+      addressLocality: settings.addressLocality,
+      addressRegion: settings.addressRegion,
+      postalCode: settings.postalCode,
+      addressCountry: settings.addressCountry,
     },
     geo: {
       "@type": "GeoCoordinates",
-      latitude: 1.5612,
-      longitude: 103.7222,
+      latitude: settings.geoLat,
+      longitude: settings.geoLng,
     },
     openingHoursSpecification: {
       "@type": "OpeningHoursSpecification",
@@ -49,16 +49,14 @@ export async function RestaurantJsonLd() {
         "Saturday",
         "Sunday",
       ],
-      opens: "11:00",
-      closes: "23:00",
+      opens: settings.operatingHours.open,
+      closes: settings.operatingHours.close,
     },
-    servesCuisine: ["Thai", "Malaysian", "Fusion"],
-    priceRange: "RM 2 - RM 90",
-    paymentAccepted: "Cash, Touch n Go, GrabPay, DuitNow QR",
+    servesCuisine: settings.cuisineTypes,
+    priceRange: settings.priceRange,
+    paymentAccepted: settings.paymentMethods.join(", "),
     currenciesAccepted: "MYR",
-    image:
-      (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031") +
-      "/images/og-image.jpg",
+    image: `${siteUrl}/images/og-image.jpg`,
     sameAs: [
       settings.social.facebook,
       settings.social.instagram,
@@ -66,36 +64,7 @@ export async function RestaurantJsonLd() {
     ],
     hasMenu: {
       "@type": "Menu",
-      url:
-        (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031") +
-        "/en/menu",
-      hasMenuSection: [
-        {
-          "@type": "MenuSection",
-          name: "Must-Try",
-          description: "Our signature dishes and customer favorites",
-        },
-        {
-          "@type": "MenuSection",
-          name: "Ala Cart",
-          description: "Individual dishes — chicken, fish, eggs, vegetables",
-        },
-        {
-          "@type": "MenuSection",
-          name: "Value Set",
-          description: "Complete meal sets at great value",
-        },
-        {
-          "@type": "MenuSection",
-          name: "Noodle Soup",
-          description: "Thai-style noodle soups",
-        },
-        {
-          "@type": "MenuSection",
-          name: "Beverages",
-          description: "Hot drinks, cold drinks, fresh juices",
-        },
-      ],
+      url: `${siteUrl}/${settings.defaultLocale}/menu`,
     },
   };
 
@@ -109,10 +78,10 @@ export async function MenuPageJsonLd() {
     "@context": "https://schema.org",
     "@type": "Menu",
     name: `${settings.cafeName} Menu`,
-    description: "384+ Thai-Malaysian fusion dishes",
+    description: settings.menuDescription,
     url:
       (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031") +
-      "/en/menu",
+      `/${settings.defaultLocale}/menu`,
     mainEntity: {
       "@type": "Restaurant",
       name: settings.cafeName,

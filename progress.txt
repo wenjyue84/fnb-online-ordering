@@ -1057,3 +1057,65 @@ Here is the technical brief for a developer working in that Next.js environment:
 ### Gotchas
 - `MetadataRoute.Manifest` icon `purpose` field accepts `"any"` or `"maskable"` (not both in one entry)
 - Pre-existing lint warnings (unused vars in menu-grid.tsx and menu.ts) are not from this story
+## Iteration 1 - Thu, Mar 12, 2026 12:52:12 PM
+Completed: Replace hardcoded strings in manifest.json with dynamic SiteSettings values (ID: US-307) in 4m
+
+
+## Pre-analysis for US-308 (Gemini 2.5 Pro)
+This user story describes a task for a Next.js/TypeScript application, not a Frappe/Python one. It's about moving hardcoded frontend data into a central settings object.
+
+However, applying the *principle* of this story (decoupling configuration from code) to the `lhdn_payroll_integration` Frappe app, here is a technical brief for an analogous task.
+
+**Subject: New Singleton DocType for LHDN Payroll Settings**
+
+**1. Python Files to Modify:**
+*   Any Python file currently making API calls or performing calculations with hardcoded values (e.g., contribution rates, LHDN endpoint URLs, employer ID numbers).
+*   Likely candidates: `.../doctype/pcb_calculation/pcb_calculation.py`, `.../doctype/epf_submission/epf_submission.py`, or a central `.../utils/lhdn.py`.
+*   `hooks.py`: To add the new settings DocType as a fixture if default values are needed.
+*   `desktop.py`: To add a link to the new settings page for admin convenience.
+
+**2. Frappe DocTypes / Hooks:**
+*   A **new Singleton DocType** named `LHDN Payroll Settings` should be created.
+*   This DocType will contain fields for all configuration data (e.g., `api_endpoint`, `employer_e_number`, `default_epf_rate`).
+*   Existing DocTypes that process payroll will be modified to read from this new settings DocType.
+
+**3. Implementation Approach:**
+*   Create the `LHDN Payroll Settings` DocType. Check "Is Singleton".
+*   In the relevant Python logic, replace hardcoded constants with `frappe.get_cached_doc('LHDN Payroll Settings').field_name`.
+*   This ensures all settings are centrally managed and can be updated without a code deployment.
+
+**4. Edge Cases to Watch For:**
+*   The code must gracefully handle missing settings (i.e., when the settings form hasn't been filled out). Raise a `frappe.ValidationError` to prompt the admin.
+*   Use `frappe.get_cached_doc` for performance instead of `frappe.get_doc`.
+*   Ensure data types for fields (Float, Data, Password) are correctly set and handled.
+
+
+## Iteration - Story: US-308 — Drive RestaurantJsonLd entirely from SiteSettings
+
+### What was implemented
+- Added new fields to SiteSettings interface and DEFAULT_SETTINGS in site-settings-shared.ts:
+  - `cuisineTypes: string[]` — drives servesCuisine in JSON-LD
+  - `priceRange: string` — drives priceRange in JSON-LD
+  - Structured address: `streetAddress`, `addressLocality`, `addressRegion`, `postalCode`, `addressCountry`
+  - `geoLat: number`, `geoLng: number` — drives geo coordinates
+  - `menuDescription: string` — drives MenuPageJsonLd description
+- Refactored RestaurantJsonLd to source ALL fields from SiteSettings:
+  - telephone → settings.phone
+  - address → structured address fields
+  - geo → settings.geoLat/geoLng
+  - openingHoursSpecification → settings.operatingHours.open/close
+  - servesCuisine → settings.cuisineTypes
+  - priceRange → settings.priceRange
+  - paymentAccepted → settings.paymentMethods.join(", ")
+  - description → composed from cuisineTypes + addressLocality + dietary
+  - hasMenu.url → uses settings.defaultLocale instead of hardcoded "en"
+  - Removed hardcoded hasMenuSection array (menu sections now omitted per story requirements)
+- Refactored MenuPageJsonLd: description reads from settings.menuDescription, URL uses settings.defaultLocale
+
+### Patterns discovered
+- SiteSettings already had `phone`, `paymentMethods`, `operatingHours`, `dietary` — these just needed to be wired into json-ld.tsx
+- The split between site-settings-shared.ts (client) and site-settings.ts (server) means new fields only need adding to the shared file
+
+### Gotchas
+- `currenciesAccepted` left as "MYR" since it's an ISO code not cafe-specific config
+- hasMenuSection was fully removed rather than dynamically generated — the story says "omitted or derived" and omitting is simpler

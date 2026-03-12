@@ -32,6 +32,16 @@ export interface SiteSettings {
   cafeNameZh: string;
   themeColor: string;
   backgroundColor: string;
+  cuisineTypes: string[];
+  priceRange: string;
+  streetAddress: string;
+  addressLocality: string;
+  addressRegion: string;
+  postalCode: string;
+  addressCountry: string;
+  geoLat: number;
+  geoLng: number;
+  menuDescription: string;
 }
 
 export const DEFAULT_SETTINGS: SiteSettings = {
@@ -70,4 +80,14 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   cafeNameZh: "Shi Guang Ji Yi",
   themeColor: "#b45309",
   backgroundColor: "#fef9f0",
+  cuisineTypes: ["Thai", "Malaysian", "Fusion"],
+  priceRange: "RM 2 - RM 90",
+  streetAddress: "Ground Floor 61, Jalan Impian Emas 5/1",
+  addressLocality: "Skudai",
+  addressRegion: "Johor",
+  postalCode: "81300",
+  addressCountry: "MY",
+  geoLat: 1.5612,
+  geoLng: 103.7222,
+  menuDescription: "Thai-Malaysian fusion dishes — rice, noodles, soups, beverages and more",
 };
