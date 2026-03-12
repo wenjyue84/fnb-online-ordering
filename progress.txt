@@ -1,3 +1,15 @@
+## US-338 — Configure Vercel function region to Singapore for minimal Malaysia latency (PASSED)
+- Created `vercel.json` with `"regions": ["sin1"]` (Singapore) — closest Vercel region to Malaysia
+- Used `$schema` from Vercel's OpenAPI spec for IDE autocompletion support
+- No conflict with Edge runtime: Edge functions run globally regardless of region config
+- Neon database should be in aws-ap-southeast-1 (Singapore) to co-locate with the function for minimal DB round-trip latency
+- Zero TS errors, only pre-existing lint warning (unused `isChefsPick` in menu-grid.tsx)
+
+### Patterns discovered
+- `vercel.json` `regions` is a top-level array field — sets the default region for all serverless functions
+- Vercel Hobby plan supports 1 region; Pro supports up to 3 for failover
+- TTFB measurement from Malaysia should drop from ~400ms (US East default) to ~50-100ms with sin1
+
 ## US-336 — Prevent Cumulative Layout Shift from menu card images loading (PASSED)
 - Menu card (`menu-card.tsx`) already had `aspect-[4/3]` container with `bg-muted`/gradient placeholder — no CLS issues
 - Editable menu card already had `aspect-[4/3]` + `bg-muted` — no changes needed
@@ -2662,3 +2674,38 @@ Incomplete: Add offline fallback page for PWA users (ID: US-341) — attempt 2/3
 ### Gotchas
 - In Next.js 16, `revalidateTag(tag)` with one argument causes TS2554 — must pass `revalidateTag(tag, "default")` as the profile parameter is required in the type definitions
 - The docs show conflicting signatures (some show 1 arg, some show 2) — the installed v16.1.6 types require 2 args
+
+
+## Pre-analysis for US-341 (Gemini 2.5 Pro)
+This is a technical brief for implementing a PWA offline fallback page, based on the provided user story. The original request mentioned Frappe/Python, but the story details and project structure clearly point to a Next.js/PWA implementation.
+
+**1. Files to Modify/Create:**
+
+*   **`public/sw.js` (Modify):** This is the service worker file. It needs to be updated to cache the new offline page and to serve it when network requests for navigation fail.
+*   **`public/offline.html` (Create):** A new static HTML file that will be displayed to offline users.
+*   **`messages/en.json`, `ms.json`, `zh.json` (Reference):** These files contain the translations for UI text. The offline message should be included in all three languages within `offline.html`.
+*   **`data/site-settings.json` (Reference):** This file likely holds the cafe name and logo details needed for branding the offline page.
+
+**2. Involved Service Worker Events (not Frappe DocTypes):**
+
+*   **`install` event:** The service worker's install event must be used to pre-cache `offline.html`.
+*   **`fetch` event:** The fetch handler must be updated to intercept navigation requests, detect network failures, and serve the cached `offline.html` as a fallback.
+
+**3. Recommended Implementation Approach:**
+
+1.  **Create `public/offline.html`:**
+    *   Make it a self-contained HTML file with inline CSS to avoid external dependencies.
+    *   Include the cafe name and an inline SVG or a cached image for the logo.
+    *   Add the "You are offline" message in English, Malay, and Chinese.
+    *   Include a "Try again" button with a simple `onclick="window.location.reload()"` script.
+2.  **Modify `public/sw.js`:**
+    *   Add `/offline.html` to the array of assets to be pre-cached (e.g., `SHELL_URLS`).
+    *   Update the `CACHE_NAME` version string (e.g., `v2` -> `v3`) to force service worker re-installation and cache update.
+    *   In the `fetch` event listener, specifically for navigation requests (`event.request.mode === 'navigate'`), wrap the network fetch in a `catch` block. On failure, return `caches.match('/offline.html')`.
+
+**4. Edge Cases & Gotchas:**
+
+*   **Cache Busting:** Failing to update the `CACHE_NAME` in `sw.js` is a common mistake. The new service worker will not activate, and the offline page won't be cached.
+*   **Request Type:** The fallback logic must only apply to navigation requests. Returning HTML for a failed API call or image request would break the application.
+*   **Self-Contained Page:** The `offline.html` page must not request any un-cached resources, as those requests would also fail.
+
