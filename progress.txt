@@ -818,3 +818,43 @@ The feature/iter-02 branch is feature-complete. No more stories needed. Ready fo
 ## Iteration 4 - Thu, Mar 12, 2026 10:42:12 AM
 Completed: Add seed verification script to confirm all DB keys are seeded (ID: US-204) in 6m
 
+
+## Pre-analysis for US-301 (Gemini 2.5 Pro)
+**Technical Brief for US-301: Extend SiteSettings**
+
+This user story pertains to a Next.js/TypeScript project, not Frappe/Python. The goal is to expand the site-wide configuration with new identity fields.
+
+**1. Files to Modify:**
+*   `src/lib/site-settings.ts`: To update the TypeScript interface and default values.
+*   `scripts/seed-settings.mjs`: To update the database seeding logic.
+
+**2. Key Components Involved:**
+*   **`SiteSettings` Interface:** The core TypeScript type definition for site settings.
+*   **`DEFAULT_SETTINGS` Constant:** Provides default values for a fresh site setup.
+*   **Database Seeding Script:** A script to initialize or update the `settings` table/collection in the database.
+
+**3. Implementation Approach:**
+1.  Modify the `SiteSettings` interface in `src/lib/site-settings.ts` to include the new string, string array, and nested object fields.
+2.  Update the `DEFAULT_SETTINGS` constant in the same file with the specified default values.
+3.  In `scripts/seed-settings.mjs`, modify the logic to read the existing 'site' record, merge in all the new fields (`address`, `phone`, `social`, etc.), and perform an upsert operation.
+
+**4. Gotchas & Watch-Fors:**
+*   Ensure the TypeScript types for `displayHours`, `social`, and `dietary` are exactly as specified to avoid build errors.
+*   The seed script's upsert logic must safely merge fields without overwriting unrelated existing settings.
+*   Verify that the hardcoded default values are correctly formatted, especially the multi-line address string.
+
+
+## Iteration N - Story: US-301 - Extend SiteSettings with full cafe identity fields
+
+### What was implemented
+- Added 11 new fields to SiteSettings interface in src/lib/site-settings.ts: address, phone, neighborhood, wifi, dietary, displayHours, social, googleMapsEmbed, cafeTagline, cafeNameMs, cafeNameZh
+- Populated DEFAULT_SETTINGS with values from the existing CAFE constant
+- Updated scripts/seed-settings.mjs to define SITE_IDENTITY_FIELDS and merge them into the existing site DB row (preserving user-set values)
+- Fixed src/components/admin/admin-settings-panel.tsx: removed local DEFAULT_SETTINGS redefinition and imported DEFAULT_SETTINGS from @/lib/site-settings instead
+
+### Patterns discovered
+- admin-settings-panel.tsx had its own local DEFAULT_SETTINGS that shadowed the canonical one
+- Seed script merges using SITE_IDENTITY_FIELDS spread first then existing, so user-set DB values take precedence
+
+### Gotchas
+- TypeScript error: local DEFAULT_SETTINGS in admin-settings-panel was missing the new fields

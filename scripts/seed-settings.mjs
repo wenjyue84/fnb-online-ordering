@@ -43,6 +43,30 @@ function readJson(filename) {
   return JSON.parse(readFileSync(fullPath, "utf-8"));
 }
 
+// New identity fields to merge into the 'site' key
+const SITE_IDENTITY_FIELDS = {
+  address:
+    "Ground Floor 61, Jalan Impian Emas 5/1, Taman Impian Emas, 81300 Skudai, Johor, Malaysia",
+  phone: "012-708 8789",
+  neighborhood: "Taman Impian Emas (Skudai, Johor Bahru)",
+  wifi: "ilovemakan",
+  dietary: ["No Pork", "No Lard", "Halal-friendly"],
+  displayHours: {
+    daily: "11:00 AM - 11:00 PM",
+    lastOrder: "10:30 PM",
+  },
+  social: {
+    facebook: "https://www.facebook.com/MakanMomentsCafe",
+    instagram: "https://www.instagram.com/MakanMomentsCafe",
+    tiktok: "https://www.tiktok.com/@MakanMomentsCafe",
+  },
+  googleMapsEmbed:
+    "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3988.4!2d103.72!3d1.56!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMcKwMzMnNDAuNCJOIDEwM8KwNDMnMjAuMCJF!5e0!3m2!1sen!2smy!4v1",
+  cafeTagline: "Thai Begins, Moments Stay",
+  cafeNameMs: "Kafe Kenangan Makan",
+  cafeNameZh: "Shi Guang Ji Yi",
+};
+
 async function main() {
   console.log("Creating site_settings table (idempotent)...");
   await sql`
@@ -74,6 +98,21 @@ async function main() {
     `;
     console.log(`  ✓ Seeded key: "${key}" (from data/${file})`);
   }
+
+  // Merge new identity fields into the 'site' row, preserving any existing user-set values
+  console.log("\nMerging identity fields into 'site' key...");
+  const existingRows = await sql`SELECT value FROM site_settings WHERE key = 'site'`;
+  const existing = existingRows.length ? existingRows[0].value : {};
+  // Identity fields are defaults; existing DB values take precedence
+  const merged = { ...SITE_IDENTITY_FIELDS, ...existing };
+  await sql`
+    INSERT INTO site_settings (key, value, updated_at)
+    VALUES ('site', ${JSON.stringify(merged)}::jsonb, NOW())
+    ON CONFLICT (key) DO UPDATE
+      SET value = EXCLUDED.value,
+          updated_at = NOW()
+  `;
+  console.log("  ✓ Identity fields merged into 'site' key");
 
   console.log("\nDone. All settings are now in Neon — admin panel reads from DB.");
 }

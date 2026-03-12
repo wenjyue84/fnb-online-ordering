@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { DEFAULT_SETTINGS } from "@/lib/site-settings";
 import type { SiteSettings } from "@/lib/site-settings";
 import { AdminOperatingHours } from "./admin-operating-hours";
 import { AdminTimeSettings } from "./admin-time-settings";
@@ -11,17 +12,6 @@ interface AdminSettingsPanelProps {
   displayCategories: string[];
 }
 
-const DEFAULT_SETTINGS: SiteSettings = {
-  defaultLocale: "en",
-  cafeName: "Makan Moments",
-  currency: "RM",
-  operatingHours: { open: "11:00", lastOrder: "22:30", close: "23:00" },
-  preOrderEnabled: true,
-  depositRequired: false,
-  paymentMethods: ["Touch & Go", "Cash on Arrival"],
-  tng_phone: "",
-  tng_qr_url: "",
-};
 
 const SETTINGS_TABS = ["General", "Operating Hours", "Pre-Order", "Notifications"] as const;
 type SettingsTab = (typeof SETTINGS_TABS)[number];
