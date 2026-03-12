@@ -1,3 +1,19 @@
+## US-336 — Prevent Cumulative Layout Shift from menu card images loading (PASSED)
+- Menu card (`menu-card.tsx`) already had `aspect-[4/3]` container with `bg-muted`/gradient placeholder — no CLS issues
+- Editable menu card already had `aspect-[4/3]` + `bg-muted` — no changes needed
+- Chef pick card already had `aspect-video` (non-compact) or fixed-height CSS (compact) — no changes needed
+- Blog `PostCard`: added `bg-muted` to `aspect-video` image container (prevents flash while image loads)
+- Blog `FeaturedPost`: added `bg-muted` to `aspect-[16/7]` image container (prevents flash while image loads)
+- Fixed `BlogGridSkeleton` featured post skeleton: changed `aspect-[16/9]` → `aspect-[16/7]` to match actual `FeaturedPost` component — this mismatch was causing CLS on Suspense skeleton-to-content swap
+- `img-scale` CSS class uses `transform: scale(1.06)` on hover — transforms don't affect layout, so no CLS impact
+- All `next/image` components use `fill` inside containers with explicit aspect ratios — correct pattern for CLS prevention
+- Zero TS errors, zero new lint warnings
+
+### Patterns discovered
+- CLS from Suspense skeletons is easy to miss: if the skeleton's dimensions don't match the real content, the swap causes layout shift even though the images have proper containers
+- For Next.js Image with `fill`, the parent container MUST have both `position: relative` (for `fill` to work) and a defined size (aspect-ratio or explicit width/height) to prevent CLS
+- Adding `bg-muted` to image containers provides visual placeholder during load — doesn't prevent CLS (the aspect-ratio does that) but improves perceived loading
+
 ## US-335 — Optimize INP for tray and menu filter interactions (PASSED)
 - Replaced `useTransition` + `startTransition` wrapping `setCategory` with `useDeferredValue` pattern
 - `category` state now updates immediately (pill highlights within 50ms), while `deferredCategory` is passed to `useMenuFiltering` so the grid re-render is yielded to the browser
@@ -2537,4 +2553,33 @@ This user story is for a frontend Progressive Web App (PWA), not a Frappe/Python
 *   **Cache Invalidation:** You **must** update the `CACHE_NAME` version. Failing to do so will prevent the service worker from updating on client browsers, and the changes will not take effect.
 *   **Self-Contained Page:** The `offline.html` page cannot have any external dependencies (CSS, fonts, images) unless they are also explicitly added to the service worker cache.
 *   **Testing:** Use browser developer tools (e.g., Chrome DevTools -> Application -> Service Workers -> "Offline" checkbox) to simulate offline conditions and test navigation to a non-cached page.
+
+
+
+## Pre-analysis for US-341 (Gemini 2.5 Pro)
+This user story is for a Progressive Web App (PWA), not a Frappe/Python application. The work involves frontend JavaScript (Service Worker) and HTML, not the backend.
+
+Here is the technical brief based on the actual story requirements:
+
+**Subject: Technical Brief for US-341: PWA Offline Fallback Page**
+
+**1. Files to Create/Modify:**
+*   **Create:** `public/offline.html` - A new, self-contained static page.
+*   **Modify:** `public/sw.js` - The existing service worker script that controls caching and fetch requests.
+
+**2. Core Concepts Involved:**
+*   **Service Worker Lifecycle:** The `install` event will be used to pre-cache the new offline page.
+*   **Fetch Event:** The `fetch` event handler will be modified to intercept failed network requests and serve the cached offline page as a fallback.
+*   **Cache API:** Used for storing and retrieving the offline page.
+
+**3. Recommended Implementation Approach:**
+1.  Create `public/offline.html`. This file must be dependency-free. All required CSS should be inlined in a `<style>` tag. Include the cafe logo (ensure it's also cached or use an inline SVG), the required "You are offline" text in English, Chinese, and Malay, and a "Try again" button that triggers `window.location.reload()`.
+2.  In `public/sw.js`, locate the `CACHE_NAME` constant and increment its version string (e.g., `'shell-cache-v1'` to `'shell-cache-v2'`) to force the service worker to update on clients.
+3.  Add the path `'/offline.html'` to the array of URLs being pre-cached during the `install` event (likely an array named `SHELL_URLS` or similar).
+4.  In the `fetch` event listener, locate the logic for handling navigation requests (`event.request.mode === 'navigate'`). Modify its `catch` block to serve the fallback. The final logic should be: if the network fetch fails, respond with `caches.match('/offline.html')`.
+
+**4. Edge Cases & Gotchas:**
+*   **Cache Busting is Critical:** The `CACHE_NAME` version **must** be updated, or users will not receive the new service worker and the feature will not work.
+*   **Navigation Requests Only:** Ensure the fallback HTML page is only served for navigation requests. Returning HTML for a failed API or image request will break the app.
+*   **Self-Contained Page:** Double-check that `offline.html` has no external `link` or `script` tags pointing to non-cached resources.
 

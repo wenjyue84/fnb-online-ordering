@@ -97,9 +97,9 @@ async function BlogPostGrid({
 function BlogGridSkeleton() {
   return (
     <>
-      {/* Featured post skeleton */}
+      {/* Featured post skeleton — aspect-[16/7] matches FeaturedPost component */}
       <div className="mb-10 overflow-hidden rounded-xl border border-border">
-        <div className="aspect-[16/9] animate-pulse bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/20" />
+        <div className="aspect-[16/7] animate-pulse bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/20" />
         <div className="space-y-3 p-6">
           <div className="h-6 w-3/4 animate-pulse rounded bg-muted" />
           <div className="h-4 w-full animate-pulse rounded bg-muted" />

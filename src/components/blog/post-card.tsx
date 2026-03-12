@@ -18,7 +18,7 @@ export function PostCard({ post, isAdmin }: PostCardProps) {
       <Link href={`/blog/${post.slug}`} className="group block">
       <article className="overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:shadow-lg">
         {post.coverImage && (
-          <div className="relative aspect-video w-full overflow-hidden">
+          <div className="relative aspect-video w-full overflow-hidden bg-muted">
             <Image
               src={post.coverImage}
               alt={post.title}
