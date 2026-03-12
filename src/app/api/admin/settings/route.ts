@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   if (!(await checkAuth(request))) {
     return createErrorResponse("Unauthorized", 401);
   }
-  return Response.json(getSiteSettings());
+  return Response.json(await getSiteSettings());
 }
 
 export async function POST(req: NextRequest) {
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   }
   try {
     const body = (await req.json()) as Partial<SiteSettings>;
-    const current = getSiteSettings();
+    const current = await getSiteSettings();
 
     const VALID_LOCALES = ["en", "ms", "zh"];
     if (body.defaultLocale && !VALID_LOCALES.includes(body.defaultLocale)) {
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       },
     };
 
-    writeSiteSettings(updated);
+    await writeSiteSettings(updated);
     return Response.json({ ok: true, settings: updated });
   } catch (err) {
     console.error("[settings] Failed to save:", err);
