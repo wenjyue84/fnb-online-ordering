@@ -1,11 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { revalidatePath } from "next/cache";
 import { readdir, writeFile, unlink, rename } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
 import sharp from "sharp";
 import sql from "@/lib/db";
 import { invalidatePhotosCache } from "@/lib/menu";
+import { revalidateMenuCache } from "@/lib/cache-utils";
 
 export const runtime = "nodejs";
 
@@ -90,10 +90,7 @@ export async function POST(request: NextRequest) {
   // Touch updated_at so the image cache-busting version changes on next page render
   await sql`UPDATE menu_items SET updated_at = NOW() WHERE code = ${code}`;
 
-  // Revalidate ISR cache for menu pages across all locales
-  revalidatePath("/en/menu");
-  revalidatePath("/ms/menu");
-  revalidatePath("/zh/menu");
+  revalidateMenuCache();
 
   return NextResponse.json({ filename, path: `/images/menu/${filename}` });
 }
@@ -122,9 +119,7 @@ export async function DELETE(request: NextRequest) {
       await unlink(filepath);
       invalidatePhotosCache();
       await sql`UPDATE menu_items SET updated_at = NOW() WHERE code = ${code}`;
-      revalidatePath("/en/menu");
-      revalidatePath("/ms/menu");
-      revalidatePath("/zh/menu");
+      revalidateMenuCache();
       return NextResponse.json({ success: true });
     }
   }
@@ -181,9 +176,7 @@ export async function PATCH(request: NextRequest) {
 
   invalidatePhotosCache();
   await sql`UPDATE menu_items SET updated_at = NOW() WHERE code = ${code}`;
-  revalidatePath("/en/menu");
-  revalidatePath("/ms/menu");
-  revalidatePath("/zh/menu");
+  revalidateMenuCache();
 
   return NextResponse.json({ success: true, newPrimaryPath: `/images/menu/${code}.webp` });
 }

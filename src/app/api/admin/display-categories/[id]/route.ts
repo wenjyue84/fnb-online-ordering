@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import sql from "@/lib/db";
-import { revalidateLocalePaths } from "@/lib/cache-utils";
+import { revalidateMenuCache } from "@/lib/cache-utils";
 
 export const runtime = "nodejs";
 
@@ -24,7 +24,7 @@ export async function PATCH(
   if (!rows[0]) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  revalidateLocalePaths("/menu");
+  revalidateMenuCache();
   return NextResponse.json(rows[0]);
 }
 
@@ -39,6 +39,6 @@ export async function DELETE(
   await sql`DELETE FROM item_display_categories WHERE display_category_id = ${id}`;
   await sql`DELETE FROM display_categories WHERE id = ${id}`;
 
-  revalidateLocalePaths("/menu");
+  revalidateMenuCache();
   return NextResponse.json({ ok: true });
 }

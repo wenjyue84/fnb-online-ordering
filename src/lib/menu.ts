@@ -1,4 +1,5 @@
 import sql from "./db";
+import { unstable_cache } from "next/cache";
 import { filterByAvailability } from "./availability";
 import type { MenuItem, MenuItemWithRules, DisplayCategory } from "@/types/menu";
 import { getActiveRules, applyRules } from "./rules";
@@ -77,14 +78,72 @@ function getPhotosCache() {
   return _photosCache;
 }
 
-function getSecondaryPhotosMap(): Record<string, string[]> {
-  return getPhotosCache().secondary;
-}
-
 /** Invalidate the photos cache (call after image upload or rename) */
 export function invalidatePhotosCache() {
   _photosCache = null;
 }
+
+// ── Cached DB queries (tagged for revalidateTag invalidation) ────────────
+
+/** Cached: available, non-archived menu item rows from DB */
+const getCachedAvailableRows = unstable_cache(
+  async () =>
+    sql`SELECT * FROM menu_items WHERE available = true AND (archived IS NULL OR archived = false) ORDER BY sort_order ASC, name_en ASC`,
+  ["menu-available-rows"],
+  { tags: ["menu"] }
+);
+
+/** Cached: item_id → display category names map */
+const getCachedDisplayCategoryMap = unstable_cache(
+  async (): Promise<Record<string, string[]>> => {
+    const rows = await sql`
+      SELECT idc.item_id, dc.name
+      FROM item_display_categories idc
+      JOIN display_categories dc ON dc.id = idc.display_category_id
+      ORDER BY dc.sort_order ASC
+    `;
+    const map: Record<string, string[]> = {};
+    for (const row of rows) {
+      const id = row.item_id as string;
+      const name = row.name as string;
+      if (!map[id]) map[id] = [];
+      map[id].push(name);
+    }
+    return map;
+  },
+  ["display-category-map"],
+  { tags: ["menu"] }
+);
+
+/** Cached: display categories list */
+const getCachedDisplayCategoriesList = unstable_cache(
+  async () =>
+    sql<DisplayCategory>`SELECT * FROM display_categories ORDER BY sort_order ASC, name ASC`,
+  ["display-categories-list"],
+  { tags: ["menu"] }
+);
+
+/** Cached: signature dish row */
+const getCachedSignatureDishRow = unstable_cache(
+  async () => {
+    const rows = await sql`SELECT * FROM menu_items WHERE is_signature = true LIMIT 1`;
+    return rows[0] ?? null;
+  },
+  ["signature-dish"],
+  { tags: ["menu"] }
+);
+
+/** Cached: POS category names */
+const getCachedCategories = unstable_cache(
+  async () => {
+    const rows = await sql`SELECT name FROM categories ORDER BY sort_order ASC`;
+    return rows.map((r: Record<string, unknown>) => r.name as string);
+  },
+  ["pos-categories"],
+  { tags: ["menu"] }
+);
+
+// ── Row mapping ──────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function rowToMenuItem(row: any, displayCatMap: Record<string, string[]> = {}, primaryPhotosMap: Record<string, string> = {}, secondaryPhotosMap: Record<string, string[]> = {}): MenuItem {
@@ -121,42 +180,22 @@ function rowToMenuItem(row: any, displayCatMap: Record<string, string[]> = {}, p
 
 // Fetch display categories (website-only, not POS)
 export async function getDisplayCategories(): Promise<DisplayCategory[]> {
-  // Ensure computed display categories exist (idempotent)
+  // Ensure computed display categories exist (idempotent, not cached)
   await sql`
     INSERT INTO display_categories (name, sort_order, active)
     VALUES ('Vegetarian', 6, true)
     ON CONFLICT (name) DO NOTHING
   `;
-  return sql<DisplayCategory>`
-    SELECT * FROM display_categories ORDER BY sort_order ASC, name ASC
-  `;
-}
-
-// Build a map of item_id → display category names from DB
-async function getItemDisplayCategoryMap(): Promise<Record<string, string[]>> {
-  const rows = await sql`
-    SELECT idc.item_id, dc.name
-    FROM item_display_categories idc
-    JOIN display_categories dc ON dc.id = idc.display_category_id
-    ORDER BY dc.sort_order ASC
-  `;
-  const map: Record<string, string[]> = {};
-  for (const row of rows) {
-    const id = row.item_id as string;
-    const name = row.name as string;
-    if (!map[id]) map[id] = [];
-    map[id].push(name);
-  }
-  return map;
+  return getCachedDisplayCategoriesList();
 }
 
 // Public menu — available items filtered by Malaysia time, with rules applied
 export async function getMenuItems(): Promise<MenuItemWithRules[]> {
-
+  // DB data is cached via unstable_cache (tag: 'menu'); rules are fetched fresh (time-sensitive)
   const [rows, rules, displayCatMap] = await Promise.all([
-    sql`SELECT * FROM menu_items WHERE available = true AND (archived IS NULL OR archived = false) ORDER BY sort_order ASC, name_en ASC`,
+    getCachedAvailableRows(),
     getActiveRules(),
-    getItemDisplayCategoryMap(),
+    getCachedDisplayCategoryMap(),
   ]);
   const { primary: primaryPhotosMap, secondary: secondaryPhotosMap } = getPhotosCache();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -169,11 +208,10 @@ export async function getMenuItems(): Promise<MenuItemWithRules[]> {
 const MIN_HIGHLIGHTS = 6;
 
 export async function getFeaturedItems(): Promise<MenuItemWithRules[]> {
-
   const [rows, rules, displayCatMap] = await Promise.all([
-    sql`SELECT * FROM menu_items WHERE available = true AND (archived IS NULL OR archived = false) ORDER BY sort_order ASC`,
+    getCachedAvailableRows(),
     getActiveRules(),
-    getItemDisplayCategoryMap(),
+    getCachedDisplayCategoryMap(),
   ]);
   const { primary: primaryPhotosMap, secondary: secondaryPhotosMap } = getPhotosCache();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -193,12 +231,11 @@ export async function getFeaturedItems(): Promise<MenuItemWithRules[]> {
   return [...featured, ...padding];
 }
 
-// Admin — all items, no availability filter
+// Admin — all items, no availability filter (bypasses cache for fresh data)
 export async function getAllMenuItemsForAdmin(): Promise<MenuItem[]> {
-
   const [rows, displayCatMap] = await Promise.all([
     sql`SELECT * FROM menu_items ORDER BY sort_order ASC, name_en ASC`,
-    getItemDisplayCategoryMap(),
+    getCachedDisplayCategoryMap(),
   ]);
   const { primary: primaryPhotosMap, secondary: secondaryPhotosMap } = getPhotosCache();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -207,11 +244,10 @@ export async function getAllMenuItemsForAdmin(): Promise<MenuItem[]> {
 
 // Admin — all items with rule effects computed (for admin visibility)
 export async function getAllMenuItemsWithRulesForAdmin(): Promise<MenuItemWithRules[]> {
-
   const [rows, rules, displayCatMap] = await Promise.all([
     sql`SELECT * FROM menu_items ORDER BY sort_order ASC, name_en ASC`,
     getActiveRules(),
-    getItemDisplayCategoryMap(),
+    getCachedDisplayCategoryMap(),
   ]);
   const { primary: primaryPhotosMap, secondary: secondaryPhotosMap } = getPhotosCache();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -221,12 +257,12 @@ export async function getAllMenuItemsWithRulesForAdmin(): Promise<MenuItemWithRu
 // Signature dish — the one item marked is_signature=true (used as hero on landing page)
 export async function getSignatureDish(): Promise<MenuItem | null> {
   try {
-    const rows = await sql`SELECT * FROM menu_items WHERE is_signature = true LIMIT 1`;
-    if (!rows[0]) return null;
-    const displayCatMap = await getItemDisplayCategoryMap();
+    const row = await getCachedSignatureDishRow();
+    if (!row) return null;
+    const displayCatMap = await getCachedDisplayCategoryMap();
     const { primary: primaryPhotosMap, secondary: secondaryPhotosMap } = getPhotosCache();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return rowToMenuItem(rows[0] as any, displayCatMap, primaryPhotosMap, secondaryPhotosMap);
+    return rowToMenuItem(row as any, displayCatMap, primaryPhotosMap, secondaryPhotosMap);
   } catch {
     // Column may not exist yet (migration runs on first PATCH)
     return null;
@@ -235,6 +271,5 @@ export async function getSignatureDish(): Promise<MenuItem | null> {
 
 // Category list for filter bar and admin
 export async function getCategories(): Promise<string[]> {
-  const rows = await sql`SELECT name FROM categories ORDER BY sort_order ASC`;
-  return rows.map((r: Record<string, unknown>) => r.name as string);
+  return getCachedCategories();
 }

@@ -1,4 +1,5 @@
 import sql from "./db";
+import { unstable_cache } from "next/cache";
 import type { BlogPost } from "@/types/blog";
 import { readLocalPosts, getLocalPost, getLocalSlugs } from "./blog-local";
 
@@ -31,12 +32,19 @@ function sortByDate(posts: BlogPost[]): BlogPost[] {
 }
 
 export async function getBlogPosts(locale?: string): Promise<BlogPost[]> {
-  const rows = locale
-    ? await sql`SELECT * FROM blog_posts WHERE published = true AND language = ${locale} ORDER BY published_at DESC`
-    : await sql`SELECT * FROM blog_posts WHERE published = true ORDER BY published_at DESC`;
-  const sqlPosts = rows.map(rowToBlogPost);
+  const getCachedPosts = unstable_cache(
+    async () => {
+      const rows = locale
+        ? await sql`SELECT * FROM blog_posts WHERE published = true AND language = ${locale} ORDER BY published_at DESC`
+        : await sql`SELECT * FROM blog_posts WHERE published = true ORDER BY published_at DESC`;
+      return rows.map(rowToBlogPost);
+    },
+    ["blog-posts", locale ?? "all"],
+    { tags: ["blog"] }
+  );
+  const sqlPosts = await getCachedPosts();
 
-  // Merge with local markdown posts
+  // Merge with local markdown posts (filesystem, not cached)
   const localPosts = readLocalPosts();
   const filtered = locale
     ? localPosts.filter((p) => p.language === locale)
@@ -50,15 +58,29 @@ export async function getBlogPost(slug: string): Promise<BlogPost | null> {
   const localPost = getLocalPost(slug);
   if (localPost) return localPost;
 
-  const rows = await sql`
-    SELECT * FROM blog_posts WHERE slug = ${slug} AND published = true LIMIT 1
-  `;
-  return rows[0] ? rowToBlogPost(rows[0]) : null;
+  const getCachedPost = unstable_cache(
+    async () => {
+      const rows = await sql`
+        SELECT * FROM blog_posts WHERE slug = ${slug} AND published = true LIMIT 1
+      `;
+      return rows[0] ? rowToBlogPost(rows[0]) : null;
+    },
+    ["blog-post", slug],
+    { tags: ["blog"] }
+  );
+  return getCachedPost();
 }
 
 export async function getBlogSlugs(): Promise<string[]> {
-  const rows = await sql`SELECT slug FROM blog_posts WHERE published = true`;
-  const sqlSlugs = rows.map((r: Record<string, unknown>) => r.slug as string);
+  const getCachedSlugs = unstable_cache(
+    async () => {
+      const rows = await sql`SELECT slug FROM blog_posts WHERE published = true`;
+      return rows.map((r: Record<string, unknown>) => r.slug as string);
+    },
+    ["blog-slugs"],
+    { tags: ["blog"] }
+  );
+  const sqlSlugs = await getCachedSlugs();
   const localSlugs = getLocalSlugs();
   return [...sqlSlugs, ...localSlugs];
 }

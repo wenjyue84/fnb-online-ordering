@@ -2583,3 +2583,82 @@ Here is the technical brief based on the actual story requirements:
 *   **Navigation Requests Only:** Ensure the fallback HTML page is only served for navigation requests. Returning HTML for a failed API or image request will break the app.
 *   **Self-Contained Page:** Double-check that `offline.html` has no external `link` or `script` tags pointing to non-cached resources.
 
+## Iteration 12 - Thu, Mar 12, 2026  6:03:08 PM
+Incomplete: Add offline fallback page for PWA users (ID: US-341) — attempt 1/3
+
+
+## Pre-analysis for US-341 (Gemini 2.5 Pro)
+Here is the technical brief for user story US-341.
+
+This user story describes a Progressive Web App (PWA) feature, not a Frappe/Python task. The implementation will be in JavaScript within the Next.js project structure.
+
+**1. Python Files to Modify:**
+*   `public/sw.js`: This is the service worker script that controls caching and offline behavior.
+*   `public/offline.html`: A new static HTML file needs to be created here.
+
+**2. Frappe DocTypes/Hooks Involved:**
+The PWA equivalents are service worker lifecycle events:
+*   `install` event: Used to pre-cache the app shell and the new offline page.
+*   `fetch` event: Intercepts all network requests to implement the cache-first/network-first strategy and provide the offline fallback.
+
+**3. Recommended Implementation Approach:**
+1.  Create `public/offline.html`. It should be self-contained with inline CSS/SVGs and include the required branding and multilingual text.
+2.  In `public/sw.js`, update the `CACHE_NAME` version string to trigger a cache refresh on deployment.
+3.  Add `'/offline.html'` to the list of URLs to be cached during the `install` event (likely an array like `SHELL_URLS`).
+4.  Modify the `fetch` event handler. For failed `navigate` requests, the `catch` block should return a call to `caches.match('/offline.html')`.
+
+**4. Edge Cases & Gotchas:**
+*   The `offline.html` page must be 100% self-contained. Any external font, image, or stylesheet links will fail on a truly offline device.
+*   Forgetting to increment the `CACHE_NAME` is a common mistake that will prevent the new service worker (and the changes) from activating for existing users.
+*   The fetch handler logic must correctly identify navigation requests to avoid incorrectly serving the offline page for failed API or asset calls.
+*   Ensure the "Try again" button simply reloads the page, allowing the service worker to re-attempt the network request.
+
+## Iteration 13 - Thu, Mar 12, 2026  6:17:06 PM
+Incomplete: Add offline fallback page for PWA users (ID: US-341) — attempt 2/3
+
+
+## Pre-analysis for US-341 (Gemini 2.5 Pro)
+### Technical Brief: US-341 PWA Offline Fallback
+
+**Correction:** This user story is a **frontend JavaScript task** involving the PWA Service Worker, not a Frappe/Python backend task. The implementation will be entirely within the web public directory.
+
+**1. Files to Modify:**
+*   `public/sw.js`: This is the service worker file that will be modified to cache the new offline page and handle fallback logic.
+*   `public/offline.html`: A new static HTML file that needs to be created.
+
+**2. Frappe DocTypes/Hooks Involved:**
+*   None. This feature is purely related to the client-side service worker and does not interact with the Frappe framework, DocTypes, or server-side hooks.
+
+**3. Recommended Implementation Approach:**
+1.  **Create `public/offline.html`:** Build a simple, self-contained HTML page. All CSS must be inlined in a `<style>` tag to avoid external network requests. The page should include the cafe logo, a "You are offline" message (in English, Malay, and Chinese), and a "Try again" button that reloads the page.
+2.  **Update `public/sw.js`:**
+    *   Increment the `CACHE_NAME` version string to force a service worker update and cache refresh on activation.
+    *   Add the path `/offline.html` to the `SHELL_URLS` (or equivalent) array to ensure it's precached during the `install` event.
+    *   In the `fetch` event listener, modify the logic for navigation requests. The `catch` block for a failed network request should be updated to return the offline page from the cache: `return caches.match('/offline.html');`.
+
+**4. Edge Cases & Gotchas:**
+*   **Self-Contained Page:** The `offline.html` page *must not* rely on any external resources (CSS, JS, images) that aren't explicitly cached by the service worker. Inlining is safest.
+*   **Cache Busting:** Forgetting to update the `CACHE_NAME` is a common error that will prevent the new service worker from activating and the changes from taking effect.
+*   **Service Worker Lifecycle:** Testing can be tricky. Use browser developer tools (e.g., Chrome's Application tab) to unregister old workers, force-update the new one, and simulate offline mode.
+
+
+## US-337 — Add revalidateTag-based cache invalidation for menu and blog updates (PASSED)
+
+### What was implemented
+- Menu data fetch functions in `src/lib/menu.ts` wrapped with `unstable_cache` and tagged `{ tags: ["menu"] }` — 5 cached functions: available rows, display category map, display categories list, signature dish, POS categories
+- Blog data fetch functions in `src/lib/blog.ts` wrapped with `unstable_cache` and tagged `{ tags: ["blog"] }` — posts (by locale), single post (by slug), slugs list
+- Highlights in `src/lib/highlights.ts` wrapped with `unstable_cache` tagged `{ tags: ["menu"] }` — invalidated alongside menu data
+- `src/lib/cache-utils.ts` added `revalidateMenuCache()` → `revalidateTag("menu", "default")` and `revalidateBlogCache()` → `revalidateTag("blog", "default")`
+- All admin API routes switched from `revalidatePath` with hardcoded locale paths to `revalidateMenuCache()` / `revalidateBlogCache()` — a single call now invalidates across all locales
+- Removed unused `getCachedAllRows` (admin views intentionally bypass cache with direct SQL) and `getSecondaryPhotosMap`
+- Zero TS errors, zero lint errors
+
+### Patterns discovered
+- Next.js 16.1.6 changed `revalidateTag` to require a second `profile` argument: `revalidateTag(tag, profile)`. The `"default"` profile works for immediate invalidation from route handlers
+- `unstable_cache` with `tags` is the correct pattern for Neon HTTP driver (non-fetch) DB calls — wrap the DB call, pass tags, then invalidate with `revalidateTag`
+- Admin functions (`getAllMenuItemsForAdmin`, `getAllMenuItemsWithRulesForAdmin`) intentionally bypass cache by using direct `sql` queries — this ensures admin always sees fresh data
+- `revalidateLocalePaths` (path-based invalidation) is still available in cache-utils for content pages (home, about, contact) that don't use tagged caches
+
+### Gotchas
+- In Next.js 16, `revalidateTag(tag)` with one argument causes TS2554 — must pass `revalidateTag(tag, "default")` as the profile parameter is required in the type definitions
+- The docs show conflicting signatures (some show 1 arg, some show 2) — the installed v16.1.6 types require 2 args

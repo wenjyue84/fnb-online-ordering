@@ -1,9 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import sql from "@/lib/db";
-import { revalidateLocalePaths } from "@/lib/cache-utils";
+import { revalidateMenuCache } from "@/lib/cache-utils";
 
 function revalidateMenu() {
-  revalidateLocalePaths("/menu");
+  revalidateMenuCache();
 }
 
 export const runtime = "nodejs";

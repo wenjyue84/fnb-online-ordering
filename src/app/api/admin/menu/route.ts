@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import sql from "@/lib/db";
 import { createErrorResponse } from "@/lib/api-response";
+import { revalidateMenuCache } from "@/lib/cache-utils";
 
 export const runtime = "nodejs";
 
@@ -43,5 +44,6 @@ export async function POST(request: NextRequest) {
        ${availableDays}, ${timeFrom}, ${timeUntil}, ${specialDates})
     RETURNING *
   `;
+  revalidateMenuCache();
   return NextResponse.json(rows[0], { status: 201 });
 }

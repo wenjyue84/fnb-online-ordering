@@ -1,4 +1,4 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 const LOCALES = ["en", "ms", "zh"] as const;
 
@@ -10,4 +10,14 @@ export function revalidateLocalePaths(path: string): void {
   for (const locale of LOCALES) {
     revalidatePath(`/${locale}${path}`);
   }
+}
+
+/** Invalidate all menu-related cached data (menu items, display categories, highlights, rules). */
+export function revalidateMenuCache(): void {
+  revalidateTag("menu", "default");
+}
+
+/** Invalidate all blog-related cached data (posts, slugs). */
+export function revalidateBlogCache(): void {
+  revalidateTag("blog", "default");
 }

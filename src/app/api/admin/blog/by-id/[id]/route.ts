@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import sql from "@/lib/db";
+import { revalidateBlogCache } from "@/lib/cache-utils";
 
 export const runtime = "nodejs";
 
@@ -53,6 +54,7 @@ export async function PATCH(
   if (!rows[0]) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+  revalidateBlogCache();
   return NextResponse.json(rows[0]);
 }
 
@@ -62,5 +64,6 @@ export async function DELETE(
 ) {
   const { id } = await params;
   await sql`DELETE FROM blog_posts WHERE id = ${id}`;
+  revalidateBlogCache();
   return NextResponse.json({ ok: true });
 }

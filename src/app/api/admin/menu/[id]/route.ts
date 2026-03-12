@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import sql from "@/lib/db";
-import { revalidateLocalePaths } from "@/lib/cache-utils";
+import { revalidateMenuCache } from "@/lib/cache-utils";
 import { invalidateSystemPromptCache } from "@/lib/chat/system-prompt";
 
 export const runtime = "nodejs";
@@ -67,11 +67,8 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Revalidate ISR cache for menu and home pages across all locales
-  revalidateLocalePaths("/menu");
-  if (isSignature !== undefined) {
-    revalidateLocalePaths("");
-  }
+  // Invalidate all menu-related caches (covers menu page, home page highlights, etc.)
+  revalidateMenuCache();
 
   // Invalidate AI system prompt cache so new menu data is picked up immediately
   invalidateSystemPromptCache();
@@ -85,5 +82,6 @@ export async function DELETE(
 ) {
   const { id } = await params;
   await sql`DELETE FROM menu_items WHERE id = ${id}`;
+  revalidateMenuCache();
   return NextResponse.json({ ok: true });
 }

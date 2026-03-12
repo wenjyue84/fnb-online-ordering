@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import sql from "@/lib/db";
 import { createErrorResponse } from "@/lib/api-response";
+import { revalidateMenuCache } from "@/lib/cache-utils";
 
 export const runtime = "nodejs";
 
@@ -26,6 +27,7 @@ export async function POST(request: NextRequest) {
     VALUES (${category}, ${itemId})
     ON CONFLICT (category) DO UPDATE SET item_id = EXCLUDED.item_id
   `;
+  revalidateMenuCache();
   return NextResponse.json({ ok: true, category, itemId });
 }
 
@@ -37,5 +39,6 @@ export async function DELETE(request: NextRequest) {
     return createErrorResponse("category required", 400);
   }
   await sql`DELETE FROM category_highlights WHERE category = ${category}`;
+  revalidateMenuCache();
   return NextResponse.json({ ok: true, category });
 }
