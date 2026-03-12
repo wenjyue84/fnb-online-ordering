@@ -18,6 +18,7 @@ export async function GET() {
         estimated_ready,
         rejection_reason,
         payment_screenshot_url,
+        notification_status,
         created_at
       FROM tray_orders
       ORDER BY created_at DESC

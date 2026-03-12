@@ -1,3 +1,10 @@
+## US-320 — WhatsApp notification delivery retry with exponential backoff (PASSED)
+- Most implementation was already done in a prior iteration: withRetry helper, sendOrderWhatsAppNotification, notification_status column, unit tests
+- Missing piece: admin panel visual indicator for failed notifications
+- Added `notification_status` to the admin orders API SELECT query in src/app/api/admin/orders/route.ts
+- Added AlertTriangle warning badge ("WA Failed") in admin-order-card.tsx header when notification_status === "failed"
+- All 6 acceptance criteria verified: retry logic, structured error logging, order-first saving, DB status column, admin warning icon, unit tests
+
 ## US-323 — Add skip-to-content link and landmark roles (PASSED)
 - Added skip-to-content link as first focusable element in [locale]/layout.tsx body
 - Added id="main-content" to <main> element for skip link target
@@ -1757,4 +1764,35 @@ Here is a technical brief for the user story.
 *   Fonts cannot be loaded via `next/font`; they must be fetched and embedded directly.
 *   Ensure graceful failure; if image generation fails, Next.js should fall back to the static OG image defined in the root layout.
 *   Confirm the final image size is 1200x630px as per Open Graph standards.
+
+
+
+## Pre-analysis for US-324 (Gemini 2.5 Pro)
+This user story is for a Next.js/React application, not a Frappe/Python one. However, here is a technical brief outlining how to implement a similar dynamic image generation feature within a Frappe/Python context for the `lhdn_payroll_integration` app.
+
+**Technical Brief for Frappe/Python Implementation**
+
+*   **Python Files to Modify:**
+    *   `lhdn_payroll_integration/api.py` or a new `lhdn_payroll_integration/utils/image_generator.py`: Create a new whitelisted Python function here to handle the image generation logic.
+    *   `lhdn_payroll_integration/hooks.py`: To add a new API route if using a dedicated endpoint (e.g., `/api/method/lhdn_payroll_integration.api.generate_og_image`).
+    *   `lhdn_payroll_integration/templates/pages/blog.html` (or equivalent Jinja template): Modify the `<head>` section to include the dynamic `og:image` meta tag.
+
+*   **Frappe DocTypes / Hooks Involved:**
+    *   **DocType:** `Blog Post`. The image generator will need to query this DocType to get the post's title and other data based on the URL.
+    *   **Hook:** A new whitelisted API method (`@frappe.whitelist()`) will serve as the endpoint for the image URL.
+
+*   **Implementation Approach:**
+    1.  Add `Pillow` to the app's `requirements.txt`.
+    2.  Create a whitelisted function `generate_og_image(doc_name, locale)`.
+    3.  Inside, use `frappe.get_doc('Blog Post', doc_name)` to fetch the document.
+    4.  Use `frappe.get_translation` to get the title for the specified locale.
+    5.  Use Pillow to create a 1200x630px image, load a font from app assets, and draw the translated text onto it.
+    6.  Serve the generated image as a raw HTTP response with `Content-Type: image/png`.
+    7.  In the Jinja template, set the meta tag: `<meta property="og:image" content="/api/method/...?doc_name={{ doc.name }}&locale={{ frappe.local.lang }}">`.
+
+*   **Edge Cases & Gotchas:**
+    *   **Performance:** Image generation is slow. Use `frappe.cache()` with a key like `f"og_image_{doc_name}_{locale}"` to cache the result.
+    *   **Error Handling:** Wrap the generation logic in a `try...except` block. On failure, the endpoint should redirect to a static fallback image URL.
+    *   **Font Management:** Font files must be included in the app's `public` assets and loaded with a full path.
+    *   **Security:** Ensure the endpoint properly validates `doc_name` to prevent unauthorized access or server-side request forgery (SSRF).
 

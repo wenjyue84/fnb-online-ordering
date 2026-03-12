@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, X, Clock, Eye } from "lucide-react";
+import { Check, X, Clock, Eye, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDateTimeCompact as formatDateTime, formatTime } from "@/lib/date-utils";
 import type { AdminOrder, ActionResult } from "@/hooks/useAdminOrders";
@@ -306,6 +306,15 @@ export function AdminOrderCard({ order, onApprove, onReject, onStatusUpdate }: A
             )}>
               {STATUS_LABELS[order.status] ?? order.status}
             </span>
+            {order.notification_status === "failed" && (
+              <span
+                className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700"
+                title="WhatsApp notification failed after 3 retries"
+              >
+                <AlertTriangle className="h-3 w-3" />
+                WA Failed
+              </span>
+            )}
           </div>
           <span className="text-xs text-gray-400 shrink-0">{formatDateTime(order.created_at)}</span>
         </div>
