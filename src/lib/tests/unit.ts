@@ -31,19 +31,18 @@ export const unitTests: TestDefinition[] = [
       }),
   },
   {
-    id: "unit-cafe-constants",
-    name: "CAFE constants structure",
-    description: "CAFE object has required fields: name, address, phone, hours",
+    id: "unit-site-settings-defaults",
+    name: "SiteSettings defaults structure",
+    description: "DEFAULT_SETTINGS has required fields: cafeName, address, phone, displayHours",
     category: "unit",
     run: async () =>
       run(() => {
-        // Dynamic import to avoid bundling issues
         // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { CAFE } = require("../constants") as { CAFE: Record<string, unknown> };
-        assert(typeof CAFE.name === "object" && CAFE.name !== null, "CAFE.name must be an object");
-        assert(typeof CAFE.address === "string" && CAFE.address.length > 0, "CAFE.address must be a non-empty string");
-        assert(typeof CAFE.phone === "string" && CAFE.phone.length > 0, "CAFE.phone must be a non-empty string");
-        assert(typeof CAFE.hours === "object" && CAFE.hours !== null, "CAFE.hours must be an object");
+        const { DEFAULT_SETTINGS } = require("../site-settings-shared") as { DEFAULT_SETTINGS: Record<string, unknown> };
+        assert(typeof DEFAULT_SETTINGS.cafeName === "string" && (DEFAULT_SETTINGS.cafeName as string).length > 0, "DEFAULT_SETTINGS.cafeName must be a non-empty string");
+        assert(typeof DEFAULT_SETTINGS.address === "string" && (DEFAULT_SETTINGS.address as string).length > 0, "DEFAULT_SETTINGS.address must be a non-empty string");
+        assert(typeof DEFAULT_SETTINGS.phone === "string" && (DEFAULT_SETTINGS.phone as string).length > 0, "DEFAULT_SETTINGS.phone must be a non-empty string");
+        assert(typeof DEFAULT_SETTINGS.displayHours === "object" && DEFAULT_SETTINGS.displayHours !== null, "DEFAULT_SETTINGS.displayHours must be an object");
       }),
   },
   {

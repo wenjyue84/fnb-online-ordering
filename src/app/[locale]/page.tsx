@@ -9,7 +9,7 @@ import { Highlights } from "@/components/home/highlights";
 import { PreorderBanner } from "@/components/home/preorder-banner";
 import { COOKIE_NAME, verifyAdminToken } from "@/lib/auth";
 import { HomeInlineEditor, type HomeContent } from "@/components/admin/home-inline-editor";
-import { CAFE } from "@/lib/constants";
+import { getSiteSettings } from "@/lib/site-settings";
 import { FadeUp } from "@/components/ui/fade-up";
 
 export const revalidate = 3600;
@@ -37,10 +37,11 @@ export default async function HomePage({
 }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "home" });
+  const settings = await getSiteSettings();
 
   const fallback: HomeContent = {
     heroTitle: t("heroTitle"),
-    heroTagline: CAFE.tagline.en,
+    heroTagline: settings.cafeTagline,
     heroSubtitle: t("heroSubtitle"),
     highlightsTitle: t("highlightsTitle"),
     highlightsSubtitle: t("highlightsSubtitle"),
