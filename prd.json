@@ -93,15 +93,15 @@
         "npm run build passes"
       ],
       "technicalNotes": [
-        "admin/[tab]/page.tsx: server page — add getSiteSettings() call, use settings.cafeName in the h1 title element",
-        "kds/layout.tsx: server layout — export async function or use generateMetadata pattern with getSiteSettings()",
-        "admin-settings-panel.tsx: likely 'use client' — import DEFAULT_SETTINGS from '@/lib/site-settings' and use DEFAULT_SETTINGS.cafeName as placeholder instead of hardcoded string"
+        "admin/[tab]/page.tsx: server page â€” add getSiteSettings() call, use settings.cafeName in the h1 title element",
+        "kds/layout.tsx: server layout â€” export async function or use generateMetadata pattern with getSiteSettings()",
+        "admin-settings-panel.tsx: likely 'use client' â€” import DEFAULT_SETTINGS from '@/lib/site-settings' and use DEFAULT_SETTINGS.cafeName as placeholder instead of hardcoded string"
       ],
       "dependencies": [
         "US-301"
       ],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-304",
