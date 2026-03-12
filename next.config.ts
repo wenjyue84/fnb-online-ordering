@@ -44,18 +44,7 @@ const nextConfig: NextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-          {
-            key: "Content-Security-Policy",
-            value: [
-              "default-src 'self'",
-              "img-src 'self' data: https:",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-              "style-src 'self' 'unsafe-inline'",
-              "font-src 'self' https://fonts.gstatic.com",
-              // Allow Google Maps embed on /contact and Rainbow AI admin iframe (dev)
-              "frame-src 'self' https://www.google.com https://maps.google.com" + (process.env.NODE_ENV !== "production" ? " http://localhost:3002" : ""),
-            ].join("; "),
-          },
+          // CSP is set dynamically per-request in middleware.ts with a nonce
         ],
       },
     ];

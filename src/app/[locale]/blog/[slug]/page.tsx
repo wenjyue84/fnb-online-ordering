@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getBlogPost, getBlogSlugs } from "@/lib/blog";
@@ -51,6 +51,7 @@ export default async function BlogPostPage({
 
   if (!post) notFound();
 
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   const isAdmin = token ? await verifyAdminToken(token) : false;
@@ -65,6 +66,7 @@ export default async function BlogPostPage({
         datePublished={post.publishedAt ?? ""}
         url={`${siteUrl}/${locale}/blog/${slug}`}
         image={post.coverImage}
+        nonce={nonce}
       />
       <Link
         href="/blog"

@@ -2,18 +2,20 @@ import { getSiteSettings } from "@/lib/site-settings";
 
 interface JsonLdProps {
   data: Record<string, unknown>;
+  nonce?: string | null;
 }
 
-export function JsonLd({ data }: JsonLdProps) {
+export function JsonLd({ data, nonce }: JsonLdProps) {
   return (
     <script
       type="application/ld+json"
+      nonce={nonce ?? undefined}
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );
 }
 
-export async function RestaurantJsonLd() {
+export async function RestaurantJsonLd({ nonce }: { nonce?: string | null } = {}) {
   const settings = await getSiteSettings();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031";
 
@@ -68,10 +70,10 @@ export async function RestaurantJsonLd() {
     },
   };
 
-  return <JsonLd data={data} />;
+  return <JsonLd data={data} nonce={nonce} />;
 }
 
-export async function MenuPageJsonLd() {
+export async function MenuPageJsonLd({ nonce }: { nonce?: string | null } = {}) {
   const settings = await getSiteSettings();
 
   const data = {
@@ -88,7 +90,7 @@ export async function MenuPageJsonLd() {
     },
   };
 
-  return <JsonLd data={data} />;
+  return <JsonLd data={data} nonce={nonce} />;
 }
 
 export async function BlogPostJsonLd({
@@ -97,12 +99,14 @@ export async function BlogPostJsonLd({
   datePublished,
   url,
   image,
+  nonce,
 }: {
   title: string;
   description: string;
   datePublished: string;
   url: string;
   image?: string | null;
+  nonce?: string | null;
 }) {
   const settings = await getSiteSettings();
 
@@ -125,5 +129,5 @@ export async function BlogPostJsonLd({
     ...(image && { image }),
   };
 
-  return <JsonLd data={data} />;
+  return <JsonLd data={data} nonce={nonce} />;
 }

@@ -2216,3 +2216,58 @@ This user story describes a frontend accessibility enhancement for a React/Next.
 *   **Focus Management:** The submit button should be disabled while any validation errors are present. Re-run all validations on submit as a final safeguard.
 *   **Styling:** Ensure the error indication (red border, icon) has sufficient color contrast and is not conveyed by color alone.
 
+## Iteration 4 - Thu, Mar 12, 2026  5:01:17 PM
+Completed: Add accessible inline form validation error messages to order form (ID: US-328) in 6m
+
+
+## Pre-analysis for US-329 (Gemini 2.5 Pro)
+This user story describes a task for a Next.js/TypeScript application, not Frappe/Python. The goal is to implement a Content-Security-Policy (CSP) using a nonce to allow trusted inline scripts.
+
+**Technical Brief for US-329**
+
+**1. Core Files to Modify:**
+*   `middleware.ts`: To generate the per-request nonce and set the CSP header.
+*   `src/app/layout.tsx`: To read the nonce and apply it to root script tags.
+*   Components using `dangerouslySetInnerHTML` for JSON-LD: Identify and modify these to include the nonce.
+
+**2. Key Framework Elements:**
+*   **Next.js Middleware:** The entry point for intercepting requests to inject headers.
+*   **Next.js `headers()` API:** Used within Server Components (like the layout) to access the nonce from request headers.
+*   **Content-Security-Policy (CSP) Header:** The primary mechanism for implementing the security policy.
+
+**3. Implementation Approach:**
+*   In `middleware.ts`, generate a unique `nonce` for each request using `crypto.randomUUID()`.
+*   Construct the `Content-Security-Policy` header string, replacing `'unsafe-inline'` in `script-src` with `'nonce-{nonce}'`.
+*   Set two headers on the response: the `Content-Security-Policy` header and a custom `x-nonce` header containing the nonce value.
+*   In `src/app/layout.tsx`, read the nonce using `headers().get('x-nonce')`.
+*   Pass the nonce to any inline `<script>` tags, including those rendering JSON-LD.
+
+**4. Gotchas & Edge Cases:**
+*   **Existing CSP:** The current CSP is likely set in `middleware.ts`. This logic must be updated, not duplicated.
+*   **Tailwind v4:** The story notes Tailwind might not use inline styles. Verify this. If it doesn't, do not add a nonce to the `style-src` directive.
+*   **Third-party Scripts:** Ensure any third-party scripts loaded via `next/script` are configured correctly with the new CSP and are not affected.
+*   **Multiple Script Components:** The nonce must be passed down to every component that renders an inline script, not just the root layout.
+
+## US-329 — Add CSP nonce for inline scripts to strengthen Content Security Policy (PASSED)
+- Generated cryptographically random nonce per request in middleware.ts using `Buffer.from(crypto.randomUUID()).toString('base64')`
+- Built CSP header dynamically with `nonce-{value}` replacing `'unsafe-inline'` as the primary script-src mechanism
+- CSP includes `'strict-dynamic'` so nonce'd scripts can load other scripts (handles Next.js webpack chunks)
+- CSP includes `'unsafe-inline'` as backward-compatible fallback (ignored by CSP3 browsers when nonce is present)
+- Kept `'unsafe-eval'` for dev/Next.js compatibility
+- Forwarded nonce to server components via `x-middleware-request-x-nonce` response header (Next.js internal mechanism that converts to request header for `headers()`)
+- Removed static CSP from next.config.ts headers() to avoid conflicting with dynamic middleware CSP
+- Added `nonce` prop to `JsonLd` component and all three async JSON-LD wrappers (RestaurantJsonLd, MenuPageJsonLd, BlogPostJsonLd)
+- Updated locale layout, menu page, blog post page, and admin layout to read nonce from `headers().get('x-nonce')` and pass to all inline `<script>` tags
+- Admin layout inline script (dark mode removal) also receives the nonce
+- `style-src` keeps `'unsafe-inline'` — Tailwind v4 uses CSS custom properties, not inline styles; the noscript fallback style is a `<style>` not `<script>`
+- Zero TS errors, zero new lint warnings
+
+### Patterns discovered
+- `x-middleware-request-{key}` is how Next.js internally forwards request headers from middleware to server components — works on ANY response type (next(), rewrite(), redirect()), not just `NextResponse.next({ request: { headers } })`
+- CSP3 browsers ignore `'unsafe-inline'` when a nonce is present — keeping both gives backward compatibility
+- `'strict-dynamic'` causes `'self'` and URL allowlists to be ignored for script-src in CSP3 — but that's fine since all scripts are either nonce'd or dynamically loaded
+- `<script type="application/ld+json">` should have nonce even though it's not executable JS — some browsers enforce CSP on all `<script>` elements regardless of type
+
+### Gotchas
+- Don't set CSP in both next.config.ts and middleware — they'll both apply and the most restrictive wins, potentially blocking legitimate resources
+- The intl middleware returns its own NextResponse (rewrite) — can't use `NextResponse.next({ request: { headers } })` for that path; must use `x-middleware-request-*` header trick instead

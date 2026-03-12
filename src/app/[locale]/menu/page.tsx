@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getMenuItems, getAllMenuItemsWithRulesForAdmin, getDisplayCategories } from "@/lib/menu";
 import { getHighlightsFromDB, computeEffectiveHighlights } from "@/lib/highlights";
@@ -34,6 +34,7 @@ export default async function MenuPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   const isAdmin = token ? await verifyAdminToken(token) : false;
@@ -61,7 +62,7 @@ export default async function MenuPage({
 
   return (
     <>
-      <MenuPageJsonLd />
+      <MenuPageJsonLd nonce={nonce} />
       <div className="mx-auto max-w-6xl px-4 py-12">
         {isAdmin && (
           <Suspense fallback={null}>

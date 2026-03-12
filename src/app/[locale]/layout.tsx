@@ -4,7 +4,7 @@ import { Playfair_Display, Noto_Sans, Noto_Sans_SC } from "next/font/google";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { routing } from "@/i18n/routing";
 import { getSiteSettings } from "@/lib/site-settings";
 import { Header } from "@/components/layout/header";
@@ -117,6 +117,7 @@ export default async function LocaleLayout({
   }
   setRequestLocale(locale);
 
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   const isAdmin = token ? await verifyAdminToken(token) : false;
@@ -127,7 +128,7 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
-        <RestaurantJsonLd />
+        <RestaurantJsonLd nonce={nonce} />
         {/* US-076: No-JS fallback — show all scroll-reveal elements if JS is disabled */}
         <noscript>
           <style>{".scroll-reveal{opacity:1!important;transform:none!important;transition:none!important}"}</style>
