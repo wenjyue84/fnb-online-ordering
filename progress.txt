@@ -2317,3 +2317,55 @@ This story concerns a frontend PWA enhancement, not a Frappe/Python backend chan
 *   For multilingual support in a static file, displaying all three language strings is the simplest approach.
 *   Forgetting to update the `CACHE_NAME` is a common mistake that will prevent the new service worker and offline page from being activated.
 
+## Iteration 6 - Thu, Mar 12, 2026  5:21:51 PM
+Incomplete: Add offline fallback page for PWA users (ID: US-341) — attempt 1/3
+
+
+## Pre-analysis for US-341 (Gemini 2.5 Pro)
+Here is the technical brief for implementing the offline fallback page.
+
+**Subject: Technical Brief for US-341: PWA Offline Fallback Page**
+
+This user story focuses on improving the Progressive Web App (PWA) experience by providing a custom offline page instead of the browser's default.
+
+**1. Files to Modify:**
+*   `public/sw.js`: The service worker file. Logic needs to be added here to cache the new offline page and to serve it when a user is offline and the requested page is not in the cache.
+*   `public/offline.html`: A new file to be created. This will be the static fallback page.
+
+**2. PWA & Service Worker Concepts:**
+*   **Service Worker Lifecycle:** The `install` event will be used to pre-cache the new `/offline.html`.
+*   **Fetch Event:** The `fetch` event handler will be modified to intercept network requests. Specifically, for navigation requests that fail, it will serve the cached offline page as a fallback.
+
+**3. Recommended Implementation Approach:**
+1.  **Create `public/offline.html`:**
+    *   This should be a simple, self-contained HTML file with no external dependencies.
+    *   All CSS styles must be placed inline within a `<style>` tag.
+    *   Include the cafe name, a reference to the logo (ensure the logo itself is cached), and a "You are offline" message. For multi-language support, display the message in all three languages directly on the page (e.g., "You are offline / Anda di luar talian / 您已离线").
+    *   Add a "Try again" button with an `onclick="window.location.reload()"` attribute.
+2.  **Modify `public/sw.js`:**
+    *   **Important:** Increment the `CACHE_NAME` version string (e.g., from `v1` to `v2`) to trigger the service worker update and cache the new file.
+    *   Add `'/offline.html'` to the array of URLs to be cached during the `install` event (likely a `SHELL_URLS` or similar array).
+    *   In the `fetch` event handler, update the error handling for navigation requests. In the `.catch()` block that handles failed fetches, return `caches.match('/offline.html')`.
+
+**4. Gotchas & Edge Cases:**
+*   **Cache Busting:** Failing to update the `CACHE_NAME` is the most common mistake. The new service worker will not install if the name is not changed.
+*   **Request Mode:** The fallback logic should specifically apply only when `event.request.mode === 'navigate'`. Do not return the HTML page for failed API calls or image requests.
+*   **Self-Contained Page:** Double-check that `offline.html` has no external font, CSS, or image links, as they will also fail to load when offline.
+
+
+## US-331 — Add Web Vitals reporting with useReportWebVitals hook (PASSED)
+- Created `src/components/analytics/web-vitals.tsx` — 'use client' component using `useReportWebVitals` from `next/web-vitals`
+- Captures all 5 Core Web Vitals: LCP, INP, CLS, FCP, TTFB
+- In development mode: logs all metrics to console with name/value/rating; warns when LCP > 2500ms
+- Created `src/components/analytics/speed-insights-wrapper.tsx` — wraps `@vercel/speed-insights/next` SpeedInsights component for zero-config Vercel CWV monitoring
+- Both components added to `src/app/[locale]/layout.tsx` after PwaInit/SplashOnboarding — outside render tree, zero layout impact
+- `WebVitals` returns null — no DOM output, no rendering cost
+- `SpeedInsights` is lazy-loaded by the package itself — adds zero JS to initial bundle
+- Installed `@vercel/speed-insights` package
+- Zero TS errors, zero new lint errors
+
+### Patterns discovered
+- `useReportWebVitals` is from `next/web-vitals` (not `next/app`) in Next.js 16
+- The callback reference must remain stable (defined outside component) to avoid duplicate reporting
+- `@vercel/speed-insights/next` is the correct import path for Next.js App Router (not `/react`)
+- Both components can coexist: useReportWebVitals for custom dev-mode logging, SpeedInsights for production Vercel dashboard
