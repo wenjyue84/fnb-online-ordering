@@ -1010,3 +1010,50 @@ PRD iteration 03 (feature/iter-03) is fully complete. Zero incomplete stories re
 ## Iteration 4 - Thu, Mar 12, 2026 11:34:35 AM
 Completed: Remove CAFE constant and commit pre-existing changes (ID: US-305) in 3m
 
+
+## Pre-analysis for US-307 (Gemini 2.5 Pro)
+This user story describes a task for a **Next.js/TypeScript** application, not a Frappe/Python one. The technical notes and file paths (`app/manifest.ts`, `Next.js MetadataRoute.Manifest`) are specific to the Next.js framework.
+
+Here is the technical brief for a developer working in that Next.js environment:
+
+**Subject: Technical Brief for US-307: Dynamic `manifest.json` Generation**
+
+**1. Files to Modify/Create:**
+*   **Create:** `src/app/manifest.ts`. This new file will contain the server-side logic to generate the manifest.
+*   **Modify:** The file defining the `SiteSettings` type and its default values (likely `src/data/site-settings-shared.ts` or similar) to add two new color properties.
+*   **Delete:** `public/manifest.json`. This static file will be replaced by the dynamic route.
+
+**2. Key Framework/Data Hooks:**
+*   **Next.js App Router:** You will create a file-based route at `/manifest.json` by creating `src/app/manifest.ts`.
+*   **Next.js Metadata API:** The function exported from `manifest.ts` must return the `MetadataRoute.Manifest` type.
+*   **Data Fetching:** The `getSiteSettings()` function will be used to fetch the required values from the application's configuration.
+
+**3. Implementation Approach:**
+1.  Add `themeColor` and `backgroundColor` fields to the `SiteSettings` type and provide default values (e.g., `#b45309` and `#fef9f0`).
+2.  In `src/app/manifest.ts`, create and export an async `manifest()` function.
+3.  Inside this function, await the result of `getSiteSettings()`.
+4.  Return a `MetadataRoute.Manifest` object mapping `cafeName`, `cafeTagline`, the new color fields, and `defaultLocale` to the corresponding manifest properties (`name`, `description`, `theme_color`, `background_color`, `start_url`).
+5.  Delete the `public/manifest.json` file after the dynamic route is working.
+
+**4. Gotchas & Verification:**
+*   Next.js automatically caches `getSiteSettings()` per-request, so don't add manual caching.
+*   Ensure the `start_url` is a relative path beginning with `/` (e.g., `/en`).
+*   After implementation, run a Lighthouse PWA audit to confirm the score is >= 90.
+
+
+## Iteration N - Story: US-307 - Replace hardcoded strings in manifest.json with dynamic SiteSettings values
+
+### What was implemented
+- Added `themeColor` and `backgroundColor` fields to `SiteSettings` interface and `DEFAULT_SETTINGS` in `site-settings-shared.ts`
+- Created `src/app/manifest.ts` using Next.js `MetadataRoute.Manifest` — reads from `getSiteSettings()` at request time
+- Archived `public/manifest.json` → `public/manifest.json.bak` (App Router handler now serves `/manifest.json`)
+- prd.json updated: US-307 `passes: true`
+
+### Patterns discovered
+- Next.js App Router convention: `src/app/manifest.ts` exports `default async function manifest()` returning `MetadataRoute.Manifest`
+- No changes needed to `[locale]/layout.tsx` — the `manifest: '/manifest.json'` reference automatically resolves to the App Router handler
+- `getSiteSettings()` is safe to call in manifest.ts; it falls back to DEFAULT_SETTINGS if DB is unavailable
+
+### Gotchas
+- `MetadataRoute.Manifest` icon `purpose` field accepts `"any"` or `"maskable"` (not both in one entry)
+- Pre-existing lint warnings (unused vars in menu-grid.tsx and menu.ts) are not from this story
