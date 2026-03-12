@@ -64,3 +64,5 @@ rainbow-ai/coverage/
 # Test output files
 lh-test-out.json
 retry-counts.json.tmp
+/test-reports/*
+!/test-reports/.gitkeep
