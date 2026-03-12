@@ -140,7 +140,7 @@ export function AdminSettingsPanel({ displayCategories }: AdminSettingsPanelProp
                   value={settings.cafeName}
                   onChange={(e) => setField("cafeName", e.target.value)}
                   className="w-full max-w-xs rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
-                  placeholder="Makan Moments"
+                  placeholder={DEFAULT_SETTINGS.cafeName}
                 />
               </div>
 
