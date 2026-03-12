@@ -1,3 +1,17 @@
+## US-340 — Add order expiry mechanism for stale pending_approval orders (PASSED)
+- Added `orderExpiryMinutes` field to `SiteSettings` interface and `DEFAULT_SETTINGS` (default: 240 = 4 hours)
+- Added lazy expiry SQL to `GET /api/admin/orders`: runs `UPDATE tray_orders SET status='expired' WHERE status='pending_approval' AND created_at < NOW() - MAKE_INTERVAL(mins => orderExpiryMinutes)` before fetching results
+- Added pending_approval expiry check to `GET /api/orders/[id]`: compares order age against configurable threshold, auto-transitions to expired on read
+- Kept existing approved-order 30-minute expiry intact (separate from the pending_approval expiry)
+- Expired filter tab and customer-facing expired UI were already implemented — no changes needed
+- `orderExpiryMinutes` is configurable via `POST /api/admin/settings` (generic merge covers new fields automatically)
+- Zero TS errors, only pre-existing lint warning (unused `isChefsPick` in menu-grid.tsx)
+
+### Patterns discovered
+- Postgres `MAKE_INTERVAL(mins => $1)` is the parameterized equivalent of `INTERVAL '4 hours'` — necessary because template literal SQL doesn't support string interpolation inside INTERVAL literals
+- Lazy expiry (on-read) is sufficient for this use case: orders are only visible via admin fetch or customer polling, so stale orders get cleaned up whenever someone looks
+- The admin settings endpoint uses generic `{ ...current, ...body }` merge, so new SiteSettings fields are automatically editable without touching the endpoint code
+
 ## US-339 — Add bundle analyzer and lazy-load heavy admin panel dependencies (PASSED)
 - `@next/bundle-analyzer` was already installed (`^16.1.6` devDep) and configured in `next.config.ts` with `ANALYZE=true` env toggle
 - Admin tab panels (Orders, Menu, Categories, Rules, Blog, Tests, Settings) were already using `next/dynamic` with `ssr: false` — only `AiWaiterPage` was a static import; converted it to dynamic
@@ -2753,4 +2767,29 @@ Here is the technical brief for user story US-341.
 *   `offline.html` must be 100% self-contained. Any image references (like a logo) must also be part of the pre-cached assets, or they will not load.
 *   Forgetting to update the `CACHE_NAME` is a common error that will prevent the new service worker from activating.
 *   The fetch handler logic must correctly differentiate between navigation requests and other asset requests (e.g., API calls, images) to only serve the HTML page for navigations.
+
+
+
+## Pre-analysis for US-341 (Gemini 2.5 Pro)
+### **Technical Brief: US-341 PWA Offline Fallback**
+
+**Correction:** This user story is for a frontend Progressive Web App (PWA), not a Frappe/Python backend task. The work involves JavaScript and HTML, not Python.
+
+**1. Files to Modify:**
+*   `public/sw.js` (Service Worker script)
+*   `public/offline.html` (New file to be created)
+
+**2. Involved Frappe/Backend Components:**
+*   None. This is a client-side implementation.
+
+**3. Recommended Implementation Approach:**
+*   Create a new, self-contained `public/offline.html` file. It should have inline CSS for styling to avoid external network requests. Include the cafe branding, logo, and the required multilingual text.
+*   In `public/sw.js`, find the `CACHE_NAME` constant and increment its version string (e.g., `'v1'` to `'v2'`) to force a service worker update on clients.
+*   Add the path `/offline.html` to the list of assets to be pre-cached during the `install` event (likely an array named `SHELL_URLS`).
+*   In the `fetch` event listener, locate the `catch` block that handles failed network requests for navigations. Modify it to return the pre-cached offline page using `caches.match('/offline.html')`.
+
+**4. Gotchas & Edge Cases:**
+*   Ensure the offline page logic is only triggered for navigation requests (`event.request.mode === 'navigate'`) to avoid breaking API or image fetches.
+*   The `offline.html` page must be dependency-free. All required CSS should be inlined, and any images should be embedded (e.g., as data URIs) or confirmed to be in the shell cache.
+*   Forgetting to update the `CACHE_NAME` is a common error that will prevent the new service worker from activating.
 

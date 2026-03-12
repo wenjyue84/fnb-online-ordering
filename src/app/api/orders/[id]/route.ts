@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import sql from "@/lib/db";
+import { getSiteSettings } from "@/lib/site-settings";
 
 export const runtime = "nodejs";
 
@@ -28,12 +29,21 @@ export async function GET(
     }
 
     const row = rows[0];
+    const ageMs = Date.now() - new Date(row.created_at as string).getTime();
+    const { orderExpiryMinutes } = await getSiteSettings();
+    const expiryMs = orderExpiryMinutes * 60 * 1000;
+
+    // Auto-expire pending_approval orders older than the configured threshold
+    if (row.status === 'pending_approval' && ageMs > expiryMs) {
+      await sql`UPDATE tray_orders SET status = 'expired' WHERE id = ${orderId}`;
+      return NextResponse.json(
+        { id: row.id, status: 'expired', createdAt: row.created_at },
+        { headers: { "Cache-Control": "no-store" } }
+      );
+    }
 
     // Auto-expire approved orders with no payment after 30 minutes
-    if (
-      row.status === 'approved' &&
-      Date.now() - new Date(row.created_at as string).getTime() > 30 * 60 * 1000
-    ) {
+    if (row.status === 'approved' && ageMs > 30 * 60 * 1000) {
       await sql`UPDATE tray_orders SET status = 'expired' WHERE id = ${orderId}`;
       return NextResponse.json(
         { id: row.id, status: 'expired', createdAt: row.created_at },

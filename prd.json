@@ -963,7 +963,7 @@
         "Add database indexes on orders table for admin dashboard queries"
       ],
       "estimatedComplexity": "medium",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-341",
