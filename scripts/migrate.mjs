@@ -125,7 +125,7 @@ async function main() {
 
   for (const m of migrations) {
     try {
-      await sql(m.sql);
+      await sql.query(m.sql);
       console.log(`  ✓ ${m.name}`);
     } catch (err) {
       console.error(`  ✗ ${m.name}: ${err.message}`);
@@ -135,7 +135,7 @@ async function main() {
 
   // Cleanup: remove stale rate_limit_log entries (> 2 days old)
   try {
-    await sql("DELETE FROM rate_limit_log WHERE window_start < NOW() - INTERVAL '2 days'");
+    await sql.query("DELETE FROM rate_limit_log WHERE window_start < NOW() - INTERVAL '2 days'");
     console.log("  ✓ rate_limit_log cleanup (stale entries)");
   } catch {
     // Non-fatal — table may be empty
