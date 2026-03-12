@@ -30,6 +30,8 @@ export interface SiteSettings {
   cafeTagline: string;
   cafeNameMs: string;
   cafeNameZh: string;
+  themeColor: string;
+  backgroundColor: string;
 }
 
 export const DEFAULT_SETTINGS: SiteSettings = {
@@ -66,4 +68,6 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   cafeTagline: "Thai Begins, Moments Stay",
   cafeNameMs: "Kafe Kenangan Makan",
   cafeNameZh: "Shi Guang Ji Yi",
+  themeColor: "#b45309",
+  backgroundColor: "#fef9f0",
 };
