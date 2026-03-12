@@ -1,0 +1,3 @@
+timestamp	spiral_iter	ralph_iter	story_id	story_title	status	duration_sec	model	retry_num	commit_sha
+2026-03-12T02:23:08Z	1	1	US-201	Migrate operating hours from JSON to Neon Postgres	keep	217	sonnet	0	55cbc5b2d64182260c3cc5d974772596bbb5cab5
+2026-03-12T02:24:33Z	1	2	US-202	Migrate time slots from JSON to Neon Postgres	discard	74	sonnet	1	
