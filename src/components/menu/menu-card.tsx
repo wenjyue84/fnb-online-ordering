@@ -177,7 +177,7 @@ export function MenuCard({ item, priority = false, isHighlighted = false, isFavo
               >
                 {name}
               </p>
-              {item.code && (
+              {isAdmin && item.code && (
                 <span aria-hidden="true" className="font-mono text-[10px] text-muted-foreground/50 leading-none">
                   {item.code}
                 </span>

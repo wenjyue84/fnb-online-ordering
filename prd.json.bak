@@ -1,0 +1,183 @@
+{
+  "productName": "fnb-online-ordering",
+  "branchName": "feature/iter-02",
+  "overview": "Iteration 2: Complete DB-backed settings migration. Move operating-hours, time-slots, and chat-settings from JSON files to the Neon Postgres site_settings table (reusing the key/JSONB schema from Iteration 1). All getter/setter functions become async. Update every caller. Zero JSON filesystem reads at runtime — Vercel-safe.",
+  "goals": [
+    "Migrate readOperatingHours/writeOperatingHours to async DB-backed (site_settings key: 'operating_hours')",
+    "Migrate readTimeSlots/writeTimeSlots to async DB-backed (site_settings key: 'time_slots')",
+    "Migrate readChatSettings/writeChatSettings to async DB-backed (site_settings key: 'chat')",
+    "Update all callers across route handlers and RSC pages to await the new async functions",
+    "Add a seed verification script and update Vercel deployment notes",
+    "Zero fs.readFileSync/writeFileSync calls for config at runtime after this iteration"
+  ],
+  "userStories": [
+    {
+      "id": "US-201",
+      "title": "Migrate operating hours from JSON to Neon Postgres",
+      "priority": 1,
+      "description": "Make readOperatingHours() and writeOperatingHours() in src/lib/availability.ts async and DB-backed using site_settings WHERE key = 'operating_hours'. Make getOperatingStatus() async. Update all callers.",
+      "acceptanceCriteria": [
+        "readOperatingHours() is now async, reads site_settings WHERE key = 'operating_hours', falls back to DEFAULT_HOURS",
+        "writeOperatingHours() is now async, upserts into site_settings WHERE key = 'operating_hours'",
+        "getOperatingStatus() is now async (awaits readOperatingHours internally)",
+        "src/app/api/admin/operating-hours/route.ts: GET returns await readOperatingHours(), POST awaits writeOperatingHours()",
+        "src/app/[locale]/layout.tsx line ~112: const opStatus = isAdmin ? 'open' : await getOperatingStatus()",
+        "No fs.readFileSync or fs.writeFileSync calls remain in availability.ts",
+        "npm run build passes with no TypeScript errors"
+      ],
+      "technicalNotes": [
+        "Use sql from @/lib/db (same pattern as site-settings.ts after US-103)",
+        "DB query: SELECT value FROM site_settings WHERE key = 'operating_hours'",
+        "Upsert: INSERT INTO site_settings ... ON CONFLICT (key) DO UPDATE",
+        "DEFAULT_HOURS fallback if row not found or DB error",
+        "getOperatingStatus() in availability.ts calls readOperatingHours() — must await it",
+        "layout.tsx is an async RSC — await is valid there",
+        "operating-hours/route.ts is already async — just add await to both GET and POST calls",
+        "Remove 'import fs from \"fs\"' and 'import path from \"path\"' from availability.ts after migration",
+        "Keep OperatingHoursConfig interface and DEFAULT_HOURS constant unchanged"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-202",
+      "title": "Migrate time slots from JSON to Neon Postgres",
+      "priority": 1,
+      "description": "Make readTimeSlots() and writeTimeSlots() in src/lib/time-slots.ts async and DB-backed using site_settings WHERE key = 'time_slots'. Make getServingNowCategories() and getDefaultCategoryForTime() async. Update all callers.",
+      "acceptanceCriteria": [
+        "readTimeSlots() is now async, reads site_settings WHERE key = 'time_slots', falls back to DEFAULT_TIME_SLOTS",
+        "writeTimeSlots() is now async, upserts into site_settings WHERE key = 'time_slots'",
+        "getActiveSlot() is now async (awaits readTimeSlots internally)",
+        "getDefaultCategoryForTime() is now async",
+        "getServingNowCategories() is now async",
+        "src/app/api/admin/time-slots/route.ts: GET awaits readTimeSlots(), POST awaits writeTimeSlots()",
+        "src/app/[locale]/menu/page.tsx line ~55: const servingNowCategories = await getServingNowCategories(previewTime)",
+        "No fs.readFileSync or fs.writeFileSync calls remain in time-slots.ts",
+        "npm run build passes with no TypeScript errors"
+      ],
+      "technicalNotes": [
+        "Use sql from @/lib/db (same pattern as availability.ts after US-201)",
+        "DB query: SELECT value FROM site_settings WHERE key = 'time_slots'",
+        "Upsert: INSERT INTO site_settings ... ON CONFLICT (key) DO UPDATE",
+        "DEFAULT_TIME_SLOTS fallback if row not found or DB error",
+        "getActiveSlotForTime() is an internal helper — it calls readTimeSlots(); make it async too",
+        "getActiveSlot() calls getActiveSlotForTime() — make it async, awaits the helper",
+        "getDefaultCategoryForTime() calls getActiveSlotForTime() — make async",
+        "getServingNowCategories() calls getActiveSlot() — make async",
+        "menu/page.tsx is an async RSC — await is valid",
+        "Remove existsSync, readFileSync, writeFileSync, mkdirSync imports from time-slots.ts",
+        "Keep TimeSlot, TimeSlotsConfig interfaces and DEFAULT_TIME_SLOTS unchanged",
+        "getMalaysiaTimeString() and getMalaysiaTime() are pure date/time utils — leave them sync"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-203",
+      "title": "Migrate chat settings from JSON to Neon Postgres",
+      "priority": 1,
+      "description": "Make readChatSettings() and writeChatSettings() in src/lib/chat/settings.ts async and DB-backed using site_settings WHERE key = 'chat'. Update all callers: chat-settings route, ai-waiter status route, chat route, and chat-settings admin page.",
+      "acceptanceCriteria": [
+        "readChatSettings() is now async, reads site_settings WHERE key = 'chat', falls back to DEFAULT_SETTINGS",
+        "writeChatSettings() is now async, upserts into site_settings WHERE key = 'chat'",
+        "src/app/api/admin/chat-settings/route.ts: GET awaits readChatSettings(), POST awaits readChatSettings() and writeChatSettings()",
+        "src/app/admin/chat-settings/page.tsx: const settings = await readChatSettings()",
+        "src/app/api/admin/ai-waiter/status/route.ts: const settings = await readChatSettings()",
+        "src/app/api/chat/route.ts line ~53: const settings = await readChatSettings()",
+        "src/lib/chat/system-prompt.ts: readChatSettings() call is awaited (getSystemPrompt() is already async)",
+        "No fs.readFileSync, existsSync, writeFileSync, mkdirSync calls remain in chat/settings.ts",
+        "npm run build passes with no TypeScript errors"
+      ],
+      "technicalNotes": [
+        "Use sql from @/lib/db",
+        "DB query: SELECT value FROM site_settings WHERE key = 'chat'",
+        "Upsert: INSERT INTO site_settings ... ON CONFLICT (key) DO UPDATE",
+        "DEFAULT_SETTINGS fallback: { systemPromptPrefix: '', model: 'groq', temperature: 0.7 }",
+        "chat-settings/page.tsx is a server component — await is valid there",
+        "ai-waiter/status/route.ts is async — just add await",
+        "chat/route.ts is async — just add await to readChatSettings()",
+        "system-prompt.ts getSystemPrompt() is already async — add await to readChatSettings()",
+        "Remove existsSync, readFileSync, writeFileSync, mkdirSync imports from chat/settings.ts",
+        "Keep ChatSettings interface and DEFAULT_SETTINGS constant unchanged",
+        "Ensure table creation is idempotent (CREATE TABLE IF NOT EXISTS runs in readChatSettings)"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-204",
+      "title": "Add seed verification script to confirm all DB keys are seeded",
+      "priority": 2,
+      "description": "Create scripts/verify-seed.mjs that queries the site_settings table and confirms all 4 required keys (site, operating_hours, chat, time_slots) exist with valid JSON values. Exit 0 if all present, exit 1 with clear error if any missing.",
+      "acceptanceCriteria": [
+        "scripts/verify-seed.mjs queries site_settings for all 4 keys",
+        "Prints PASS: All 4 settings keys present in DB when all exist",
+        "Prints MISSING: [key] when a key is absent, lists all missing keys, exits 1",
+        "Loads DATABASE_URL from .env.local if present (same pattern as seed-settings.mjs)",
+        "npm run build passes"
+      ],
+      "technicalNotes": [
+        "Use neon() from @neondatabase/serverless with DATABASE_URL",
+        "Load .env.local manually (same dotenv pattern as scripts/seed-settings.mjs)",
+        "Query: SELECT key FROM site_settings WHERE key IN ('site', 'operating_hours', 'chat', 'time_slots')",
+        "Required keys: ['site', 'operating_hours', 'chat', 'time_slots']",
+        "Compare found keys vs required; report missing"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-205",
+      "title": "Add Vercel deployment checklist (DEPLOYMENT.md)",
+      "priority": 2,
+      "description": "Create DEPLOYMENT.md documenting all required env vars, the one-time DB seed command, and deployment steps for Vercel. Also verify .vercel/project.json exists (or note it is absent).",
+      "acceptanceCriteria": [
+        "DEPLOYMENT.md exists at project root",
+        "Lists all required env vars from .env.example with descriptions",
+        "Documents the one-time seed command: node scripts/seed-settings.mjs",
+        "Documents the seed verification command: node scripts/verify-seed.mjs",
+        "Notes that data/*.json files are no longer read at runtime — DB is authoritative",
+        "npm run build passes"
+      ],
+      "technicalNotes": [
+        "DEPLOYMENT.md is a markdown file — no code changes needed",
+        "Reference all env vars from .env.example",
+        "Include section: Pre-deployment Steps (seed DB, verify seed)",
+        "Include section: Env Vars (table with var name, purpose, required/optional)",
+        "Include note: data/*.json files are seed sources only; delete-safe after seeding"
+      ],
+      "dependencies": ["US-204"],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-206",
+      "title": "Add unit tests for async DB-backed settings getters",
+      "priority": 2,
+      "description": "Add unit tests in src/tests/unit/ that verify the DEFAULT_SETTINGS, DEFAULT_HOURS, and DEFAULT_TIME_SLOTS fallback constants have the expected shapes. These are pure data tests — no DB connection needed.",
+      "acceptanceCriteria": [
+        "src/tests/unit/settings-defaults.test.ts exists with ≥ 6 tests",
+        "Tests cover: DEFAULT_SETTINGS has required keys, DEFAULT_HOURS has correct hour fields, DEFAULT_TIME_SLOTS has 3 slots",
+        "Tests do NOT import sql or make DB calls — test the exported constants only",
+        "npm run test exits 0 with ≥ 14 total passing tests (8 from US-106 + 6 new)",
+        "npm run build passes"
+      ],
+      "technicalNotes": [
+        "Import DEFAULT_SETTINGS from @/lib/chat/settings",
+        "Import DEFAULT_HOURS from @/lib/availability",
+        "Import DEFAULT_TIME_SLOTS from @/lib/time-slots",
+        "These are plain objects — no async/await needed in tests",
+        "Test that DEFAULT_SETTINGS.model is 'groq', temperature is 0.7",
+        "Test that DEFAULT_HOURS.openHour is 11, closeHour is 23",
+        "Test that DEFAULT_TIME_SLOTS.slots has length 3 and each has id/label/defaultCategory"
+      ],
+      "dependencies": ["US-201", "US-202", "US-203"],
+      "estimatedComplexity": "small",
+      "passes": false
+    }
+  ]
+}

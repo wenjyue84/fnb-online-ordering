@@ -49,17 +49,19 @@ function buildPhotosCache(): { primary: Record<string, string>; secondary: Recor
         continue;
       }
 
-      // Primary descriptive: {code}-{name-starting-with-non-digit}.ext
-      const descMatch = file.match(/^([^-]+)-([^0-9].+)\.(jpe?g|png|webp)$/i);
+      // Primary descriptive: {POS-code}-{name-starting-with-non-digit}.ext
+      // POS codes are short uppercase + digits (e.g. TM03, AC01, LL13) — strict match
+      // prevents misidentifying codes with hyphens (e.g. Thai-styled_green_cu.jpg)
+      const descMatch = file.match(/^([A-Z]{2,4}\d{1,3})-([^0-9].+)\.(jpe?g|png|webp)$/i);
       if (descMatch) {
-        const code = descMatch[1];
+        const code = descMatch[1].toUpperCase();
         const ext = file.split(".").pop()!.toLowerCase();
         if (!primaryDesc[code] || ext === "webp") primaryDesc[code] = `/images/menu/${file}`;
         continue;
       }
 
-      // Primary exact: {code}.ext  (no hyphen slug)
-      const exactMatch = file.match(/^([^-]+)\.(jpe?g|png|webp)$/i);
+      // Primary exact: {code}.ext — code may contain hyphens/underscores
+      const exactMatch = file.match(/^(.+)\.(jpe?g|png|webp)$/i);
       if (exactMatch) {
         const code = exactMatch[1];
         const ext = file.split(".").pop()!.toLowerCase();
