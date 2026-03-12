@@ -20,6 +20,7 @@ export interface AdminOrder {
   estimated_ready: string | null;
   rejection_reason: string | null;
   payment_screenshot_url: string | null;
+  notification_status: string | null;
   created_at: string;
 }
 

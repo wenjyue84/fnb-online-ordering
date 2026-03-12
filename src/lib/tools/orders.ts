@@ -2,6 +2,7 @@ import sql from "@/lib/db";
 import { OrderSubmitSchema } from "@/lib/schemas/order";
 import webpush from "web-push";
 import { getSiteSettings } from "@/lib/site-settings";
+import { sendOrderWhatsAppNotification } from "@/lib/notifications";
 
 // Configure VAPID — only if keys are present
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -122,11 +123,26 @@ export async function submitOrderHandler(args: {
     RETURNING id
   `;
 
+  const orderId = rows[0].id as number;
+
   void sendPushToAllAdmins(items.length, total);
+
+  // Fire-and-forget WhatsApp notification with retry
+  void sendOrderWhatsAppNotification({
+    orderId,
+    items: items.map((item) => ({
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price,
+    })),
+    total,
+    contactNumber: phone,
+    estimatedArrival: new Date(arrival).toISOString(),
+  });
 
   return JSON.stringify({
     ok: true,
-    orderId: rows[0].id,
+    orderId,
     message: "Order submitted! The cafe will review it shortly.",
   });
 }

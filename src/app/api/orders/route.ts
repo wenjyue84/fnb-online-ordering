@@ -4,6 +4,7 @@ import webpush from "web-push";
 import { createRateLimiter } from "@/lib/chat/rate-limit";
 import { OrderSubmitSchema } from "@/lib/schemas/order";
 import { getSiteSettings } from "@/lib/site-settings";
+import { sendOrderWhatsAppNotification } from "@/lib/notifications";
 
 // 5 orders per hour per IP
 const ordersRateLimiter = createRateLimiter({
@@ -105,6 +106,7 @@ export async function POST(request: NextRequest) {
         estimated_ready        TIMESTAMPTZ,
         rejection_reason       TEXT,
         payment_screenshot_url TEXT,
+        notification_status    TEXT NOT NULL DEFAULT 'pending',
         created_at             TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `;
@@ -115,6 +117,7 @@ export async function POST(request: NextRequest) {
     await sql`ALTER TABLE tray_orders ADD COLUMN IF NOT EXISTS estimated_ready TIMESTAMPTZ`;
     await sql`ALTER TABLE tray_orders ADD COLUMN IF NOT EXISTS rejection_reason TEXT`;
     await sql`ALTER TABLE tray_orders ADD COLUMN IF NOT EXISTS payment_screenshot_url TEXT`;
+    await sql`ALTER TABLE tray_orders ADD COLUMN IF NOT EXISTS notification_status TEXT NOT NULL DEFAULT 'pending'`;
 
     const rows = await sql`
       INSERT INTO tray_orders (items, total, status, contact_number, estimated_arrival)
@@ -128,10 +131,25 @@ export async function POST(request: NextRequest) {
       RETURNING id, created_at
     `;
 
+    const orderId = rows[0].id as number;
+
     // Fire-and-forget push notification to all subscribed admins
     void sendPushToAllAdmins(items.length, total);
 
-    return NextResponse.json({ ok: true, id: rows[0].id }, { status: 201 });
+    // Fire-and-forget WhatsApp notification with retry (updates notification_status in DB)
+    void sendOrderWhatsAppNotification({
+      orderId,
+      items: items.map((item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+      })),
+      total,
+      contactNumber: normalizedPhone,
+      estimatedArrival: arrivalTime.toISOString(),
+    });
+
+    return NextResponse.json({ ok: true, id: orderId }, { status: 201 });
   } catch (err) {
     console.error("[POST /api/orders]", err);
     return NextResponse.json({ error: "Failed to save order" }, { status: 500 });

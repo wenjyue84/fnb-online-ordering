@@ -1796,3 +1796,64 @@ This user story is for a Next.js/React application, not a Frappe/Python one. How
     *   **Font Management:** Font files must be included in the app's `public` assets and loaded with a full path.
     *   **Security:** Ensure the endpoint properly validates `doc_name` to prevent unauthorized access or server-side request forgery (SSRF).
 
+## Iteration 2 - Thu, Mar 12, 2026  3:14:23 PM
+Incomplete: Implement dynamic og:image generation per locale using Next.js ImageResponse (ID: US-324) — attempt 2/3
+
+
+## Iteration — Story: US-320 - Add WhatsApp notification delivery retry with exponential backoff
+
+### What was implemented
+- Created `src/lib/notifications.ts` with:
+  - `withRetry<T>(fn, opts)` — generic async retry helper with exponential backoff (1s, 2s, 4s)
+  - `sendOrderWhatsAppNotification(payload)` — sends formatted WhatsApp message to waiter via WHATSAPP_API_URL, retries 3x, updates `notification_status` column in DB
+- Added `notification_status TEXT NOT NULL DEFAULT 'pending'` column to `tray_orders` DDL (both CREATE TABLE and ALTER TABLE IF NOT EXISTS)
+- Updated `POST /api/orders` route to fire-and-forget WhatsApp notification after order save
+- Updated `src/lib/tools/orders.ts` (AI tool) to also send WhatsApp notification on order submission
+- Added `notification_status` to admin orders GET query and `AdminOrder` TypeScript interface
+- Added red "WA Failed" warning badge with AlertTriangle icon in `AdminOrderCard` when `notification_status === 'failed'`
+- Added 7 unit tests in `src/tests/unit/notifications.test.ts` covering: success, retry-then-success, exhaustion, exponential backoff timing, defaults, single-attempt
+
+### Patterns discovered
+- `@/lib/db` imports `server-only` — unit tests must `vi.mock("@/lib/db")` before importing any module that chains to it
+- Fake timers + `mockRejectedValue` creates unhandled rejection warnings in Vitest — use real timers with small delays for exhaustion tests, or `mockImplementation` with sync throws
+- Linter auto-saves may revert in-memory edits; always verify file state after editing
+
+### Gotchas
+- WhatsApp env vars (`WHATSAPP_API_URL`, `WHATSAPP_API_KEY`, `WAITER_WHATSAPP_NUMBER`) must be set in `.env.local` for notifications to fire; without them the status is set to 'skipped'
+- The notification is fire-and-forget (non-blocking) — the order response returns immediately regardless of notification outcome
+
+## Pre-analysis for US-324 (Gemini 2.5 Pro)
+This technical brief is for a **Next.js/TypeScript** implementation, as the user story details a Next.js feature, not a Frappe/Python one.
+
+**Subject: Technical Brief for US-324: Dynamic OG Image Generation**
+
+**1. Core Files to Modify/Create:**
+
+*   **Create:** `src/app/[locale]/blog/[slug]/opengraph-image.tsx`
+    *   This file will dynamically generate OG images for individual blog posts.
+*   **Create:** `src/app/[locale]/menu/opengraph-image.tsx`
+    *   This file will generate the OG image for the main menu page.
+*   **Verify:** `src/app/[locale]/layout.tsx`
+    *   Ensure the `metadata` object in the root layout defines a static fallback `og:image` for all other pages.
+
+**2. Key Framework Features:**
+
+*   **Next.js App Router:** The implementation relies on the file-based `opengraph-image.tsx` convention.
+*   **`next/og` ImageResponse:** This is the core constructor for generating the image using JSX and CSS. It runs in an edge environment.
+*   **Internationalization (i18n):** The `[locale]` dynamic segment is critical for fetching and rendering localized content (post titles, cafe name).
+
+**3. Recommended Implementation Approach:**
+
+1.  In `src/app/[locale]/blog/[slug]/opengraph-image.tsx`, export an async function that accepts `{ params: { slug, locale } }`.
+2.  Inside, fetch the specific blog post's data (especially the title) and the global cafe name, using the `locale`.
+3.  Fetch a web font (e.g., .ttf, .otf) as an `ArrayBuffer` to embed it.
+4.  Return a new `ImageResponse`, passing a JSX template with the post title and cafe name. Style it using Tailwind/inline styles to match the 1200x630px dimension.
+5.  Repeat the process for `src/app/[locale]/menu/opengraph-image.tsx`, using static text like "Menu" instead of fetching a post title.
+
+**4. Edge Cases & Gotchas:**
+
+*   **Font Loading:** `next/font` cannot be used. Fonts must be fetched and passed as an `ArrayBuffer` in the `ImageResponse` options.
+*   **Edge Compatibility:** Data fetching within `opengraph-image.tsx` must use edge-compatible libraries/APIs (e.g., `fetch`).
+*   **Text Overflow:** Long post titles may not fit. Implement text truncation or dynamic font sizing to prevent overflow.
+*   **Error Handling:** Next.js should automatically fall back to the parent layout's OG image on error, but explicitly test this by simulating a data fetch failure.
+
