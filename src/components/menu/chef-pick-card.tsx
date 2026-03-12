@@ -127,7 +127,7 @@ export function ChefPickCard({ item, priority = false, compact = false, isAdmin 
           {hasPhoto ? (
             <Image
               src={imgSrc}
-              alt={name}
+              alt={item.categories[0] ? `${name} — ${item.categories[0]}` : name}
               fill
               className="object-cover img-scale"
               style={{ objectPosition: imagePosition }}

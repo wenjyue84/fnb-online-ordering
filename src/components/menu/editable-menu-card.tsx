@@ -185,7 +185,7 @@ export function EditableMenuCard({
           {hasPhoto ? (
             <Image
               src={imgSrc}
-              alt={name}
+              alt={localItem.categories[0] ? `${name} — ${localItem.categories[0]}` : name}
               fill
               className={cn("object-cover img-scale transition-[filter]", !localItem.available && "grayscale")}
               style={{ objectPosition: imagePosition }}

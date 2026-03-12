@@ -1369,3 +1369,55 @@ This user story is for a React/Next.js frontend using `shadcn/ui`, not a Frappe/
 
 ### Gotchas
 - The eslint-disable for jsx-a11y/no-noninteractive-element-interactions was unnecessary since role="dialog" makes the element interactive — removing it fixed a lint warning
+## Iteration 7 - Thu, Mar 12, 2026  1:28:26 PM
+Completed: Add ARIA labels and keyboard navigation to the tray widget and order form modal (ID: US-313) in 7m
+
+
+## Pre-analysis for US-314 (Gemini 2.5 Pro)
+### Technical Brief for AI Agent: US-314 Alt Text Implementation
+
+**Project:** fnb-online-ordering (Next.js/React)
+**Objective:** Implement descriptive alt text for menu item images to meet WCAG 2.1 SC 1.1.1.
+
+**1. Primary Files for Modification:**
+*   `src/types/menu.ts`: To update the `MenuItem` type definition.
+*   `src/components/menu/MenuCard.tsx`: Main component for an individual menu item.
+*   `src/components/menu/ChefPickCard.tsx` (or similar for featured items): Component for highlighted/special items.
+*   A relevant Vitest test file (e.g., `src/components/menu/Menu.spec.tsx` or similar) for the accessibility check.
+
+**2. Involved Framework Constructs:**
+*   **React Components:** `MenuCard`, `ChefPickCard`, Next.js `<Image>`.
+*   **React Hooks:** `useLocale()` or a similar hook/prop for getting the current language ('en', 'ms', 'zh').
+*   **Data Types:** `MenuItem`.
+
+**3. Recommended Implementation Approach:**
+1.  Modify the `MenuItem` type in `src/types/menu.ts` to include optional `nameMs` and `nameZh` string fields.
+2.  In both `MenuCard.tsx` and `ChefPickCard.tsx`, use the `useLocale()` hook to get the active locale.
+3.  Dynamically generate the `alt` text string based on the format `'{itemName} — {itemCategory}'`.
+4.  Implement logic to select the correct `itemName`: use the locale-specific name if it exists (e.g., `item.nameMs` for 'ms' locale), otherwise default to `item.nameEn`.
+5.  Pass the generated string to the `alt` prop of the Next.js `<Image>` component.
+6.  Ensure any purely decorative images in these components have `alt=""`.
+
+**4. Edge Cases & Gotchas:**
+*   **Data Dependency:** The data source providing `MenuItem` objects must be updated to include the new `nameMs` and `nameZh` fields. The frontend changes will not work without this.
+*   **Category Translation:** The acceptance criteria format includes `{itemCategory}`. Verify if the category also needs translation or if using a default/English value is acceptable.
+*   **Testing:** Add a Vitest test using `@axe-core/react` to automatically scan the rendered menu page and assert there are no `image-alt` accessibility violations.
+
+
+## Iteration - Story: US-314 — Ensure all menu item images have descriptive alt text
+
+### What was implemented
+- menu-card.tsx: Updated both ImageCarousel and single Image alt text from `{name}` to `{name} — {category}` using `item.categories[0]` (fallback: just `{name}` if no category)
+- chef-pick-card.tsx: Updated Image alt text with same pattern
+- editable-menu-card.tsx: Updated admin edit card Image alt text with same pattern
+- MenuItem type already had nameMs and nameZh fields — no type changes needed
+- getLocalizedName() already handles locale fallback (zh→nameZh||nameEn, ms→nameMs||nameEn, default→nameEn)
+
+### Patterns discovered
+- `item.categories[]` holds POS category strings (e.g. "Rice", "Noodles") — `categories[0]` is the primary category
+- The `—` em dash separator in alt text matches the acceptance criteria format exactly
+- ImageCarousel receives alt as a prop — updated at the call site in MenuCard
+
+### Gotchas
+- prd.json requires UTF-8 encoding flag in Python (has non-ASCII chars from acceptance criteria)
+- Pre-existing lint warnings (menu-grid.tsx unused var, menu.ts unused func) — not related to this story

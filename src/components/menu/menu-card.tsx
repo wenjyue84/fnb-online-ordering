@@ -87,7 +87,7 @@ export function MenuCard({ item, priority = false, isHighlighted = false, isFavo
             item.photos && item.photos.length > 1 ? (
               <ImageCarousel
                 photos={item.photos}
-                alt={name}
+                alt={item.categories[0] ? `${name} — ${item.categories[0]}` : name}
                 priority={priority}
                 imagePosition={item.imagePosition}
                 version={imgVersion || undefined}
@@ -96,7 +96,7 @@ export function MenuCard({ item, priority = false, isHighlighted = false, isFavo
             ) : (
               <Image
                 src={`${item.photo}${imgVersion ? `?v=${imgVersion}` : ""}`}
-                alt={name}
+                alt={item.categories[0] ? `${name} — ${item.categories[0]}` : name}
                 fill
                 className="object-cover img-scale"
                 style={{ objectPosition: item.imagePosition || "50% 50%" }}
