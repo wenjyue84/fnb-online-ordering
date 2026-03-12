@@ -6,7 +6,7 @@
     "dev": "next dev --port 3031",
     "dev:portless": "NEXT_TELEMETRY_DISABLED=1 NEXT_DIST_DIR=/tmp/fnb-ordering-next portless --app-port 3031 fnb-ordering next dev --port 3031",
     "build": "next build",
-    "postbuild": "next-sitemap",
+    "postbuild": "echo 'Sitemap generated dynamically by src/app/sitemap.ts'",
     "start": "next start",
     "test": "vitest run",
     "lint": "eslint",

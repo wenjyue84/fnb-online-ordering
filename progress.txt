@@ -1525,3 +1525,59 @@ This user story is for a **Next.js/TypeScript** project, not Frappe/Python. Here
 ## Iteration 10 - Thu, Mar 12, 2026  1:46:48 PM
 Incomplete: Implement dynamic og:image generation per locale using Next.js ImageResponse (ID: US-324) — attempt 1/3
 
+
+## Pre-analysis for US-324 (Gemini 2.5 Pro)
+This user story is for a **Next.js/TypeScript** application, not Frappe/Python. The implementation will be entirely on the frontend.
+
+Here is the technical brief based on the Next.js stack described:
+
+**Technical Brief: US-324 Dynamic OG Images**
+
+1.  **Files to Modify/Create:**
+    *   **Create:** `src/app/[locale]/blog/[slug]/opengraph-image.tsx`
+    *   **Create:** `src/app/[locale]/menu/opengraph-image.tsx`
+    *   **Verify:** `src/app/[locale]/layout.tsx` (to confirm the root static `og:image` fallback exists).
+
+2.  **Framework APIs Involved:**
+    *   Next.js File-based Metadata: `opengraph-image.tsx` convention.
+    *   Next.js API: `ImageResponse` from `next/og`.
+    *   Next.js Data Fetching: `fetch` within the `generateImageMetadata` function.
+
+3.  **Implementation Approach:**
+    *   In `opengraph-image.tsx` for the blog, export an async function that receives `params` (locale, slug).
+    *   Fetch the blog post title and site name based on the slug and locale.
+    *   Fetch a suitable font file (e.g., a `.ttf` from the `/public` directory) as an `ArrayBuffer`.
+    *   Return a new `ImageResponse`, using JSX to layout the post title and site name. Style with inline styles (e.g., `display: 'flex'`).
+    *   Set the response size to 1200x630 and pass the loaded font data.
+    *   Repeat the process for the menu page, but with static text like "Menu".
+
+4.  **Gotchas & Edge Cases:**
+    *   **Runtime:** `ImageResponse` runs on the Edge; it cannot use Node.js-specific APIs.
+    *   **Fonts:** `next/font` is not compatible. Fonts must be fetched and passed as an ArrayBuffer.
+    *   **Error Handling:** If data fetching fails, Next.js should automatically traverse up to the root layout's `og:image`. The static fallback in `layout.tsx` is critical.
+    *   **Caching:** The image's cache lifetime will mirror the page's `revalidate` setting.
+
+
+## Iteration 3 - Story: US-316 - Generate sitemap dynamically from the database for menu and blog pages
+
+### What was implemented
+- Created `src/app/sitemap.ts` using Next.js native sitemap convention
+  - Static routes: home (1.0), menu (0.9), blog listing (0.8), about (0.7), contact (0.7)
+  - Dynamic blog entries from Neon Postgres (`blog_posts` table) with `published_at` as lastmod
+  - Local markdown blog posts from `content/blog/*.md`
+  - Deduplication: DB slugs take priority over local slugs
+  - hreflang alternateRefs for all 3 locales (en, ms, zh) on every entry
+  - ISR with `revalidate = 86400` (daily refresh)
+- Created `src/app/robots.ts` — disallows `/api/` and `/admin/`, points to sitemap
+- Removed static `public/sitemap.xml` and `public/robots.txt` (replaced by dynamic routes)
+- Changed `postbuild` script to no-op (next-sitemap no longer needed at build time)
+- Kept `next-sitemap.config.js` in place as documentation reference
+
+### Patterns discovered
+- Next.js App Router `sitemap.ts` generates `/sitemap.xml` dynamically and takes precedence over `public/sitemap.xml`
+- Blog posts have `published_at` and `created_at` but no `updated_at` column — used `published_at` for lastmod
+- `getLocalSlugs()` from `src/lib/blog-local.ts` provides slugs for local markdown posts
+
+### Gotchas
+- Static files in `public/` would conflict with dynamic `sitemap.ts`/`robots.ts` routes — must remove them
+- The `postbuild` script runs `next-sitemap` which regenerates static files — had to disable it
