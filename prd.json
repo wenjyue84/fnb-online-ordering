@@ -139,7 +139,7 @@
         "npm run lint passes"
       ],
       "technicalNotes": [
-        "Only remove the CAFE export — keep SPECIAL_DISPLAY_CATEGORIES (used by menu filter) and MENU_CATEGORIES (used for POS section grouping)",
+        "Only remove the CAFE export â€” keep SPECIAL_DISPLAY_CATEGORIES (used by menu filter) and MENU_CATEGORIES (used for POS section grouping)",
         "Search for any remaining CAFE. references before deleting: grep -r 'CAFE\\.' src/",
         "Pre-existing uncommitted changes in menu-card.tsx: stage and commit these before or as part of this story",
         "After removing CAFE from constants.ts, run npm run build to catch any missed references"
@@ -150,7 +150,7 @@
         "US-304"
       ],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-306",
