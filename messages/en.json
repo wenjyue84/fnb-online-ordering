@@ -257,5 +257,18 @@
     "cookiesDesc": "Our website uses browser local storage to save your order history and tray contents for your convenience. No tracking cookies are used for advertising purposes.",
     "changesTitle": "Changes to This Policy",
     "changesDesc": "We may update this privacy policy from time to time. Any changes will be posted on this page with an updated revision date."
+  },
+  "orderSuccess": {
+    "title": "Order Received!",
+    "subtitle": "{count} item(s) · {total}",
+    "step_received": "Received",
+    "step_confirmed": "Confirmed",
+    "step_preparing": "Preparing",
+    "step_ready": "Ready",
+    "trackOrder": "Track My Order",
+    "shareWhatsapp": "Share via WhatsApp",
+    "copyOrderId": "Copy Order ID",
+    "copied": "Copied!",
+    "autoRedirect": "Tracking in {seconds}s"
   }
 }

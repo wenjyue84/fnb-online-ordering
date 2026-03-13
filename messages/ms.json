@@ -257,5 +257,18 @@
     "cookiesDesc": "Laman web kami menggunakan storan tempatan pelayar untuk menyimpan sejarah pesanan dan kandungan tray anda. Tiada kuki penjejakan digunakan untuk tujuan pengiklanan.",
     "changesTitle": "Perubahan pada Dasar Ini",
     "changesDesc": "Kami mungkin mengemas kini dasar privasi ini dari semasa ke semasa. Sebarang perubahan akan disiarkan di halaman ini dengan tarikh semakan yang dikemas kini."
+  },
+  "orderSuccess": {
+    "title": "Pesanan Diterima!",
+    "subtitle": "{count} item · {total}",
+    "step_received": "Diterima",
+    "step_confirmed": "Disahkan",
+    "step_preparing": "Disediakan",
+    "step_ready": "Sedia",
+    "trackOrder": "Jejak Pesanan",
+    "shareWhatsapp": "Kongsi via WhatsApp",
+    "copyOrderId": "Salin ID Pesanan",
+    "copied": "Disalin!",
+    "autoRedirect": "Menjejak dalam {seconds}s"
   }
 }

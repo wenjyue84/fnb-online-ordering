@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, X } from "lucide-react";
+import { getAlarmManager } from "@/lib/alarm-manager";
+import { AlarmControls } from "@/components/shared/alarm-controls";
 
 interface TrayOrderItem {
   id: string;
@@ -90,6 +92,8 @@ export function AdminOrdersBell() {
           itemCount: number;
           createdAt: string;
         };
+        // Play chime for new order
+        getAlarmManager().play("chime");
         // Add synthetic order to state for bell badge
         setOrders((prev) => {
           if (prev.some((o) => o.id === data.id)) return prev;
@@ -109,6 +113,11 @@ export function AdminOrdersBell() {
       } catch {
         // parse error — ignore
       }
+    });
+
+    // Escalation event (US-604) — play urgent alarm
+    es.addEventListener("escalation", () => {
+      getAlarmManager().play("urgent");
     });
 
     es.onerror = () => {
@@ -222,44 +231,48 @@ export function AdminOrdersBell() {
       {/* Dropdown */}
       {open && (
         <div className="absolute right-0 top-full mt-2 w-80 rounded-xl border bg-white shadow-xl z-50 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-gray-900 text-sm">
-                Customer Orders{" "}
-                {pendingCount > 0 && (
-                  <span className="ml-1 inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
-                    {pendingCount} pending
-                  </span>
-                )}
-              </h3>
-              {/* Live/Polling label */}
-              <span
-                className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
-                  connStatus === "live"
-                    ? "bg-green-100 text-green-700"
-                    : connStatus === "polling"
-                      ? "bg-gray-100 text-gray-500"
-                      : "bg-yellow-100 text-yellow-700"
-                }`}
-              >
+          <div className="border-b bg-gray-50 px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-gray-900 text-sm">
+                  Customer Orders{" "}
+                  {pendingCount > 0 && (
+                    <span className="ml-1 inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
+                      {pendingCount} pending
+                    </span>
+                  )}
+                </h3>
+                {/* Live/Polling label */}
                 <span
-                  className={`h-1.5 w-1.5 rounded-full ${
+                  className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
                     connStatus === "live"
-                      ? "bg-green-500"
+                      ? "bg-green-100 text-green-700"
                       : connStatus === "polling"
-                        ? "bg-gray-400"
-                        : "bg-yellow-400"
+                        ? "bg-gray-100 text-gray-500"
+                        : "bg-yellow-100 text-yellow-700"
                   }`}
-                />
-                {connStatus === "live" ? "Live" : connStatus === "polling" ? "Polling" : "…"}
-              </span>
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      connStatus === "live"
+                        ? "bg-green-500"
+                        : connStatus === "polling"
+                          ? "bg-gray-400"
+                          : "bg-yellow-400"
+                    }`}
+                  />
+                  {connStatus === "live" ? "Live" : connStatus === "polling" ? "Polling" : "…"}
+                </span>
+              </div>
+              <button
+                onClick={() => setOpen(false)}
+                className="rounded p-1 hover:bg-gray-200 transition-colors"
+              >
+                <X className="h-4 w-4 text-gray-500" />
+              </button>
             </div>
-            <button
-              onClick={() => setOpen(false)}
-              className="rounded p-1 hover:bg-gray-200 transition-colors"
-            >
-              <X className="h-4 w-4 text-gray-500" />
-            </button>
+            {/* Alarm controls */}
+            <AlarmControls theme="light" className="mt-2" />
           </div>
 
           <div className="max-h-96 overflow-y-auto">

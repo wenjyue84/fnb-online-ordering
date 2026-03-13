@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { getAlarmManager } from "@/lib/alarm-manager";
+import { AlarmControls } from "@/components/shared/alarm-controls";
 
 interface OrderItem {
   id: string;
@@ -80,27 +82,6 @@ function DepositBadge({ order }: { order: KdsOrder }) {
   );
 }
 
-function playNewOrderChime() {
-  try {
-    const ctx = new AudioContext();
-    const t = ctx.currentTime;
-    const freqs = [880, 1100, 1320];
-    freqs.forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(freq, t + i * 0.15);
-      gain.gain.setValueAtTime(0.4, t + i * 0.15);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.15 + 0.4);
-      osc.start(t + i * 0.15);
-      osc.stop(t + i * 0.15 + 0.4);
-    });
-  } catch {
-    // Audio not available in this context
-  }
-}
 
 function CheckCircleIcon({ className }: { className?: string }) {
   return (
@@ -376,7 +357,6 @@ export default function KdsPage() {
   const [completedItems, setCompletedItems] = useState<Map<number, Set<number>>>(new Map());
   const [actingOn, setActingOn] = useState<Set<number>>(new Set());
   const [newOrderIds, setNewOrderIds] = useState<Set<number>>(new Set());
-  const [muted, setMuted] = useState(false);
   const [posMode, setPosMode] = useState<"builtin" | "feedme_manual">("feedme_manual");
 
   const prevOrderIdsRef = useRef<Set<number> | null>(null);
@@ -415,7 +395,7 @@ export default function KdsPage() {
           .filter((id) => !prevOrderIdsRef.current!.has(id));
 
         if (arrivedIds.length > 0) {
-          if (!muted) playNewOrderChime();
+          getAlarmManager().play("chime");
           setNewOrderIds((prev) => {
             const next = new Set(prev);
             arrivedIds.forEach((id) => next.add(id));
@@ -446,7 +426,7 @@ export default function KdsPage() {
     } finally {
       setLoading(false);
     }
-  }, [muted]);
+  }, []);
 
   useEffect(() => {
     fetch("/api/settings")
@@ -538,17 +518,7 @@ export default function KdsPage() {
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => setMuted((m) => !m)}
-            title={muted ? "Unmute alerts" : "Mute alerts"}
-            className={`rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${
-              muted
-                ? "bg-gray-700 text-gray-400 hover:bg-gray-600"
-                : "bg-orange-600 text-white hover:bg-orange-500"
-            }`}
-          >
-            {muted ? "🔇 Muted" : "🔔 Sound On"}
-          </button>
+          <AlarmControls theme="dark" />
           <div className="text-right">
             <p className="text-xs text-gray-500">
               Updated{" "}

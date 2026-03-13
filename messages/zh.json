@@ -257,5 +257,18 @@
     "cookiesDesc": "我们的网站使用浏览器本地存储来保存您的订单历史和托盘内容。不使用任何广告追踪Cookie。",
     "changesTitle": "政策变更",
     "changesDesc": "我们可能会不时更新此隐私政策。任何更改将在此页面发布，并附上更新的修订日期。"
+  },
+  "orderSuccess": {
+    "title": "订单已收到！",
+    "subtitle": "{count} 件商品 · {total}",
+    "step_received": "已收到",
+    "step_confirmed": "已确认",
+    "step_preparing": "准备中",
+    "step_ready": "已就绪",
+    "trackOrder": "追踪订单",
+    "shareWhatsapp": "通过WhatsApp分享",
+    "copyOrderId": "复制订单号",
+    "copied": "已复制！",
+    "autoRedirect": "{seconds}秒后追踪"
   }
 }

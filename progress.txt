@@ -120,11 +120,31 @@ data: {json}
 - GET /api/kds/orders now returns feedme_entered column
 - feedme_entered column: BOOLEAN DEFAULT FALSE on tray_orders (migration in admin orders GET route)
 
+**US-603** — Enhanced Customer Order Submission Success UX
+- OrderSuccessOverlay at src/components/order/order-success-overlay.tsx: full-screen portal with animated checkmark (CSS stroke-dashoffset), order ID, 4-step stepper, WhatsApp share, copy ID, 8s auto-redirect countdown
+- OrderFormModal already imports and shows overlay on step 2 after successful POST /api/orders
+- /order/[id]/page.tsx already has StepBar component for the status page stepper
+- Only missing piece was orderSuccess translation namespace — added to all 3 locale files (en/ms/zh)
+- Keys: title, subtitle, step_received, step_confirmed, step_preparing, step_ready, trackOrder, shareWhatsapp, copyOrderId, copied, autoRedirect
+
+**US-605** — Persistent Alarm Sound System for Staff
+- Created src/lib/alarm-manager.ts: singleton class with play('chime'|'urgent'), stop(), snooze(mins), setMuted(), setVolume(), unlock(), contextState getter
+- Chime: C5 (523Hz) + E5 (659Hz) sine waves, 200ms each, 0.3s gap — plays once
+- Urgent: 880Hz square wave, 3-burst pattern (100ms on/off x3), repeats every 30s via setInterval
+- muted/volume persisted to localStorage (alarm_muted, alarm_volume)
+- Singleton: let instance = null; export getAlarmManager()
+- Created src/components/shared/alarm-controls.tsx: mute toggle + volume slider + snooze (5m countdown) + Enable Sound button when ctx suspended; theme='dark'|'light'
+- Updated kds/page.tsx: removed playNewOrderChime() + muted state; getAlarmManager().play('chime') on new orders; <AlarmControls theme="dark" /> in header
+- Updated admin-orders-bell.tsx: play('chime') on new_order SSE; play('urgent') on escalation SSE; <AlarmControls theme="light"> in dropdown header
+
 ### Key patterns from Iteration 6
 
 - POS page uses direct fetch() instead of useAdminOrders() hook for more control over auth redirect
 - FeedMe entered checkbox handles its own API call inline (not through parent action handlers)
 - posMode fetched once from /api/settings on mount, not re-fetched on refresh
+- When a story component is already implemented but translations are missing, the build succeeds but runtime throws next-intl "Missing message" errors — always check messages/*.json after reading component code
+- AlarmManager: AudioContext created lazily; play() guards on ctx.state === 'running' — silently skips if suspended; show Enable Sound button to call unlock()
+- Removing closure-captured state from useCallback deps: replace with singleton ref (AlarmManager) so the hook never needs to re-create due to state changes
 
 ---
 
@@ -781,4 +801,34 @@ This brief translates the provided Next.js user story into a plan for a Frappe/P
 *   **Kanban State Mapping:** The story requires grouping multiple statuses (`approved`, `preparing`) into a single 'Preparing' column. This may require customizing the Kanban board's generation logic.
 *   **Performance:** The daily summary query on the `Order` table must be efficient. Ensure `creation` and `status` fields are indexed.
 *   **Authentication:** Frappe's standard session management for Pages and DocTypes will handle authentication automatically. No custom JWT logic is needed.
+
+## Iteration 2 - Fri, Mar 13, 2026  9:44:22 AM
+Completed: Built-in Simple POS Dashboard (ID: US-601) in 14m
+
+
+## Pre-analysis for US-603 (Gemini 2.5 Pro)
+This is a Next.js/TypeScript story, not Frappe/Python. Here is the technical brief for implementing US-603:
+
+**1. Files to Modify/Create:**
+*   **Modify:** `src/lib/tray-context.tsx`: Trigger the success UI after the order submission API call.
+*   **Modify:** `src/app/[locale]/order/[id]/page.tsx`: Add the new progress stepper to the existing order status page.
+*   **Modify:** `messages/(en|ms|zh).json`: Add new i18n keys for all user-facing text.
+*   **Create:** `src/components/order/order-success-overlay.tsx`: Build the new full-screen animated success screen.
+*   **Create:** `src/components/order/order-progress-stepper.tsx`: A reusable component to visualize order stages.
+
+**2. Key Next.js/React Concepts Involved:**
+*   **State Management:** Use React Context (`tray-context.tsx`) to hold the `latestOrderStatus` (e.g., `{ success: true, orderId: '...' }`), which triggers the overlay.
+*   **API Route Interaction:** The logic is initiated after a successful `POST` to the `/api/orders` endpoint.
+*   **Component Portals:** Use `createPortal` for the `OrderSuccessOverlay` to ensure it renders above all other page content.
+
+**3. Recommended Implementation Approach:**
+*   In `tray-context.tsx`, on successful order creation, set a global state with the new order ID.
+*   A top-level layout component will listen for this state change and render the `OrderSuccessOverlay` using a portal.
+*   The overlay component will manage its own `useEffect` with an 8-second `setTimeout` for auto-redirecting to the `/order/[id]` page, clearing the timer in its cleanup function.
+*   The `OrderProgressStepper` will accept the current status (`prop: string`) and an object of timestamps to conditionally render styles for 'completed', 'active', and 'pending' steps.
+
+**4. Gotchas to Watch For:**
+*   **State Cleanup:** The global state that triggers the overlay must be reset when the overlay is closed or redirects, to prevent it from reappearing.
+*   **Accessibility:** Use the `@media (prefers-reduced-motion)` query to disable CSS animations for the checkmark and stepper.
+*   **Redirect Race Condition:** The 'Track My Order' button and the auto-redirect timer can conflict. Ensure the `setTimeout` is cleared if the user navigates away manually.
 
