@@ -298,18 +298,7 @@
         "US-605"
       ],
       "estimatedComplexity": "medium",
-      "passes": false,
-      "filesTouch": [
-        "messages/en.json",
-        "messages/ms.json",
-        "messages/zh.json",
-        "prd.json",
-        "progress.txt",
-        "retry-counts.json",
-        "src/app/[locale]/order/[id]/page.tsx",
-        "src/app/api/admin/orders/[id]/route.ts",
-        "src/app/api/orders/[id]/push-subscribe/route.ts"
-      ]
+      "passes": true
     },
     {
       "id": "US-607",

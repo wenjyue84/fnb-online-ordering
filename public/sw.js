@@ -57,13 +57,16 @@ self.addEventListener("push", (event) => {
     // fallback to defaults
   }
 
+  const isUrgent = data.priority === "urgent";
+
   const options = {
     body: data.body,
     icon: "/images/logo.png",
     badge: "/images/logo.png",
-    tag: "new-order",
+    tag: data.tag || "new-order",
     requireInteraction: true,
     data: { url: data.url || "/admin" },
+    ...(isUrgent && { vibrate: [200, 100, 200, 100, 200] }),
   };
 
   event.waitUntil(

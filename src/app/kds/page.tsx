@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { getAlarmManager } from "@/lib/alarm-manager";
 import { AlarmControls } from "@/components/shared/alarm-controls";
+import { InstallPrompt } from "@/components/shared/install-prompt";
+import { StandaloneBadge } from "@/components/shared/standalone-badge";
 
 interface OrderItem {
   id: string;
@@ -548,7 +550,10 @@ export default function KdsPage() {
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-black text-white">Kitchen Display</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-black text-white">Kitchen Display</h1>
+            <StandaloneBadge />
+          </div>
           <p className="text-sm text-gray-400">
             ↻ Auto-refresh every 15s
           </p>
@@ -625,6 +630,8 @@ export default function KdsPage() {
           ))}
         </div>
       )}
+
+      <InstallPrompt />
     </div>
   );
 }

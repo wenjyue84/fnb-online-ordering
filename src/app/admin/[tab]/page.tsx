@@ -4,6 +4,8 @@ import { AdminTabs } from "@/components/admin/admin-tabs";
 import { AdminOrdersBell } from "@/components/admin/admin-orders-bell";
 import { verifyAdminToken, COOKIE_NAME } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/site-settings";
+import { InstallPrompt } from "@/components/shared/install-prompt";
+import { StandaloneBadge } from "@/components/shared/standalone-badge";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -30,7 +32,10 @@ export default async function AdminTabPage({ params }: { params: Promise<{ tab: 
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="border-b bg-white px-4 py-3 flex items-center justify-between gap-2">
-        <h1 className="truncate text-lg font-bold text-gray-900 sm:text-xl">{settings.cafeName} Admin</h1>
+        <div className="flex items-center gap-2 min-w-0">
+          <h1 className="truncate text-lg font-bold text-gray-900 sm:text-xl">{settings.cafeName} Admin</h1>
+          <StandaloneBadge />
+        </div>
         <div className="flex items-center gap-2">
           <AdminOrdersBell />
           <SignOutButton />
@@ -39,6 +44,7 @@ export default async function AdminTabPage({ params }: { params: Promise<{ tab: 
       <main className="mx-auto max-w-7xl px-4 py-8">
         <AdminTabs items={items} displayCategories={displayCategories.filter((dc) => dc.active).map((dc) => dc.name)} posts={posts} />
       </main>
+      <InstallPrompt />
     </div>
   );
 }

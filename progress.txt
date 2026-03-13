@@ -137,6 +137,13 @@ data: {json}
 - Updated kds/page.tsx: removed playNewOrderChime() + muted state; getAlarmManager().play('chime') on new orders; <AlarmControls theme="dark" /> in header
 - Updated admin-orders-bell.tsx: play('chime') on new_order SSE; play('urgent') on escalation SSE; <AlarmControls theme="light"> in dropdown header
 
+**US-606** — Staff Android PWA with Alarm Notifications
+- manifest.webmanifest already had correct content; icons (icon-192.png, icon-512.png) already existed; <link rel="manifest"> already in admin + KDS layouts
+- Created src/components/shared/standalone-badge.tsx: client component, shows "Staff App" badge when window.matchMedia('(display-mode: standalone)').matches
+- Added StandaloneBadge + InstallPrompt to admin [tab]/page.tsx header
+- Added StandaloneBadge + InstallPrompt to kds/page.tsx header (imports added at top)
+- Enhanced public/sw.js push handler: checks data.priority === 'urgent', adds vibrate: [200,100,200,100,200] to notification options for urgent priority pushes; data.tag now forwarded from payload (was hardcoded 'new-order')
+
 **US-604** — 10-Minute Auto-Escalation for Unattended Orders
 - All components already had OVERDUE badges + alarm sounds from prior partial implementation
 - Fixed: admin-orders-bell now calls POST /api/admin/escalation-notify on escalation SSE event (push was never being sent)
@@ -876,4 +883,7 @@ Completed: Enhanced Customer Order Submission Success UX (ID: US-603) in 12m
 
 ## Iteration 1 - Fri, Mar 13, 2026 10:33:53 AM
 Incomplete: 10-Minute Auto-Escalation for Unattended Orders (ID: US-604) — attempt 1/3
+
+## Iteration 2 - Fri, Mar 13, 2026 10:42:47 AM
+Completed: 10-Minute Auto-Escalation for Unattended Orders (ID: US-604) in 7m
 
