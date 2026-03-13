@@ -214,6 +214,31 @@ data: {json}
 
 ---
 
+## Iteration 7: Progress Log
+
+### Completed Stories
+
+**US-619** — Admin-configurable pre-order minimum advance time
+- Added `minAdvanceMinutes: number` (default: 15) to SiteSettings type and DEFAULT_SETTINGS
+- Exposed via GET /api/settings (public endpoint)
+- Relaxed Zod schema hardcoded 14-min check to 1-min baseline; real check now in route handler
+- POST /api/orders: after schema validation, checks `arrivalTime - now < minAdvanceMinutes * 60000`, returns 400 `{ error: 'arrival_too_soon', minAdvanceMinutes }` if too soon
+- order-form-modal.tsx: fetches minAdvanceMinutes from /api/settings on mount (useEffect); uses it for `minTime` (min attribute), `validateTime()` check, `arrivalMin` hint, `arrivalTooSoon` error message
+- `handleSubmit`: handles `arrival_too_soon` 400 response from server (shows correct error message)
+- Admin settings Pre-Order tab: added "Minimum Pre-order Advance Time (minutes)" number input (1–120)
+- i18n: updated `arrivalMin` to "Minimum {minutes} minutes from now" and `arrivalTooSoon` to include `{minutes}` param in all 3 locales (en/ms/zh)
+
+**US-620** — Customer order history page at /account/orders
+- Page already existed: src/app/[locale]/orders/page.tsx (server shell with noindex) + order-history-client.tsx (client component)
+- Added `orderHistoryPage` i18n namespace to all 3 locale files (en/ms/zh): title, description, emptyTitle, emptyDesc, browseMenu, orderNumber, status badges, total, trackOrder
+- Added `common.myOrders` key to all 3 locale files
+- Footer: added "My Orders" link with ClipboardList icon in Contact section, using next-intl Link to /orders
+- Client reads mm_order_history from localStorage in useEffect, caps at 20 entries, shows reverse-chronological order cards
+- Each card: order ID, date (Intl.DateTimeFormat locale-aware), status badge, items list, total, tap-to-track link
+- Empty state: shopping cart icon, "Browse the menu" CTA linking to /menu
+
+---
+
 ## Iteration 4: AI Waiter Enhancement — Progress Log
 
 ### Context
@@ -957,4 +982,10 @@ Incomplete: Admin sold-out quick toggle per menu item (ID: US-622) — attempt 1
 
 ## Iteration 9 - Fri, Mar 13, 2026  2:12:55 PM
 Incomplete: Admin sold-out quick toggle per menu item (ID: US-622) — attempt 2/3
+
+## Iteration 10 - Fri, Mar 13, 2026  2:30:23 PM
+Completed: Admin sold-out quick toggle per menu item (ID: US-622) in 16m
+
+## Iteration 11 - Fri, Mar 13, 2026  2:39:15 PM
+Incomplete: Hreflang alternate links on all locale pages via generateMetadata (ID: US-640) — attempt 1/3
 

@@ -50,6 +50,7 @@ export interface SiteSettings {
   ratingProvider?: string;
   escalationMinutes: number;
   maxOrdersPerSlot: number;
+  minAdvanceMinutes: number;
   waiterEmail?: string;
 }
 
@@ -104,4 +105,5 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   posMode: "feedme_manual",
   escalationMinutes: 10,
   maxOrdersPerSlot: 5,
+  minAdvanceMinutes: 15,
 };

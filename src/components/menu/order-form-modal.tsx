@@ -21,9 +21,9 @@ interface OrderFormModalProps {
 
 const MALAYSIA_PHONE_RE = /^(\+?60|0)1[0-9]{8,9}$/;
 
-function getMinArrivalTime(): string {
+function getMinArrivalTimeFor(minutes: number): string {
   const now = new Date();
-  now.setMinutes(now.getMinutes() + 15);
+  now.setMinutes(now.getMinutes() + minutes);
   const hh = String(now.getHours()).padStart(2, "0");
   const mm = String(now.getMinutes()).padStart(2, "0");
   return `${hh}:${mm}`;
@@ -40,10 +40,23 @@ export function OrderFormModal({ items, total, onSuccess, onClose }: OrderFormMo
   const [slotFullTime, setSlotFullTime] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [orderId, setOrderId] = useState<number | null>(null);
+  const [minAdvanceMinutes, setMinAdvanceMinutes] = useState(15);
   const modalRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
-  const minTime = useMemo(() => getMinArrivalTime(), []);
+  // Fetch configured minimum advance time from public settings
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((data: { minAdvanceMinutes?: number }) => {
+        if (typeof data.minAdvanceMinutes === "number" && data.minAdvanceMinutes >= 1) {
+          setMinAdvanceMinutes(data.minAdvanceMinutes);
+        }
+      })
+      .catch(() => {}); // fallback to 15 if fetch fails
+  }, []);
+
+  const minTime = useMemo(() => getMinArrivalTimeFor(minAdvanceMinutes), [minAdvanceMinutes]);
 
   // Save the element that had focus before modal opened, restore on close
   useEffect(() => {
@@ -122,8 +135,8 @@ export function OrderFormModal({ items, total, onSuccess, onClose }: OrderFormMo
     if (selected.getTime() < now.getTime() - 12 * 60 * 60 * 1000) {
       selected.setDate(selected.getDate() + 1);
     }
-    if (selected.getTime() - now.getTime() < 14 * 60 * 1000) {
-      setTimeError(t("arrivalTooSoon", { time: getMinArrivalTime() }));
+    if (selected.getTime() - now.getTime() < (minAdvanceMinutes - 1) * 60 * 1000) {
+      setTimeError(t("arrivalTooSoon", { time: getMinArrivalTimeFor(minAdvanceMinutes), minutes: minAdvanceMinutes }));
       return false;
     }
     setTimeError("");
@@ -158,16 +171,18 @@ export function OrderFormModal({ items, total, onSuccess, onClose }: OrderFormMo
           estimatedArrival: arrivalDate.toISOString(),
         }),
       });
-      if (res.status === 409) {
-        const data = (await res.json()) as { error: string; nextAvailableSlot?: string };
+      if (!res.ok) {
+        const data = (await res.json()) as { error: string; nextAvailableSlot?: string; minAdvanceMinutes?: number };
         if (data.error === "slot_full" && data.nextAvailableSlot) {
           setSlotFullTime(data.nextAvailableSlot);
+        } else if (data.error === "arrival_too_soon") {
+          const serverMin = data.minAdvanceMinutes ?? minAdvanceMinutes;
+          setTimeError(t("arrivalTooSoon", { time: getMinArrivalTimeFor(serverMin), minutes: serverMin }));
         } else {
           setTimeError(t("submitError"));
         }
         return;
       }
-      if (!res.ok) throw new Error("Failed to submit");
       const data = (await res.json()) as { ok: boolean; id: number };
       setOrderId(data.id);
       onSuccess(data.id);
@@ -264,7 +279,7 @@ export function OrderFormModal({ items, total, onSuccess, onClose }: OrderFormMo
                 aria-describedby={timeError ? "ofm-arrival-error" : "ofm-arrival-hint"}
                 className={`w-full rounded-xl border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${timeError ? "border-red-500" : ""}`}
               />
-              <p id="ofm-arrival-hint" className="text-xs text-muted-foreground">{t("arrivalMin")}</p>
+              <p id="ofm-arrival-hint" className="text-xs text-muted-foreground">{t("arrivalMin", { minutes: minAdvanceMinutes })}</p>
               {timeError && (
                 <p id="ofm-arrival-error" className="flex items-center gap-1 text-xs text-red-500" role="alert" aria-live="polite">
                   <AlertCircle className="h-3.5 w-3.5 shrink-0" />

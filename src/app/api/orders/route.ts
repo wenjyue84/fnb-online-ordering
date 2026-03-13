@@ -96,6 +96,15 @@ export async function POST(request: NextRequest) {
 
     // Slot capacity check: count orders in the same 30-minute window
     const settings = await getSiteSettings();
+
+    // Configurable minimum advance time check
+    const minAdvanceMs = (settings.minAdvanceMinutes ?? 15) * 60 * 1000;
+    if (arrivalTime.getTime() - Date.now() < minAdvanceMs) {
+      return NextResponse.json(
+        { error: "arrival_too_soon", minAdvanceMinutes: settings.minAdvanceMinutes ?? 15 },
+        { status: 400 }
+      );
+    }
     const maxPerSlot = settings.maxOrdersPerSlot ?? 5;
 
     // Compute slot boundaries (floor to :00 or :30)

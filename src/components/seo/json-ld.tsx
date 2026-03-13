@@ -77,6 +77,7 @@ export async function RestaurantJsonLd({ nonce }: { nonce?: string | null } = {}
       "@type": "Menu",
       url: `${siteUrl}/${settings.defaultLocale}/menu`,
     },
+    hasMap: `https://maps.google.com/?q=${encodeURIComponent(settings.address)}`,
     ...(settings.ratingValue && settings.ratingCount && settings.ratingCount >= 1
       ? {
           aggregateRating: {

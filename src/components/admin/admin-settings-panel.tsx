@@ -379,6 +379,25 @@ export function AdminSettingsPanel({ displayCategories }: AdminSettingsPanelProp
               </div>
 
               <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Minimum Pre-order Advance Time (minutes)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={120}
+                  value={settings.minAdvanceMinutes ?? 15}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    if (v >= 1 && v <= 120) setField("minAdvanceMinutes", v);
+                  }}
+                  className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                  placeholder="15"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Customers must pre-order at least this many minutes before their estimated arrival. Increase during peak hours to give the kitchen more lead time.
+                </p>
+              </div>
+
+              <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
                   Accepted payment methods
                 </label>

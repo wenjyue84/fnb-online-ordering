@@ -5,7 +5,7 @@ import matter from "gray-matter";
 import { cookies } from "next/headers";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getSiteSettings } from "@/lib/site-settings";
-import { MapPin, Clock, Phone, Wifi, Facebook, Instagram } from "lucide-react";
+import { MapPin, Clock, Phone, Wifi, Facebook, Instagram, Navigation } from "lucide-react";
 import { COOKIE_NAME, verifyAdminToken } from "@/lib/auth";
 import type { ContactContent } from "@/components/admin/contact-inline-editor";
 import dynamic from "next/dynamic";
@@ -174,17 +174,28 @@ export default async function ContactPage({
         </div>
 
         {/* Map */}
-        <div className="overflow-hidden rounded-xl border border-border">
-          <iframe
-            src={content.googleMapsEmbed}
-            width="100%"
-            height="100%"
-            style={{ minHeight: "400px", border: 0 }}
-            allowFullScreen
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            title="Makan Moments Cafe location"
-          />
+        <div className="space-y-4 print:hidden">
+          <div className="overflow-hidden rounded-xl border border-border">
+            <iframe
+              src={content.googleMapsEmbed}
+              width="100%"
+              height="100%"
+              style={{ minHeight: "400px", border: 0 }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Map showing Makan Moments Cafe location"
+            />
+          </div>
+          <a
+            href={`https://maps.google.com/?q=${encodeURIComponent(content.address)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <Navigation className="h-4 w-4" />
+            {t("getDirections")}
+          </a>
         </div>
       </div>
     </div>

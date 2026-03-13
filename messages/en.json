@@ -26,6 +26,7 @@
     "favorites": "Favorites",
     "noFavorites": "No favorites yet — tap the heart icon on items you love",
     "privacyPolicy": "Privacy Policy",
+    "myOrders": "My Orders",
     "halalBadge": "Halal-Friendly",
     "halalTooltip": "No pork, no lard. Muslim-friendly ingredients."
   },
@@ -189,9 +190,9 @@
     "contactRequired": "Contact number is required",
     "contactInvalid": "Please enter a valid Malaysian number (e.g. 012-3456789)",
     "arrivalLabel": "Estimated Arrival Time",
-    "arrivalMin": "Minimum 15 minutes from now",
+    "arrivalMin": "Minimum {minutes} minutes from now",
     "arrivalRequired": "Arrival time is required",
-    "arrivalTooSoon": "Earliest arrival is {time}. Please select a later time.",
+    "arrivalTooSoon": "Earliest arrival is {time} (minimum {minutes} minutes notice). Please select a later time.",
     "submitError": "Failed to submit order. Please try again.",
     "submit": "Confirm Pre-Order",
     "submitting": "Submitting…",
@@ -269,6 +270,21 @@
     "cookiesDesc": "Our website uses browser local storage to save your order history and tray contents for your convenience. No tracking cookies are used for advertising purposes.",
     "changesTitle": "Changes to This Policy",
     "changesDesc": "We may update this privacy policy from time to time. Any changes will be posted on this page with an updated revision date."
+  },
+  "orderHistoryPage": {
+    "title": "My Orders",
+    "description": "View your past orders at Makan Moments Cafe",
+    "emptyTitle": "No past orders",
+    "emptyDesc": "Browse the menu to get started.",
+    "browseMenu": "Browse Menu",
+    "orderNumber": "#{id}",
+    "statusReady": "Ready",
+    "statusApproved": "Approved",
+    "statusPreparing": "Preparing",
+    "statusRejected": "Rejected",
+    "statusPending": "Pending",
+    "total": "Total",
+    "trackOrder": "Track Order"
   },
   "orderSuccess": {
     "title": "Order Received!",

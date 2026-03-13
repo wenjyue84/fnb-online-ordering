@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { Facebook, Instagram, Phone, MapPin, Clock } from "lucide-react";
+import { Facebook, Instagram, Phone, MapPin, Clock, ClipboardList } from "lucide-react";
 import Image from "next/image";
 import { Link } from "@/i18n/navigation";
 import { getSiteSettings } from "@/lib/site-settings";
@@ -61,6 +61,12 @@ export async function Footer() {
               >
                 {settings.phone}
               </a>
+            </div>
+            <div className="flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-muted-foreground" />
+              <Link href="/orders" className="text-sm hover:text-primary">
+                {t("myOrders")}
+              </Link>
             </div>
           </div>
 

@@ -24,8 +24,8 @@ export const OrderSubmitSchema = z.object({
     .string()
     .datetime()
     .refine(
-      (val) => new Date(val) > new Date(Date.now() + 14 * 60 * 1000),
-      { message: "Arrival must be at least 15 minutes from now" }
+      (val) => new Date(val) > new Date(Date.now() + 1 * 60 * 1000),
+      { message: "Arrival must be in the future" }
     ),
 });
 

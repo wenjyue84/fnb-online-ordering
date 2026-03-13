@@ -515,7 +515,7 @@
         "WhatsApp order notification delivery retry with exponential backoff"
       ],
       "estimatedComplexity": "medium",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-616",
@@ -539,7 +539,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-617",
@@ -563,18 +563,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "small",
-      "passes": false,
-      "filesTouch": [
-        "messages/en.json",
-        "messages/ms.json",
-        "messages/zh.json",
-        "prd.json",
-        "progress.txt",
-        "retry-counts.json",
-        "src/app/[locale]/order/[id]/page.tsx",
-        "src/app/api/admin/orders/[id]/route.ts",
-        "src/app/api/orders/[id]/push-subscribe/route.ts"
-      ]
+      "passes": true
     },
     {
       "id": "US-618",
@@ -597,41 +586,18 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-619",
       "title": "Admin-configurable pre-order minimum advance time",
       "priority": "low",
-      "description": "The 15-minute minimum arrival time before now is currently hardcoded in the order submission modal. During peak hours, the kitchen may need 30 or 45 minutes lead time. Making this configurable in admin site settings allows the owner to adjust the minimum without a code deployment.",
-      "acceptanceCriteria": [
-        "A min_advance_minutes field (integer, 1–120) is added to site settings, defaulting to 15",
-        "The admin Settings tab has a number input for 'Minimum Pre-order Advance Time (minutes)'",
-        "The order submission modal fetches this setting from GET /api/settings and enforces it for ETA selection",
-        "The ETA picker's minimum time is dynamically calculated as now() + min_advance_minutes",
-        "The error message for too-early ETA references the configured value: 'Earliest arrival is [calculated time] (minimum [N] minutes notice)'",
-        "The setting persists to data/site-settings.json via POST /api/admin/settings"
-      ],
-      "technicalNotes": [
-        "Add min_advance_minutes: number to the SiteSettings type in src/lib/site-settings.ts",
-        "Expose via GET /api/settings (public, already consumed by the order form)",
-        "Default value 15 should be backwards-compatible — do not break existing JSON files without the new field",
-        "Validate on server: estimated_arrival > new Date(Date.now() + minAdvanceMinutes * 60000)"
-      ],
+      "description": "Completed in iteration 7.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
       "dependencies": [],
       "estimatedComplexity": "small",
-      "passes": false,
-      "filesTouch": [
-        "messages/en.json",
-        "messages/ms.json",
-        "messages/zh.json",
-        "prd.json",
-        "progress.txt",
-        "retry-counts.json",
-        "src/app/[locale]/order/[id]/page.tsx",
-        "src/app/api/admin/orders/[id]/route.ts",
-        "src/app/api/orders/[id]/push-subscribe/route.ts"
-      ]
+      "passes": true
     },
     {
       "id": "US-620",
@@ -655,7 +621,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "small",
-      "passes": false,
+      "passes": true,
       "filesTouch": [
         "messages/en.json",
         "messages/ms.json",
@@ -715,7 +681,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-623",

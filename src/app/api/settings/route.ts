@@ -14,5 +14,6 @@ export async function GET() {
     posMode: settings.posMode ?? "feedme_manual",
     cafeName: settings.cafeName ?? "Makan Moments",
     escalationMinutes: settings.escalationMinutes ?? 10,
+    minAdvanceMinutes: settings.minAdvanceMinutes ?? 15,
   });
 }

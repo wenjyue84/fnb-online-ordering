@@ -26,6 +26,7 @@
     "favorites": "收藏",
     "noFavorites": "还没有收藏 — 点击喜欢菜品上的心形图标",
     "privacyPolicy": "隐私政策",
+    "myOrders": "我的订单",
     "halalBadge": "清真友好",
     "halalTooltip": "无猪肉，无猪油。穆斯林友好食材。"
   },
@@ -189,9 +190,9 @@
     "contactRequired": "请填写联系电话",
     "contactInvalid": "请输入有效的马来西亚电话号码（如 012-3456789）",
     "arrivalLabel": "预计到达时间",
-    "arrivalMin": "至少需提前15分钟",
+    "arrivalMin": "至少需提前 {minutes} 分钟",
     "arrivalRequired": "请填写到达时间",
-    "arrivalTooSoon": "最早到达时间为 {time}，请选择更晚的时间。",
+    "arrivalTooSoon": "最早到达时间为 {time}（至少需提前 {minutes} 分钟）。请选择更晚的时间。",
     "submitError": "提交订单失败，请重试。",
     "submit": "确认预订",
     "submitting": "提交中…",
@@ -269,6 +270,21 @@
     "cookiesDesc": "我们的网站使用浏览器本地存储来保存您的订单历史和托盘内容。不使用任何广告追踪Cookie。",
     "changesTitle": "政策变更",
     "changesDesc": "我们可能会不时更新此隐私政策。任何更改将在此页面发布，并附上更新的修订日期。"
+  },
+  "orderHistoryPage": {
+    "title": "我的订单",
+    "description": "查看您在食光记忆的过往订单",
+    "emptyTitle": "暂无订单",
+    "emptyDesc": "浏览菜单开始下单吧。",
+    "browseMenu": "浏览菜单",
+    "orderNumber": "#{id}",
+    "statusReady": "已就绪",
+    "statusApproved": "已批准",
+    "statusPreparing": "准备中",
+    "statusRejected": "已拒绝",
+    "statusPending": "待处理",
+    "total": "总计",
+    "trackOrder": "追踪订单"
   },
   "orderSuccess": {
     "title": "订单已收到！",

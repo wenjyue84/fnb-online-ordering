@@ -26,6 +26,7 @@
     "favorites": "Kegemaran",
     "noFavorites": "Tiada kegemaran lagi — ketik ikon hati pada item yang anda sukai",
     "privacyPolicy": "Dasar Privasi",
+    "myOrders": "Pesanan Saya",
     "halalBadge": "Mesra Halal",
     "halalTooltip": "Tanpa babi, tanpa lard. Bahan-bahan mesra Muslim."
   },
@@ -189,9 +190,9 @@
     "contactRequired": "Nombor hubungi diperlukan",
     "contactInvalid": "Sila masukkan nombor Malaysia yang sah (cth. 012-3456789)",
     "arrivalLabel": "Anggaran Masa Ketibaan",
-    "arrivalMin": "Minimum 15 minit dari sekarang",
+    "arrivalMin": "Minimum {minutes} minit dari sekarang",
     "arrivalRequired": "Masa ketibaan diperlukan",
-    "arrivalTooSoon": "Masa ketibaan terawal ialah {time}. Sila pilih masa yang lebih lewat.",
+    "arrivalTooSoon": "Masa ketibaan terawal ialah {time} (minimum {minutes} minit notis). Sila pilih masa yang lebih lewat.",
     "submitError": "Gagal menghantar pesanan. Sila cuba lagi.",
     "submit": "Sahkan Pra-Pesanan",
     "submitting": "Menghantar…",
@@ -269,6 +270,21 @@
     "cookiesDesc": "Laman web kami menggunakan storan tempatan pelayar untuk menyimpan sejarah pesanan dan kandungan tray anda. Tiada kuki penjejakan digunakan untuk tujuan pengiklanan.",
     "changesTitle": "Perubahan pada Dasar Ini",
     "changesDesc": "Kami mungkin mengemas kini dasar privasi ini dari semasa ke semasa. Sebarang perubahan akan disiarkan di halaman ini dengan tarikh semakan yang dikemas kini."
+  },
+  "orderHistoryPage": {
+    "title": "Pesanan Saya",
+    "description": "Lihat pesanan lalu anda di Makan Moments Cafe",
+    "emptyTitle": "Tiada pesanan lalu",
+    "emptyDesc": "Layari menu untuk mula membuat pesanan.",
+    "browseMenu": "Layari Menu",
+    "orderNumber": "#{id}",
+    "statusReady": "Sedia",
+    "statusApproved": "Diluluskan",
+    "statusPreparing": "Disediakan",
+    "statusRejected": "Ditolak",
+    "statusPending": "Menunggu",
+    "total": "Jumlah",
+    "trackOrder": "Jejak Pesanan"
   },
   "orderSuccess": {
     "title": "Pesanan Diterima!",
