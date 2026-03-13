@@ -909,6 +909,7 @@ export default function PosPage() {
                     onMarkReady={markReady}
                     onConfirmPayment={confirmPayment}
                     posMode={posMode}
+                    escalationMinutes={escalationMinutes}
                   />
                 ))
               )}

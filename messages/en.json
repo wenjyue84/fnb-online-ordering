@@ -173,7 +173,9 @@
     "expiredWhatsappMsg": "This order expired as it wasn't confirmed in time. Please WhatsApp us to re-order.",
     "whatsappReorder": "WhatsApp us to re-order",
     "copyOrderId": "Copy order #{id}",
-    "copied": "Copied!"
+    "copied": "Copied!",
+    "escalation_banner": "Your order is taking longer than usual to be confirmed. You can contact us directly:",
+    "escalation_whatsapp_message": "Hi, my order #{id} has been waiting for confirmation for over {minutes} minutes"
   },
   "orderForm": {
     "title": "Complete Your Pre-Order",

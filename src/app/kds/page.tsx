@@ -124,6 +124,7 @@ interface OrderCardProps {
   isNew: boolean;
   onAcknowledge: () => void;
   posMode: "builtin" | "feedme_manual";
+  escalationMinutes: number;
 }
 
 function OrderCard({
@@ -135,6 +136,7 @@ function OrderCard({
   isNew,
   onAcknowledge,
   posMode,
+  escalationMinutes,
 }: OrderCardProps) {
   const [elapsed, setElapsed] = useState(elapsedMinutes(order.created_at));
 
@@ -150,6 +152,8 @@ function OrderCard({
 
   const isPreparing = order.status === "preparing";
   const isApproved = order.status === "approved";
+  const isPendingApproval = order.status === "pending_approval";
+  const isOverdue = isPendingApproval && elapsed >= escalationMinutes;
   const allItemsDone =
     isPreparing &&
     order.items.length > 0 &&
@@ -175,7 +179,11 @@ function OrderCard({
 
   const { border, bg } = isNew
     ? { border: "border-yellow-400 animate-pulse", bg: "bg-yellow-950/40" }
-    : getEtaClasses(order.estimated_arrival);
+    : isOverdue
+      ? { border: "border-red-500 animate-pulse", bg: "bg-red-950/30" }
+      : isPendingApproval
+        ? { border: "border-orange-500", bg: "bg-orange-950/20" }
+        : getEtaClasses(order.estimated_arrival);
 
   const etaMins = etaRemainingMinutes(order.estimated_arrival);
 
@@ -202,16 +210,25 @@ function OrderCard({
         </div>
       )}
 
+      {/* OVERDUE badge for pending_approval */}
+      {isOverdue && (
+        <div className="mb-3 flex items-center gap-1.5 rounded-lg bg-red-700/60 px-3 py-1.5 text-xs font-black uppercase tracking-wide text-red-200">
+          ⚠ OVERDUE — awaiting admin approval {elapsed}m+
+        </div>
+      )}
+
       {/* Status + Deposit badges */}
       <div className="mb-3 flex items-center gap-2">
         <span
           className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide ${
             isApproved
               ? "bg-blue-900/50 text-blue-300"
-              : "bg-orange-900/50 text-orange-300"
+              : isPendingApproval
+                ? "bg-orange-900/50 text-orange-300"
+                : "bg-orange-900/50 text-orange-300"
           }`}
         >
-          {isApproved ? "Approved" : "Preparing"}
+          {isApproved ? "Approved" : isPendingApproval ? "Awaiting Approval" : "Preparing"}
         </span>
         <DepositBadge order={order} />
       </div>
@@ -358,6 +375,7 @@ export default function KdsPage() {
   const [actingOn, setActingOn] = useState<Set<number>>(new Set());
   const [newOrderIds, setNewOrderIds] = useState<Set<number>>(new Set());
   const [posMode, setPosMode] = useState<"builtin" | "feedme_manual">("feedme_manual");
+  const [escalationMinutes, setEscalationMinutes] = useState(10);
 
   const prevOrderIdsRef = useRef<Set<number> | null>(null);
   const dismissTimersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
@@ -431,8 +449,9 @@ export default function KdsPage() {
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.ok ? r.json() : null)
-      .then((d: { posMode?: "builtin" | "feedme_manual" } | null) => {
+      .then((d: { posMode?: "builtin" | "feedme_manual"; escalationMinutes?: number } | null) => {
         if (d?.posMode) setPosMode(d.posMode);
+        if (typeof d?.escalationMinutes === "number") setEscalationMinutes(d.escalationMinutes);
       })
       .catch(() => {});
   }, []);
@@ -442,6 +461,18 @@ export default function KdsPage() {
     const interval = setInterval(() => void fetchOrders(), 15000);
     return () => clearInterval(interval);
   }, [fetchOrders]);
+
+  // Overdue detection — play urgent alarm when pending_approval orders exceed escalationMinutes
+  useEffect(() => {
+    const overdueOrders = orders.filter(
+      (o) =>
+        o.status === "pending_approval" &&
+        (Date.now() - new Date(o.created_at).getTime()) > escalationMinutes * 60_000
+    );
+    if (overdueOrders.length > 0) {
+      getAlarmManager().play("urgent");
+    }
+  }, [orders, escalationMinutes]);
 
   useEffect(() => {
     const timers = dismissTimersRef.current;
@@ -506,6 +537,11 @@ export default function KdsPage() {
 
   const approvedCount = orders.filter((o) => o.status === "approved").length;
   const preparingCount = orders.filter((o) => o.status === "preparing").length;
+  const pendingCount = orders.filter((o) => o.status === "pending_approval").length;
+  const overdueCount = orders.filter(
+    (o) => o.status === "pending_approval" &&
+      (Date.now() - new Date(o.created_at).getTime()) > escalationMinutes * 60_000
+  ).length;
 
   return (
     <div className="min-h-screen bg-gray-900 px-4 py-6">
@@ -528,6 +564,12 @@ export default function KdsPage() {
               })}
             </p>
             <p className="mt-1 text-xs text-gray-400">
+              {overdueCount > 0 && (
+                <span className="mr-2 font-bold text-red-400">⚠ {overdueCount} overdue</span>
+              )}
+              {pendingCount > 0 && overdueCount === 0 && (
+                <span className="mr-2 text-yellow-400">{pendingCount} pending</span>
+              )}
               {approvedCount > 0 && (
                 <span className="mr-2 text-blue-400">{approvedCount} approved</span>
               )}
@@ -578,6 +620,7 @@ export default function KdsPage() {
               isNew={newOrderIds.has(order.id)}
               onAcknowledge={() => acknowledgeOrder(order.id)}
               posMode={posMode}
+              escalationMinutes={escalationMinutes}
             />
           ))}
         </div>

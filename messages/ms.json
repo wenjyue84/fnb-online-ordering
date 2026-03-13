@@ -173,7 +173,9 @@
     "expiredWhatsappMsg": "Pesanan ini tamat tempoh kerana tidak disahkan dalam masa yang ditetapkan. Sila WhatsApp kami untuk buat pesanan semula.",
     "whatsappReorder": "WhatsApp kami untuk pesanan semula",
     "copyOrderId": "Salin nombor pesanan #{id}",
-    "copied": "Disalin!"
+    "copied": "Disalin!",
+    "escalation_banner": "Pesanan anda mengambil masa lebih lama daripada biasa untuk disahkan. Anda boleh hubungi kami terus:",
+    "escalation_whatsapp_message": "Hai, pesanan saya #{id} telah menunggu pengesahan selama lebih {minutes} minit"
   },
   "orderForm": {
     "title": "Lengkapkan Pra-Pesanan Anda",

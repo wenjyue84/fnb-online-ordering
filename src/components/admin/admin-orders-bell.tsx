@@ -30,6 +30,9 @@ export function AdminOrdersBell() {
   const [connStatus, setConnStatus] = useState<ConnectionStatus>("connecting");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Escalation minutes — fetched from settings, passed to SSE stream
+  const escalationMinutesRef = useRef(10);
+
   // SSE refs
   const esRef = useRef<EventSource | null>(null);
   const reconnectAttemptsRef = useRef(0);
@@ -75,7 +78,7 @@ export function AdminOrdersBell() {
 
     setConnStatus("connecting");
 
-    const es = new EventSource("/api/admin/orders/stream");
+    const es = new EventSource(`/api/admin/orders/stream?em=${escalationMinutesRef.current}`);
     esRef.current = es;
 
     es.onopen = () => {
@@ -115,9 +118,20 @@ export function AdminOrdersBell() {
       }
     });
 
-    // Escalation event (US-604) — play urgent alarm
-    es.addEventListener("escalation", () => {
+    // Escalation event (US-604) — play urgent alarm + trigger push notification
+    es.addEventListener("escalation", (ev: MessageEvent) => {
       getAlarmManager().play("urgent");
+      // Fire-and-forget: send push notification to admin devices
+      try {
+        const data = JSON.parse(ev.data as string) as { id: string | number };
+        void fetch("/api/admin/escalation-notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId: data.id }),
+        });
+      } catch {
+        // parse error — alarm still plays
+      }
     });
 
     es.onerror = () => {
@@ -137,6 +151,18 @@ export function AdminOrdersBell() {
       }, 5_000);
     };
   }, [fetchOrders, startPollingFallback, stopPollingFallback]);
+
+  // Fetch escalation minutes on mount
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d: { escalationMinutes?: number } | null) => {
+        if (typeof d?.escalationMinutes === "number") {
+          escalationMinutesRef.current = d.escalationMinutes;
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Mount: initial order fetch + start SSE
   useEffect(() => {

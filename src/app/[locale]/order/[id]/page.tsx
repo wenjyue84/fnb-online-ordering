@@ -118,6 +118,7 @@ interface TnGSettings {
   tngQrUrl: string;
   depositRequired: boolean;
   orderExpiryMinutes: number;
+  escalationMinutes: number;
 }
 
 type UploadState = "idle" | "uploading" | "success" | "error";
@@ -339,7 +340,7 @@ export default function OrderStatusPage() {
   const t = useTranslations("orderStatus");
 
   const [order, setOrder] = useState<OrderData | null>(null);
-  const [tng, setTng] = useState<TnGSettings>({ tngPhone: "", tngQrUrl: "", depositRequired: false, orderExpiryMinutes: 240 });
+  const [tng, setTng] = useState<TnGSettings>({ tngPhone: "", tngQrUrl: "", depositRequired: false, orderExpiryMinutes: 240, escalationMinutes: 10 });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -536,6 +537,9 @@ export default function OrderStatusPage() {
     order.status === "rejected" || order.status === "cancelled";
   const isExpired = order.status === "expired";
   const isReady = order.status === "ready";
+  const isOverdueEscalation =
+    order.status === "pending_approval" &&
+    (Date.now() - new Date(order.createdAt).getTime()) > tng.escalationMinutes * 60_000;
 
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
@@ -584,6 +588,22 @@ export default function OrderStatusPage() {
           </p>
         )}
       </div>
+
+      {/* Escalation banner — shown when pending_approval is overdue */}
+      {isOverdueEscalation && (
+        <div className="mb-6 rounded-2xl border border-yellow-300 bg-yellow-50 p-4">
+          <p className="text-sm font-semibold text-yellow-800">{t("escalation_banner")}</p>
+          <a
+            href={`https://wa.me/${phoneToWaMe(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "60127088789")}?text=${encodeURIComponent(t("escalation_whatsapp_message", { id: orderId, minutes: tng.escalationMinutes }))}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-yellow-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-yellow-700"
+          >
+            <PhoneCall className="h-4 w-4" />
+            WhatsApp Us
+          </a>
+        </div>
+      )}
 
       {/* Progress bar */}
       {!isRejected && !isExpired && (

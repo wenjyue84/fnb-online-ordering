@@ -20,9 +20,9 @@ export async function GET(request: NextRequest) {
     `;
 
     const now = Date.now();
-    const orders = rows.map((r: { id: number; created_at: string }) => ({
-      id: r.id,
-      minutesOverdue: Math.floor((now - new Date(r.created_at).getTime()) / 60_000) - em,
+    const orders = rows.map((r) => ({
+      id: r.id as number,
+      minutesOverdue: Math.floor((now - new Date(r.created_at as string).getTime()) / 60_000) - em,
     }));
 
     return NextResponse.json({ count: orders.length, orders });

@@ -219,7 +219,7 @@
         "US-605"
       ],
       "estimatedComplexity": "medium",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-605",
@@ -1169,6 +1169,438 @@
         "Reference: https://webhooks.fyi/ (webhook best practices)",
         "Reference: https://docs.github.com/en/webhooks/webhook-events-and-payloads (signature pattern)",
         "n8n has a built-in Webhook trigger node that can receive this payload directly"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-640",
+      "title": "Hreflang alternate links on all locale pages via generateMetadata",
+      "priority": "high",
+      "description": "All locale-prefixed pages (/en, /ms, /zh) must emit <link rel=\"alternate\" hreflang=\"...\"> tags pointing to sibling variants plus a canonical tag. Without these, Google treats the three URLs as duplicate content and may surface the wrong language to Malaysian users searching in Bahasa or Chinese.",
+      "acceptanceCriteria": [
+        "Every public page renders <link rel=\"alternate\" hreflang=\"en|ms|zh\"> for all three locale variants in <head>",
+        "<link rel=\"canonical\"> points to the current locale URL (not the default locale)",
+        "Google Rich Results Test confirms no hreflang errors on /en/menu and /en/ (home)",
+        "metadataBase is set in app/layout.tsx so Next.js resolves relative alternates to absolute URLs",
+        "generateMetadata helper is shared (DRY) across page.tsx files to avoid per-file duplication"
+      ],
+      "technicalNotes": [
+        "Use the `alternates` key in `generateMetadata` — Next.js App Router serialises this as <link rel=\"alternate\" hreflang> in <head>",
+        "metadataBase must be set to NEXT_PUBLIC_SITE_URL in root layout.tsx for absolute URL resolution",
+        "Create a shared `buildAlternates(path: string)` helper in src/lib/seo.ts that returns the alternates object for a given path segment",
+        "Verify with: curl -s https://site.com/en/menu | grep hreflang"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-641",
+      "title": "Multilingual sitemap alternateRefs via next-sitemap config",
+      "priority": "high",
+      "description": "The existing next-sitemap integration generates a basic sitemap.xml but does not include xhtml:link alternateRefs for multilingual pages. Google's sitemap spec supports per-URL language annotations (equivalent to hreflang in HTML) as a complementary signal alongside the <link> tags.",
+      "acceptanceCriteria": [
+        "sitemap.xml includes <xhtml:link rel=\"alternate\" hreflang=\"en|ms|zh\" href=\"...\"> for every locale variant of each URL",
+        "No duplicate locale prefixes in generated URLs (not /ms/ms/menu) — verified by viewing raw sitemap.xml",
+        "Sitemap is submitted to Google Search Console and shows no errors",
+        "next-sitemap postbuild script generates the sitemap without build failures"
+      ],
+      "technicalNotes": [
+        "Add `alternateRefs` array to the `transform` function in next-sitemap.config.js",
+        "Known issue: next-sitemap's built-in `i18n` config can produce duplicate prefixes — use a custom transform that manually builds alternateRefs from the locales array",
+        "Add xmlns:xhtml namespace declaration to <urlset> in sitemapSize or custom config",
+        "next-sitemap docs: https://github.com/iamvishnusankar/next-sitemap#alternaterefs"
+      ],
+      "dependencies": [
+        "Hreflang alternate links on all locale pages via generateMetadata"
+      ],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-642",
+      "title": "On-demand menu cache invalidation via revalidateTag after admin edits",
+      "priority": "high",
+      "description": "The menu page uses time-based ISR (`revalidate = 3600`). When the admin changes a price, toggles availability, or updates an image via the admin panel, the customer-facing menu page stays stale for up to one hour. On-demand revalidation using `revalidateTag('menu')` would make changes visible within seconds of the admin saving.",
+      "acceptanceCriteria": [
+        "After admin PATCHes a menu item (price, availability, image), the customer-facing /[locale]/menu reflects the change within 5 seconds on the next page load",
+        "PATCH /api/admin/menu/[id] calls revalidateTag('menu') server-side before returning the response",
+        "Menu data fetching in src/lib/menu.ts is wrapped with unstable_cache tagged 'menu'",
+        "Time-based revalidate = 3600 remains as a fallback safety net",
+        "Build does not fail on Vercel (unstable_cache requires Node.js runtime, not Edge)"
+      ],
+      "technicalNotes": [
+        "Use `import { unstable_cache } from 'next/cache'` to wrap the Neon DB query in src/lib/menu.ts",
+        "Tag the cache entry with `['menu']` and set `revalidate: 3600` as fallback",
+        "In PATCH /api/admin/menu/[id] route handler: `import { revalidateTag } from 'next/cache'; revalidateTag('menu');`",
+        "Also call revalidateTag('menu') from the sold-out toggle and display-category admin routes",
+        "Requires Node.js runtime (default on Vercel) — do not set `export const runtime = 'edge'` on these routes"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-643",
+      "title": "Order submission form validation via Server Action and Zod schema",
+      "priority": "high",
+      "description": "The pre-order modal currently validates the contact number and arrival time client-side only. These checks can be bypassed by direct API calls. Moving to a Server Action backed by a shared Zod schema provides server-side enforcement, consistent error messages, and the ability to re-use the schema for API route validation.",
+      "acceptanceCriteria": [
+        "A Zod schema in src/lib/schemas/order.ts validates contactNumber (Malaysian regex 01X-XXXXXXX or 01XX-XXXXXXX), estimatedArrival (datetime, minimum 15 min from server time), and notes (max 200 chars optional)",
+        "Direct POST to /api/orders with an invalid phone number returns a 422 with field-level error details",
+        "Server-side validation rejects an estimatedArrival < 15 minutes from now even if client-side check was bypassed",
+        "The pre-order modal renders per-field error messages returned from the server",
+        "useActionState (React 19) is used in the modal component to bind the Server Action"
+      ],
+      "technicalNotes": [
+        "Malaysian mobile regex: /^01[0-9]-\\d{7,8}$/ covers 010-1234567 (7 digits) and 016-12345678 (8 digits)",
+        "Server Action in src/app/actions/submit-order.ts — use 'use server' directive",
+        "useActionState replaces the deprecated useFormState in React 19 (project already on React 19)",
+        "Minimum arrival time: compare against new Date() + 15 * 60 * 1000 on server to prevent time-skew exploits",
+        "Return `{ errors: result.error.flatten().fieldErrors }` shape for client consumption"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-644",
+      "title": "INP optimisation: wrap menu filter in startTransition and lazy-load chat widget",
+      "priority": "medium",
+      "description": "INP (Interaction to Next Paint) replaced FID as a Core Web Vital in March 2024 and is now a Google Search ranking factor. The menu filter pill click triggers a re-render of 50+ menu cards synchronously on the main thread, and the chat widget loads eagerly on every page. Both degrade INP beyond the 200ms good threshold on mid-range Android devices.",
+      "acceptanceCriteria": [
+        "Menu filter pill click INP measured below 200ms on a Moto G Power (Lighthouse mobile simulation) before and after the change",
+        "Filter state update is wrapped in React.startTransition() so it does not block user input",
+        "ChatWidget is loaded via next/dynamic with { ssr: false } and only initialises after the page becomes interactive",
+        "Chrome DevTools Interactions lane shows no Long Animation Frame (LoAF) > 50ms on filter click",
+        "MenuCard components are memoised with React.memo to prevent full-grid re-renders on unrelated state changes"
+      ],
+      "technicalNotes": [
+        "import { startTransition } from 'react'; wrap setActiveFilter(category) call inside startTransition(() => { ... })",
+        "dynamic(() => import('@/components/chat/chat-widget'), { ssr: false }) in the locale layout",
+        "Add React.memo wrapper to MenuCard: export default React.memo(MenuCard)",
+        "Profile with Chrome DevTools > Performance > INP lane; look for 'Interaction' entries > 200ms",
+        "Reference: https://web.dev/articles/inp"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-645",
+      "title": "WCAG 2.2 redundant entry: pre-fill returning customer phone number from localStorage",
+      "priority": "medium",
+      "description": "WCAG 2.2 Success Criterion 3.3.7 (Redundant Entry, Level A — legally required baseline) states that information entered in a prior step of the same process must not be re-entered unless essential. A returning customer who previously submitted a pre-order should not need to re-type their phone number.",
+      "acceptanceCriteria": [
+        "On successful order submission, the customer's contact number is saved to localStorage key 'mm_contact_number'",
+        "When the pre-order modal opens on a subsequent visit, the contact number field is pre-filled with the stored value",
+        "The pre-filled value is editable — user can clear and retype without restriction",
+        "No phone number is stored in server-side session or cookie (localStorage only)",
+        "WCAG 2.2 criterion 3.3.7 is satisfied per manual audit checklist"
+      ],
+      "technicalNotes": [
+        "Criterion source: https://www.w3.org/TR/WCAG22/#redundant-entry",
+        "localStorage.setItem('mm_contact_number', contactNumber) in the order submission success handler",
+        "Read with useEffect on modal open: const saved = localStorage.getItem('mm_contact_number'); if (saved) setContactNumber(saved)",
+        "Pair with existing mm_order_history localStorage key for a consistent storage pattern"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-646",
+      "title": "WCAG 2.4.11 fix: focused form inputs not obscured by sticky tray and header bars",
+      "priority": "medium",
+      "description": "WCAG 2.2 Success Criterion 2.4.11 (Focus Not Obscured Minimum, Level AA) requires that keyboard-focused UI elements are not entirely hidden by author-created sticky content such as a header or sticky footer. The floating tray bar and fixed header can fully obscure focused inputs in forms (pre-order modal, contact page) on short-viewport mobile screens.",
+      "acceptanceCriteria": [
+        "Tab through the pre-order modal on a 568px-tall viewport — all focused inputs are at least partially visible and not entirely covered by sticky bars",
+        "The contact page form fields are not obscured by the header when tabbed to on mobile",
+        "CSS scroll-padding-top on the document root is set to at least the header height so scroll-into-view accounts for the fixed header",
+        "CSS scroll-padding-bottom is set to at least the tray bar height on pages that render the tray",
+        "Audit passes in axe DevTools or equivalent automated accessibility checker"
+      ],
+      "technicalNotes": [
+        "WCAG 2.2 criterion 2.4.11: https://www.w3.org/TR/WCAG22/#focus-not-obscured-minimum",
+        "Add `scroll-padding-top: var(--header-height)` and `scroll-padding-bottom: var(--tray-height)` to <html> in globals.css",
+        "Define CSS custom properties --header-height (64px) and --tray-height (80px) in :root",
+        "Test with keyboard Tab key on mobile Chrome with DevTools device emulation at 568px height"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-647",
+      "title": "Menu item detail page and modal via Next.js Parallel and Intercepting Routes",
+      "priority": "medium",
+      "description": "There is currently no per-item detail page or modal. Adding shareable item URLs (/en/menu/item/[id]) using Next.js Parallel Routes + Intercepting Routes gives each dish a dedicated page (for SEO and social sharing) while keeping the in-app experience modal-based (scroll position preserved, no full navigation). This enables food photography showcase and per-item structured data.",
+      "acceptanceCriteria": [
+        "Clicking a menu card from the /menu grid opens an overlay modal with the item photo, full description, price, allergen badges, and an Add to Tray button",
+        "The browser URL changes to /[locale]/menu/item/[id] when the modal opens, and returns to /[locale]/menu on close",
+        "Refreshing or sharing the URL /[locale]/menu/item/[id] renders a full standalone page (not modal) with the same content",
+        "The modal can be dismissed by pressing Escape, clicking the backdrop, or using the router.back() close button",
+        "The menu grid scroll position is preserved when the modal closes (user sees the same position they were at)"
+      ],
+      "technicalNotes": [
+        "File structure: app/[locale]/menu/@modal/(.)item/[id]/page.tsx (interceptor) + app/[locale]/menu/item/[id]/page.tsx (full page)",
+        "app/[locale]/menu/layout.tsx must accept and render both {children} and {modal} slots",
+        "Use router.back() for close — this dismisses the intercepted route without adding a new history entry",
+        "Share data-fetching logic via a MenuItemDetail component imported by both the modal and full-page variants",
+        "Requires Next.js 15+ for stable intercepting routes with dynamic segments — verify with current Next.js 16 version"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "large",
+      "passes": false
+    },
+    {
+      "id": "US-648",
+      "title": "Placeholder image for menu items missing photos",
+      "priority": "medium",
+      "description": "Menu items without a corresponding photo in public/images/menu/ currently display a broken image or empty space, creating a visually inconsistent and low-quality experience. A standardised branded placeholder maintains layout integrity and communicates 'photo coming soon' without breaking the grid.",
+      "acceptanceCriteria": [
+        "Any menu item whose image file does not exist at /images/menu/{code}.jpg renders a branded placeholder (logo or food illustration on a warm cream background)",
+        "The placeholder is a static asset in public/images/ — no client-side error handling or broken img tags in the DOM",
+        "MenuCard and EditableMenuCard both use the same fallback logic",
+        "The placeholder respects the same aspect ratio (4:3 or configured ratio) as real food photos",
+        "Admin can replace the placeholder by uploading an image in the admin menu editor"
+      ],
+      "technicalNotes": [
+        "Next.js <Image> supports onError prop: `onError={() => setSrc('/images/menu-placeholder.jpg')}`",
+        "Alternatively, use a blurDataURL placeholder until the real image loads (pairs with LQIP story already in backlog)",
+        "Create public/images/menu-placeholder.jpg — a 400×300px branded image with the cafe's earthy warm palette",
+        "Add a MenuItemImage component that wraps next/image with the fallback logic, used by both MenuCard and EditableMenuCard"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-649",
+      "title": "Admin JWT session expiry warning with one-click session refresh",
+      "priority": "medium",
+      "description": "Admin JWT cookies expire silently. The admin may be mid-workflow (editing an order, uploading a menu image) when the session expires, and the next API call returns 401 — causing data loss if the form state is not preserved. A session expiry warning banner with a one-click refresh prevents silent logouts during active use.",
+      "acceptanceCriteria": [
+        "A warning banner appears in the admin panel when fewer than 5 minutes remain on the JWT expiry",
+        "The banner includes a 'Renew Session' button that calls a /api/admin/refresh-session endpoint to issue a new JWT cookie",
+        "On successful refresh, the banner dismisses and the admin continues working without page reload",
+        "If the session expires without renewal, the admin is redirected to /admin/login with a 'Session expired' toast message",
+        "The JWT expiry time is readable from the cookie's exp claim client-side (no server round-trip needed to check)"
+      ],
+      "technicalNotes": [
+        "Decode the JWT's exp field client-side using atob(token.split('.')[1]) — no secret needed to read public claims",
+        "Use setInterval every 60s in a useAdminSession() hook to check remaining time",
+        "POST /api/admin/refresh-session — verify current token, issue new one with refreshed expiry, set-cookie in response",
+        "Requires reading the JWT cookie value client-side — consider setting it as httpOnly: false for this purpose, or expose the expiry separately via /api/admin/session-status",
+        "Store 'session expiring soon' UI state in a global admin context so it shows on all admin tabs"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-650",
+      "title": "Operating hours display on Contact and About pages from DB config",
+      "priority": "medium",
+      "description": "The Contact and About pages currently hardcode cafe hours or omit them entirely. Operating hours are stored in data/operating-hours.json (and managed from the admin panel). Rendering live hours from the config on public-facing pages ensures accuracy when hours change (e.g. holiday adjustments) without requiring a code deployment.",
+      "acceptanceCriteria": [
+        "The Contact page displays the current operating hours for each day of the week, sourced from data/operating-hours.json via getSiteSettings()",
+        "If today's hours are different from the default (holiday override), they are visually highlighted",
+        "The hours are rendered server-side (RSC) so they are crawlable by Google without JavaScript",
+        "The hours table/list is correctly translated in all three locales (day names and time format)",
+        "When admin updates operating hours in the admin panel, the change is visible on the Contact page within the ISR revalidation window"
+      ],
+      "technicalNotes": [
+        "getSiteSettings() already reads data/operating-hours.json — import it in the Contact page server component",
+        "Use Intl.DateTimeFormat with timeZone: 'Asia/Kuala_Lumpur' for time formatting consistency",
+        "Day names should use the i18n messages system (add keys like 'days.monday', 'days.tuesday' to messages/*.json)",
+        "Pair with schema.org openingHoursSpecification structured data already handled by the Restaurant JSON-LD story"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-651",
+      "title": "Menu active category filter state persisted in URL searchParams",
+      "priority": "medium",
+      "description": "The currently active menu category filter (display category pill) is held in React state only. Refreshing the page, sharing a link to a filtered view, or navigating back from an item page resets the filter to 'All'. Encoding the active filter as a URL searchParam (?category=vegetarian) makes filtered views shareable and restores the selection on navigation.",
+      "acceptanceCriteria": [
+        "Clicking a category filter pill updates the URL to /[locale]/menu?category=[slug] without a full page reload",
+        "Refreshing /[locale]/menu?category=vegetarian renders the menu with the Vegetarian filter pre-selected",
+        "Sharing the URL with a category parameter shows the same filtered view to the recipient",
+        "When navigating back from a menu item modal, the category filter is restored from the URL",
+        "The 'All' filter state is represented as /[locale]/menu (no query param) — not ?category=all"
+      ],
+      "technicalNotes": [
+        "Use Next.js `useRouter` + `useSearchParams` + `router.push` to update searchParams without full reload",
+        "Read initial filter from `useSearchParams().get('category')` on component mount",
+        "Use `router.replace` (not push) for filter changes to avoid polluting browser history with each pill click",
+        "This is a client component change — MenuFilter is already a client component",
+        "Pairs naturally with the menu item detail modal (intercepting routes) for clean URL state management"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-652",
+      "title": "Alt text management for admin-uploaded menu item images",
+      "priority": "medium",
+      "description": "Menu item images currently have no alt text beyond the item name used as a fallback. Descriptive alt text is required by WCAG 2.2 SC 1.1.1 (Non-text Content, Level A) and improves image SEO (Google Image Search, Google Lens food discovery). The admin should be able to set a custom alt text per image, with the item name as the default.",
+      "acceptanceCriteria": [
+        "The admin menu editor includes an optional 'Image description (alt text)' text field per menu item",
+        "If the field is blank, the alt text defaults to the English item name",
+        "The alt text is stored in the menu_items table in a new nullable column `image_alt` (TEXT)",
+        "MenuCard renders <Image alt={item.imageAlt ?? item.nameEn} />",
+        "Google Search Console > Enhancement > Images shows no 'Missing alt text' issues after rollout"
+      ],
+      "technicalNotes": [
+        "Add `image_alt TEXT` column to the menu_items table via a DB migration script in scripts/",
+        "Update the PATCH /api/admin/menu/[id] handler to accept and persist imageAlt",
+        "Update MenuItem TypeScript type in src/types/menu.ts: `imageAlt?: string`",
+        "In MenuCard: alt={item.imageAlt || item.nameEn} — never leave alt empty for informative images",
+        "For decorative background images (hero), use alt=\"\" to signal decorative intent to screen readers"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-653",
+      "title": "Admin order filter and search by status, date range, and contact number",
+      "priority": "medium",
+      "description": "The admin Orders tab shows all orders in a flat list. As order volume grows, finding a specific order (by customer phone, date, or status) requires scrolling through the full list. Server-side filtering and search reduces response payload and helps staff quickly action relevant orders during busy service periods.",
+      "acceptanceCriteria": [
+        "The Orders tab UI has a status filter dropdown (All / Pending / Approved / Payment Uploaded / Preparing / Ready / Rejected)",
+        "A date range picker filters orders by created_at date (default: today)",
+        "A search input filters by contact_number (partial match, e.g. typing '016' shows all 016-prefix orders)",
+        "Filter parameters are sent as query params to GET /api/admin/orders?status=&from=&to=&contact=",
+        "The filtered result count is shown ('Showing 3 of 47 orders')",
+        "Filter state persists within the admin session (survives tab switching)"
+      ],
+      "technicalNotes": [
+        "Add query param parsing in GET /api/admin/orders: extract status, from, to, contact from searchParams",
+        "SQL: add WHERE clauses conditionally — `WHERE ($1::text IS NULL OR status = $1) AND ...`",
+        "Use parameterised queries (not string interpolation) to prevent SQL injection",
+        "For the date range, parse to UTC with new Date(from).toISOString() before passing to Neon",
+        "Store filter state in a useReducer or Zustand slice in the AdminOrdersPanel component"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-654",
+      "title": "Admin bulk menu item price update via inline editable table",
+      "priority": "medium",
+      "description": "When the cafe adjusts prices (e.g. seasonal cost increases, GST/SST recalculations), updating each item individually through the existing single-item editor is time-consuming for a 50+ item menu. An inline-editable price column in the admin menu table allows rapid bulk price review and update in a spreadsheet-like experience.",
+      "acceptanceCriteria": [
+        "The Admin > Menu tab renders a table view mode (in addition to the existing card grid) with columns: Item Name, Category, Price (editable), Availability",
+        "Clicking any Price cell makes it inline-editable (input type='number', 2 decimal places, min 0)",
+        "A 'Save All Changes' button appears when any price has been modified; it batches all changed prices into a single PATCH /api/admin/menu/bulk request",
+        "Unchanged items are excluded from the batch payload",
+        "On save success, revalidateTag('menu') is called and a toast confirms the number of items updated"
+      ],
+      "technicalNotes": [
+        "Track dirty state in a useReducer: { [itemId]: newPrice } — only items with a changed price are in the map",
+        "Add PATCH /api/admin/menu/bulk route accepting { updates: [{ id, price }] } array",
+        "Use a single Neon transaction for the bulk update to ensure atomicity",
+        "Trigger revalidateTag('menu') after the bulk update (pairs with the on-demand ISR story)",
+        "Table view vs card view toggle can use a ViewToggle component (Grid / List icons) — shadcn/ui ToggleGroup"
+      ],
+      "dependencies": [
+        "On-demand menu cache invalidation via revalidateTag after admin edits"
+      ],
+      "estimatedComplexity": "large",
+      "passes": false
+    },
+    {
+      "id": "US-655",
+      "title": "Touch 'n Go payment page: copy-to-clipboard button for TnG phone number",
+      "priority": "low",
+      "description": "The payment page displays the cafe's Touch 'n Go QR code and registered phone number. TnG eWallet's 'Pay Phone Number' feature allows customers to pay by entering the recipient's phone number directly without scanning a QR code — useful when the QR image fails to load or is hard to scan on a low-brightness screen. A one-tap copy button eliminates manual number transcription errors.",
+      "acceptanceCriteria": [
+        "A 'Copy' icon button appears adjacent to the TnG phone number on the payment page",
+        "Clicking it writes the phone number to the clipboard using the Clipboard API",
+        "The button shows a 'Copied!' confirmation state for 2 seconds then resets",
+        "If the Clipboard API is unavailable (non-secure context), the button is hidden and the number remains selectable text",
+        "The phone number displayed and copied matches the tngPhone value from /api/settings"
+      ],
+      "technicalNotes": [
+        "Use navigator.clipboard.writeText(tngPhone).catch(() => {}) — Clipboard API requires HTTPS (Vercel satisfies this)",
+        "Feature-detect: `if (!navigator.clipboard) { hideCopyButton(); return; }`",
+        "Button state: use useState<'idle'|'copied'>; set 'copied' on success, setTimeout 2000ms back to 'idle'",
+        "tngPhone is already exposed via GET /api/settings — no new endpoint needed"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-656",
+      "title": "Resource hints: preconnect to Neon Postgres host and Groq API",
+      "priority": "low",
+      "description": "Preconnect hints in <head> instruct the browser to resolve DNS, perform TLS handshake, and open a TCP connection to critical third-party origins before they are actually requested. The Neon database and Groq AI API are cold-connected on each function invocation, but for browser-originated requests (AI chat streaming), preconnect reduces Time to First Byte.",
+      "acceptanceCriteria": [
+        "<link rel=\"preconnect\" href=\"https://api.groq.com\"> is present in the root layout <head> (required for the streaming chat API)",
+        "<link rel=\"dns-prefetch\" href=\"https://api.groq.com\"> is present as a fallback for browsers that do not support preconnect",
+        "Lighthouse report shows no 'Avoid multiple page redirects' or 'Preconnect to required origins' warnings for Groq",
+        "No preconnect hints are added for server-side-only origins (Neon) that the browser never directly contacts"
+      ],
+      "technicalNotes": [
+        "Only add preconnect for origins the browser contacts directly — Neon is server-side only (no preconnect needed)",
+        "Add in root app/layout.tsx inside <head> using Next.js metadata.other or directly in the JSX head section",
+        "Groq endpoint: https://api.groq.com — preconnect benefits the first chat message Time To First Token",
+        "If OpenRouter fallback is used: also add preconnect for https://openrouter.ai"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-657",
+      "title": "robots.txt configuration for Vercel deployment with admin panel exclusion",
+      "priority": "low",
+      "description": "A correctly configured robots.txt prevents search engine crawlers from indexing the admin panel, API routes, and internal paths while allowing indexing of all public-facing pages. Without it, Google may crawl /admin and /api/*, creating unnecessary crawl budget waste and potential information leakage in search index.",
+      "acceptanceCriteria": [
+        "robots.txt disallows crawling of /admin, /api/, /en/admin, /ms/admin, /zh/admin",
+        "robots.txt allows all public pages: /, /[locale]/, /[locale]/menu, /[locale]/blog, /[locale]/about, /[locale]/contact",
+        "Sitemap URL is declared in robots.txt: Sitemap: https://[NEXT_PUBLIC_SITE_URL]/sitemap.xml",
+        "robots.txt is served at the root URL with Content-Type: text/plain",
+        "Google Search Console shows no crawl errors introduced by the robots.txt rules"
+      ],
+      "technicalNotes": [
+        "In Next.js App Router, create app/robots.ts (TypeScript) that exports a default function returning a MetadataRoute.Robots object",
+        "Next.js generates robots.txt automatically from this file at build time",
+        "MetadataRoute.Robots interface: { rules: { userAgent, disallow, allow }[], sitemap: string }",
+        "Use NEXT_PUBLIC_SITE_URL env var for the sitemap declaration",
+        "Reference: https://nextjs.org/docs/app/api-reference/file-conventions/metadata/robots"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-658",
+      "title": "Menu item quick-view nutritional and preparation info tooltip",
+      "priority": "low",
+      "description": "Customers with dietary needs (diabetics, those counting calories, allergy sufferers) frequently ask staff about ingredients and preparation. An optional 'Info' field per menu item (stored as free text) surfaced as a tooltip or expandable section on the menu card gives customers this context without requiring a full item detail page.",
+      "acceptanceCriteria": [
+        "Admin menu editor includes an optional 'Preparation notes / Info' text field (max 300 chars) per item",
+        "On the menu page, items with a non-empty info field show a small Info icon on the card",
+        "Tapping the icon on mobile (or hovering on desktop) shows the info text in a tooltip or slide-up panel",
+        "Items without info text show no icon — no visual clutter for the majority of items",
+        "The field is stored in a new nullable column `info_text` (TEXT) in menu_items table"
+      ],
+      "technicalNotes": [
+        "Add `info_text TEXT` column to menu_items via migration script",
+        "Use Radix UI Tooltip (already available via shadcn/ui) for desktop; use a bottom sheet or popover for mobile",
+        "WCAG: the Tooltip must be keyboard-accessible (focusable trigger, Escape to dismiss)",
+        "On mobile, tooltip hover-only behaviour violates WCAG — use a tappable popover instead",
+        "Add i18n key 'menu.prepInfo' to all three message files for the icon's aria-label"
       ],
       "dependencies": [],
       "estimatedComplexity": "medium",

@@ -137,6 +137,14 @@ data: {json}
 - Updated kds/page.tsx: removed playNewOrderChime() + muted state; getAlarmManager().play('chime') on new orders; <AlarmControls theme="dark" /> in header
 - Updated admin-orders-bell.tsx: play('chime') on new_order SSE; play('urgent') on escalation SSE; <AlarmControls theme="light"> in dropdown header
 
+**US-604** — 10-Minute Auto-Escalation for Unattended Orders
+- All components already had OVERDUE badges + alarm sounds from prior partial implementation
+- Fixed: admin-orders-bell now calls POST /api/admin/escalation-notify on escalation SSE event (push was never being sent)
+- Fixed: SSE EventSource URL now passes ?em={escalationMinutes} from settings (was hardcoded to default 10)
+- Fixed: POS mobile view was missing escalationMinutes prop on PosCard (desktop already had it)
+- Fixed: kds/escalation-count/route.ts type error on rows.map (pre-existing build failure)
+- Escalation push deduplication: escalation_notified_at column on tray_orders, only sends once per order per escalation
+
 ### Key patterns from Iteration 6
 
 - POS page uses direct fetch() instead of useAdminOrders() hook for more control over auth redirect
@@ -865,4 +873,7 @@ Completed: Enhanced Customer Order Submission Success UX (ID: US-603) in 12m
 *   **Time Synchronization:** Ensure all timestamp comparisons correctly handle potential time zone differences between the server and clients. Use UTC timestamps consistently.
 *   **State Management:** The "overdue" state must be cleared immediately once an order is approved or rejected to stop alarms and remove badges.
 *   **Push Notification Tagging:** Using a unique tag like `escalation-{orderId}` is critical to ensure new notifications for the same order replace older ones, preventing spam.
+
+## Iteration 1 - Fri, Mar 13, 2026 10:33:53 AM
+Incomplete: 10-Minute Auto-Escalation for Unattended Orders (ID: US-604) — attempt 1/3
 

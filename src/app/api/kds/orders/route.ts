@@ -19,7 +19,7 @@ export async function GET() {
         feedme_entered,
         created_at
       FROM tray_orders
-      WHERE status IN ('approved', 'preparing')
+      WHERE status IN ('approved', 'preparing', 'pending_approval')
       ORDER BY estimated_arrival ASC NULLS LAST
     `;
     return NextResponse.json({ orders: rows });

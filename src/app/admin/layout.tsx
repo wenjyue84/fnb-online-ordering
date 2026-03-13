@@ -9,6 +9,11 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     <html lang="en">
       {/* Strip any dark-mode class that may have persisted from a client-side navigation */}
       <head>
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <meta name="theme-color" content="#b45309" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-title" content="MM Staff" />
         <script
           nonce={nonce}
           dangerouslySetInnerHTML={{

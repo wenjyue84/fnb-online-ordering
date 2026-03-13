@@ -25,6 +25,7 @@ const KDS_URL = process.env.NEXT_PUBLIC_KDS_URL ?? "/kds";
 import type { MenuItemWithRules } from "@/types/menu";
 import type { BlogPost } from "@/types/blog";
 import { cn } from "@/lib/utils";
+import { InstallPrompt } from "@/components/shared/install-prompt";
 
 const LoadingPlaceholder = () => (
   <div className="space-y-4 p-6">
@@ -181,6 +182,7 @@ export function AdminTabs({ items, displayCategories, posts }: AdminTabsProps) {
 
   return (
     <div className="flex min-h-screen">
+      <InstallPrompt />
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div

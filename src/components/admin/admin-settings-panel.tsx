@@ -341,6 +341,25 @@ export function AdminSettingsPanel({ displayCategories }: AdminSettingsPanelProp
               </div>
 
               <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Escalation Timeout (minutes)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={60}
+                  value={settings.escalationMinutes ?? 10}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    if (v >= 1 && v <= 60) setField("escalationMinutes", v);
+                  }}
+                  className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                  placeholder="10"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Orders pending for longer than this many minutes will be flagged as overdue (OVERDUE badge, escalation alarm).
+                </p>
+              </div>
+
+              <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
                   Accepted payment methods
                 </label>
