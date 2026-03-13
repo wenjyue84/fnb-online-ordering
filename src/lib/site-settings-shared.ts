@@ -48,6 +48,7 @@ export interface SiteSettings {
   ratingValue?: number;
   ratingCount?: number;
   ratingProvider?: string;
+  escalationMinutes: number;
 }
 
 export const DEFAULT_SETTINGS: SiteSettings = {
@@ -99,4 +100,5 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   orderExpiryMinutes: 240,
   kitchenPin: "1234",
   posMode: "feedme_manual",
+  escalationMinutes: 10,
 };

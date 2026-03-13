@@ -33,6 +33,9 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  const url = new URL(request.url);
+  const escalationMinutes = Math.max(1, Number(url.searchParams.get("em") || "10"));
+
   const sql = neon(process.env.DATABASE_URL!);
 
   const stream = new ReadableStream({
@@ -40,6 +43,8 @@ export async function GET(request: NextRequest) {
       let lastCheck = new Date().toISOString();
       let heartbeatAt = Date.now();
       let active = true;
+      // Track which order IDs have already had an escalation event emitted this session
+      const escalationNotifiedIds = new Set<string>();
 
       request.signal.addEventListener("abort", () => {
         active = false;
@@ -63,6 +68,8 @@ export async function GET(request: NextRequest) {
 
         try {
           const now = new Date().toISOString();
+
+          // Check for new orders
           const rows = await sql`
             SELECT id, total, items, created_at
             FROM tray_orders
@@ -81,6 +88,27 @@ export async function GET(request: NextRequest) {
               createdAt: row.created_at,
             });
             send(`event: new_order\ndata: ${payload}\n\n`);
+          }
+
+          // Check for overdue pending_approval orders (escalation)
+          const overdueRows = await sql`
+            SELECT id, created_at
+            FROM tray_orders
+            WHERE status = 'pending_approval'
+              AND created_at < NOW() - (${escalationMinutes} * INTERVAL '1 minute')
+            ORDER BY created_at ASC
+          `;
+
+          for (const row of overdueRows) {
+            const orderId = String(row.id);
+            if (!escalationNotifiedIds.has(orderId)) {
+              escalationNotifiedIds.add(orderId);
+              const minutesOverdue = Math.floor(
+                (Date.now() - new Date(row.created_at as string).getTime()) / 60_000
+              ) - escalationMinutes;
+              const payload = JSON.stringify({ id: row.id, minutesOverdue });
+              send(`event: escalation\ndata: ${payload}\n\n`);
+            }
           }
         } catch {
           // DB error — continue loop, don't close stream

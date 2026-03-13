@@ -27,12 +27,14 @@ export function AdminOrdersPanel() {
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkToast, setBulkToast] = useState<string | null>(null);
   const [posMode, setPosMode] = useState<"builtin" | "feedme_manual">("feedme_manual");
+  const [escalationMinutes, setEscalationMinutes] = useState(10);
 
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.ok ? r.json() : null)
-      .then((d: { posMode?: "builtin" | "feedme_manual" } | null) => {
+      .then((d: { posMode?: "builtin" | "feedme_manual"; escalationMinutes?: number } | null) => {
         if (d?.posMode) setPosMode(d.posMode);
+        if (typeof d?.escalationMinutes === "number") setEscalationMinutes(d.escalationMinutes);
       })
       .catch(() => {});
   }, []);
@@ -172,6 +174,7 @@ export function AdminOrdersPanel() {
               key={order.id}
               order={order}
               posMode={posMode}
+              escalationMinutes={escalationMinutes}
               onApprove={approveOrder}
               onReject={rejectOrder}
               onStatusUpdate={updateStatus}

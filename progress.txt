@@ -832,3 +832,37 @@ This is a Next.js/TypeScript story, not Frappe/Python. Here is the technical bri
 *   **Accessibility:** Use the `@media (prefers-reduced-motion)` query to disable CSS animations for the checkmark and stepper.
 *   **Redirect Race Condition:** The 'Track My Order' button and the auto-redirect timer can conflict. Ensure the `setTimeout` is cleared if the user navigates away manually.
 
+## Iteration 3 - Fri, Mar 13, 2026  9:57:34 AM
+Completed: Enhanced Customer Order Submission Success UX (ID: US-603) in 12m
+
+
+## Pre-analysis for US-604 (Gemini 2.5 Pro)
+**Subject: Technical Brief for US-604: Order Escalation System**
+
+**Note:** The provided user story targets a Next.js/TypeScript application, not Frappe/Python as mentioned in the prompt. The following plan is based on the JSON `technicalNotes`.
+
+**1. Primary Files to Modify (TypeScript/Next.js):**
+*   `src/app/api/admin/orders/stream/route.ts`: Add server-side check to emit `'escalation'` SSE events and trigger push notifications.
+*   `src/components/admin/admin-order-card.tsx`: Render the 'OVERDUE' badge based on order timestamp.
+*   `src/app/kds/page.tsx`: Implement client-side overdue detection for alarms and UI effects.
+*   `src/app/[locale]/order/[id]/page.tsx`: Display the customer-facing "Taking longer than expected" banner.
+*   `src/components/admin/admin-settings-panel.tsx`: Add a new input for the escalation timeout.
+*   `src/lib/site-settings-shared.ts`: Add `escalationMinutes` to the `SiteSettings` type.
+*   `messages/*.json`: Add i18n keys for new customer-facing strings.
+
+**2. Key Architectural Components (Next.js equivalent of DocTypes/Hooks):**
+*   **API Route (Hook):** The Server-Sent Events (SSE) route at `/api/admin/orders/stream` acts as the central hook for server-side detection.
+*   **React Components (Views):** Various components will be modified to react to escalation data, both from SSE events and client-side time comparisons.
+*   **Configuration:** A new field will be added to the site-wide settings data structure.
+
+**3. Recommended Implementation Approach:**
+1.  Introduce an `escalationMinutes` setting (default: 10) in the settings schema and its corresponding admin UI.
+2.  In the `/api/admin/orders/stream` route, enhance the polling logic. For each pending order, compare its `created_at` timestamp with the current time. If it exceeds `escalationMinutes`, emit a new `'escalation'` event via the stream and trigger a web-push notification.
+3.  On the client-side, components like the KDS page and order cards should perform their own time checks to immediately reflect the overdue status visually.
+4.  The customer's order page (`/order/[id]`) will conditionally render a banner with a pre-filled WhatsApp link if the order is overdue.
+
+**4. Edge Cases & Gotchas:**
+*   **Time Synchronization:** Ensure all timestamp comparisons correctly handle potential time zone differences between the server and clients. Use UTC timestamps consistently.
+*   **State Management:** The "overdue" state must be cleared immediately once an order is approved or rejected to stop alarms and remove badges.
+*   **Push Notification Tagging:** Using a unique tag like `escalation-{orderId}` is critical to ensure new notifications for the same order replace older ones, preventing spam.
+

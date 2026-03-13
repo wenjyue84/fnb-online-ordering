@@ -410,9 +410,10 @@ interface PosCardProps {
   onMarkReady: (id: number) => Promise<ActionResult>;
   onConfirmPayment: (id: number) => Promise<ActionResult>;
   posMode: "builtin" | "feedme_manual";
+  escalationMinutes?: number;
 }
 
-function PosCard({ order, onTap, onApprove, onReject, onMarkReady, onConfirmPayment, posMode }: PosCardProps) {
+function PosCard({ order, onTap, onApprove, onReject, onMarkReady, onConfirmPayment, posMode, escalationMinutes = 10 }: PosCardProps) {
   const [elapsed, setElapsed] = useState(elapsedMinutes(order.created_at));
   const [showApprove, setShowApprove] = useState(false);
   const [showReject, setShowReject] = useState(false);
@@ -431,6 +432,7 @@ function PosCard({ order, onTap, onApprove, onReject, onMarkReady, onConfirmPaym
   const isPaymentUploaded = order.status === "payment_uploaded";
   const isApproved = order.status === "approved";
   const needsFeedmeCheck = posMode === "feedme_manual" && isPreparing && !feedmeEntered;
+  const isOverdue = isPending && elapsed >= escalationMinutes;
 
   async function handleFeedmeEntered(checked: boolean) {
     if (!checked) return;
@@ -469,12 +471,21 @@ function PosCard({ order, onTap, onApprove, onReject, onMarkReady, onConfirmPaym
         onClick={onTap}
         className={cn(
           "rounded-xl border bg-white shadow-sm p-4 cursor-pointer hover:shadow-md transition-shadow space-y-2",
-          isPending && "border-yellow-300 bg-yellow-50/40",
+          isPending && !isOverdue && "border-yellow-300 bg-yellow-50/40",
+          isOverdue && "border-red-400 bg-red-50/30",
           isApproved && "border-blue-200",
           isPreparing && "border-orange-200",
           order.status === "ready" && "border-purple-200 bg-purple-50/20"
         )}
       >
+        {/* OVERDUE badge */}
+        {isOverdue && (
+          <div className="flex items-center gap-1 rounded-md bg-red-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-red-700">
+            <AlertTriangle className="h-3 w-3" />
+            Overdue {elapsed}m
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
@@ -628,6 +639,7 @@ export default function PosPage() {
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [cafeName, setCafeName] = useState("Makan Moments");
   const [posMode, setPosMode] = useState<"builtin" | "feedme_manual">("feedme_manual");
+  const [escalationMinutes, setEscalationMinutes] = useState(10);
 
   // Optimistic update helper
   const updateOrder = useCallback((id: number, changes: Partial<AdminOrder>) => {
@@ -659,9 +671,10 @@ export default function PosPage() {
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.ok ? r.json() : null)
-      .then((d: { cafeName?: string; posMode?: "builtin" | "feedme_manual" } | null) => {
+      .then((d: { cafeName?: string; posMode?: "builtin" | "feedme_manual"; escalationMinutes?: number } | null) => {
         if (d?.cafeName) setCafeName(d.cafeName);
         if (d?.posMode) setPosMode(d.posMode);
+        if (typeof d?.escalationMinutes === "number") setEscalationMinutes(d.escalationMinutes);
       })
       .catch(() => {});
   }, []);
@@ -870,6 +883,7 @@ export default function PosPage() {
                           onMarkReady={markReady}
                           onConfirmPayment={confirmPayment}
                           posMode={posMode}
+                          escalationMinutes={escalationMinutes}
                         />
                       ))
                     )}

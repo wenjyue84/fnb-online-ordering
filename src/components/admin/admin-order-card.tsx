@@ -265,12 +265,13 @@ function PaymentModal({ orderId, screenshotUrl, onClose, onStatusUpdate }: Payme
 export interface AdminOrderCardProps {
   order: AdminOrder;
   posMode?: "builtin" | "feedme_manual";
+  escalationMinutes?: number;
   onApprove: (id: number, estimatedReady: string) => Promise<ActionResult>;
   onReject: (id: number, reason: string) => Promise<ActionResult>;
   onStatusUpdate: (id: number, action: "confirm_payment" | "mark_ready" | "reject_payment", extra?: { reason?: string }) => Promise<ActionResult>;
 }
 
-export function AdminOrderCard({ order, posMode = "feedme_manual", onApprove, onReject, onStatusUpdate }: AdminOrderCardProps) {
+export function AdminOrderCard({ order, posMode = "feedme_manual", escalationMinutes = 10, onApprove, onReject, onStatusUpdate }: AdminOrderCardProps) {
   const [showApprove, setShowApprove] = useState(false);
   const [showReject, setShowReject] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
@@ -280,6 +281,7 @@ export function AdminOrderCard({ order, posMode = "feedme_manual", onApprove, on
 
   const isPending = order.status === "pending_approval" || order.status === "pending";
   const hasPaymentUploaded = order.status === "payment_uploaded";
+  const isOverdue = isPending && (Date.now() - new Date(order.created_at).getTime()) > escalationMinutes * 60_000;
   const isPreparing = order.status === "preparing";
   const needsFeedmeCheck = posMode === "feedme_manual" && isPreparing && !feedmeEntered;
 
@@ -310,8 +312,17 @@ export function AdminOrderCard({ order, posMode = "feedme_manual", onApprove, on
     <>
       <div className={cn(
         "rounded-xl border bg-white shadow-sm p-4 flex flex-col gap-3",
-        isPending && "border-yellow-300 bg-yellow-50/40"
+        isPending && "border-yellow-300 bg-yellow-50/40",
+        isOverdue && "border-red-400 bg-red-50/30"
       )}>
+        {/* OVERDUE banner */}
+        {isOverdue && (
+          <div className="flex items-center gap-1.5 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-red-700">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            Overdue — waiting {escalationMinutes}+ min
+          </div>
+        )}
+
         {/* Header row */}
         <div className="flex items-start justify-between gap-2">
           <div>

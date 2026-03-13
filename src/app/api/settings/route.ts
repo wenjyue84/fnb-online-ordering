@@ -13,5 +13,6 @@ export async function GET() {
     orderExpiryMinutes: settings.orderExpiryMinutes ?? 240,
     posMode: settings.posMode ?? "feedme_manual",
     cafeName: settings.cafeName ?? "Makan Moments",
+    escalationMinutes: settings.escalationMinutes ?? 10,
   });
 }
