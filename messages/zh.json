@@ -110,7 +110,8 @@
     "orderHistory": "我的订单",
     "statusPending": "待处理",
     "statusApproved": "已确认",
-    "statusReady": "好了！"
+    "statusReady": "好了！",
+    "close": "关闭"
   },
   "recipe": {
     "ingredients": "主要食材",
@@ -195,7 +196,9 @@
     "contactPlaceholder": "012-3456789",
     "contactRequired": "请填写联系电话",
     "contactInvalid": "请输入有效的马来西亚电话号码（如 012-3456789）",
-    "arrivalLabel": "预计到达时间",
+    "dateLabel": "到达日期",
+    "dateRequired": "请选择到达日期",
+    "arrivalLabel": "到达时间",
     "arrivalMin": "至少需提前 {minutes} 分钟",
     "arrivalRequired": "请填写到达时间",
     "arrivalTooSoon": "最早到达时间为 {time}（至少需提前 {minutes} 分钟）。请选择更晚的时间。",

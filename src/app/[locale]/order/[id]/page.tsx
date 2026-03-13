@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { CheckCircle2, Circle, Clock, XCircle, PhoneCall, Upload, Loader2 } from "lucide-react";
-import heic2any from "heic2any";
 import Link from "next/link";
 import { fetchWithTimeout } from "@/lib/utils";
 import { formatDateTime } from "@/lib/date-utils";
@@ -158,6 +157,7 @@ function PaymentSection({
     if (file.type === "image/heic" || file.type === "image/heif") {
       setConverting(true);
       try {
+        const { default: heic2any } = await import("heic2any");
         const blob = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.85 });
         const converted = new File(
           [Array.isArray(blob) ? blob[0] : blob],

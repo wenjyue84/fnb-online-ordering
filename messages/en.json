@@ -110,7 +110,8 @@
     "orderHistory": "My Orders",
     "statusPending": "Pending",
     "statusApproved": "Approved",
-    "statusReady": "Ready!"
+    "statusReady": "Ready!",
+    "close": "Close"
   },
   "recipe": {
     "ingredients": "Key Ingredients",
@@ -195,7 +196,9 @@
     "contactPlaceholder": "012-3456789",
     "contactRequired": "Contact number is required",
     "contactInvalid": "Please enter a valid Malaysian number (e.g. 012-3456789)",
-    "arrivalLabel": "Estimated Arrival Time",
+    "dateLabel": "Arrival Date",
+    "dateRequired": "Arrival date is required",
+    "arrivalLabel": "Arrival Time",
     "arrivalMin": "Minimum {minutes} minutes from now",
     "arrivalRequired": "Arrival time is required",
     "arrivalTooSoon": "Earliest arrival is {time} (minimum {minutes} minutes notice). Please select a later time.",

@@ -29,13 +29,20 @@ function getMinArrivalTimeFor(minutes: number): string {
   return `${hh}:${mm}`;
 }
 
+function getTodayStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export function OrderFormModal({ items, total, onSuccess, onClose }: OrderFormModalProps) {
   const t = useTranslations("orderForm");
   const locale = useLocale();
   const [step, setStep] = useState<1 | 2>(1);
   const [contactNumber, setContactNumber] = useState("");
+  const [arrivalDate, setArrivalDate] = useState(getTodayStr());
   const [arrivalTime, setArrivalTime] = useState("");
   const [contactError, setContactError] = useState("");
+  const [dateError, setDateError] = useState("");
   const [timeError, setTimeError] = useState("");
   const [slotFullTime, setSlotFullTime] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -122,19 +129,24 @@ export function OrderFormModal({ items, total, onSuccess, onClose }: OrderFormMo
     return true;
   }
 
+  function validateDate(value: string): boolean {
+    if (!value) {
+      setDateError(t("dateRequired"));
+      return false;
+    }
+    setDateError("");
+    return true;
+  }
+
   function validateTime(value: string): boolean {
     if (!value) {
       setTimeError(t("arrivalRequired"));
       return false;
     }
     const [h, m] = value.split(":").map(Number);
+    const [y, mo, d] = arrivalDate.split("-").map(Number);
+    const selected = new Date(y, mo - 1, d, h, m, 0, 0);
     const now = new Date();
-    const selected = new Date();
-    selected.setHours(h, m, 0, 0);
-    // Handle day-wrap: if selected is far in the past it's next day
-    if (selected.getTime() < now.getTime() - 12 * 60 * 60 * 1000) {
-      selected.setDate(selected.getDate() + 1);
-    }
     if (selected.getTime() - now.getTime() < (minAdvanceMinutes - 1) * 60 * 1000) {
       setTimeError(t("arrivalTooSoon", { time: getMinArrivalTimeFor(minAdvanceMinutes), minutes: minAdvanceMinutes }));
       return false;
@@ -146,17 +158,14 @@ export function OrderFormModal({ items, total, onSuccess, onClose }: OrderFormMo
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const contactOk = validateContact(contactNumber);
+    const dateOk = validateDate(arrivalDate);
     const timeOk = validateTime(arrivalTime);
-    if (!contactOk || !timeOk) return;
+    if (!contactOk || !dateOk || !timeOk) return;
 
-    // Build estimated arrival as ISO timestamp (today + selected time, with day-wrap)
+    // Build estimated arrival as ISO timestamp from selected date + time
     const [h, m] = arrivalTime.split(":").map(Number);
-    const now = new Date();
-    const arrivalDate = new Date();
-    arrivalDate.setHours(h, m, 0, 0);
-    if (arrivalDate.getTime() < now.getTime() - 12 * 60 * 60 * 1000) {
-      arrivalDate.setDate(arrivalDate.getDate() + 1);
-    }
+    const [y, mo, d] = arrivalDate.split("-").map(Number);
+    const arrivalDateTime = new Date(y, mo - 1, d, h, m, 0, 0);
 
     setSubmitting(true);
     setSlotFullTime(null);
@@ -168,7 +177,7 @@ export function OrderFormModal({ items, total, onSuccess, onClose }: OrderFormMo
           items,
           total,
           contactNumber: contactNumber.replace(/[\s-]/g, ""),
-          estimatedArrival: arrivalDate.toISOString(),
+          estimatedArrival: arrivalDateTime.toISOString(),
         }),
       });
       if (!res.ok) {
@@ -261,24 +270,52 @@ export function OrderFormModal({ items, total, onSuccess, onClose }: OrderFormMo
               </p>
             </div>
 
-            {/* Arrival time */}
-            <div className="space-y-1">
-              <label htmlFor="ofm-arrival" className="block text-sm font-semibold">
+            {/* Estimated Arrival — date + time */}
+            <div className="space-y-3">
+              <p className="text-sm font-semibold">
                 {t("arrivalLabel")} <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="ofm-arrival"
-                type="time"
-                min={minTime}
-                value={arrivalTime}
-                onChange={(e) => {
-                  setArrivalTime(e.target.value);
-                  if (timeError) validateTime(e.target.value);
-                }}
-                aria-invalid={!!timeError}
-                aria-describedby={timeError ? "ofm-arrival-error" : "ofm-arrival-hint"}
-                className={`w-full rounded-xl border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${timeError ? "border-red-500" : ""}`}
-              />
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {/* Date */}
+                <div className="space-y-1">
+                  <label htmlFor="ofm-date" className="block text-xs text-muted-foreground">{t("dateLabel")}</label>
+                  <input
+                    id="ofm-date"
+                    type="date"
+                    min={getTodayStr()}
+                    value={arrivalDate}
+                    onChange={(e) => {
+                      setArrivalDate(e.target.value);
+                      if (dateError) validateDate(e.target.value);
+                    }}
+                    aria-invalid={!!dateError}
+                    className={`w-full rounded-xl border bg-background px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${dateError ? "border-red-500" : ""}`}
+                  />
+                  {dateError && (
+                    <p className="flex items-center gap-1 text-xs text-red-500" role="alert" aria-live="polite">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                      {dateError}
+                    </p>
+                  )}
+                </div>
+                {/* Time */}
+                <div className="space-y-1">
+                  <label htmlFor="ofm-arrival" className="block text-xs text-muted-foreground">{t("arrivalLabel")}</label>
+                  <input
+                    id="ofm-arrival"
+                    type="time"
+                    min={arrivalDate === getTodayStr() ? minTime : undefined}
+                    value={arrivalTime}
+                    onChange={(e) => {
+                      setArrivalTime(e.target.value);
+                      if (timeError) validateTime(e.target.value);
+                    }}
+                    aria-invalid={!!timeError}
+                    aria-describedby={timeError ? "ofm-arrival-error" : "ofm-arrival-hint"}
+                    className={`w-full rounded-xl border bg-background px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${timeError ? "border-red-500" : ""}`}
+                  />
+                </div>
+              </div>
               <p id="ofm-arrival-hint" className="text-xs text-muted-foreground">{t("arrivalMin", { minutes: minAdvanceMinutes })}</p>
               {timeError && (
                 <p id="ofm-arrival-error" className="flex items-center gap-1 text-xs text-red-500" role="alert" aria-live="polite">
@@ -298,8 +335,9 @@ export function OrderFormModal({ items, total, onSuccess, onClose }: OrderFormMo
                   <button
                     type="button"
                     onClick={() => {
-                      const d = new Date(slotFullTime);
-                      setArrivalTime(`${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`);
+                      const dt = new Date(slotFullTime);
+                      setArrivalDate(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`);
+                      setArrivalTime(`${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}`);
                       setSlotFullTime(null);
                     }}
                     className="mt-2 w-full rounded-lg bg-orange-500 py-2 text-xs font-semibold text-white hover:bg-orange-600 transition-colors"

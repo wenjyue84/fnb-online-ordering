@@ -110,7 +110,8 @@
     "orderHistory": "Pesanan Saya",
     "statusPending": "Menunggu",
     "statusApproved": "Diluluskan",
-    "statusReady": "Siap!"
+    "statusReady": "Siap!",
+    "close": "Tutup"
   },
   "recipe": {
     "ingredients": "Bahan-Bahan Utama",
@@ -195,7 +196,9 @@
     "contactPlaceholder": "012-3456789",
     "contactRequired": "Nombor hubungi diperlukan",
     "contactInvalid": "Sila masukkan nombor Malaysia yang sah (cth. 012-3456789)",
-    "arrivalLabel": "Anggaran Masa Ketibaan",
+    "dateLabel": "Tarikh Ketibaan",
+    "dateRequired": "Tarikh ketibaan diperlukan",
+    "arrivalLabel": "Masa Ketibaan",
     "arrivalMin": "Minimum {minutes} minit dari sekarang",
     "arrivalRequired": "Masa ketibaan diperlukan",
     "arrivalTooSoon": "Masa ketibaan terawal ialah {time} (minimum {minutes} minit notis). Sila pilih masa yang lebih lewat.",

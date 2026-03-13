@@ -18,7 +18,7 @@ export async function GET(
     }
 
     const rows = await sql`
-      SELECT id, status, created_at
+      SELECT id, status, items, total, contact_number, estimated_arrival, estimated_ready, rejection_reason, created_at
       FROM tray_orders
       WHERE id = ${orderId}
       LIMIT 1
@@ -33,28 +33,33 @@ export async function GET(
     const { orderExpiryMinutes } = await getSiteSettings();
     const expiryMs = orderExpiryMinutes * 60 * 1000;
 
+    function rowToOrder(r: typeof row, overrideStatus?: string) {
+      return {
+        id: r.id,
+        status: overrideStatus ?? r.status,
+        items: r.items ?? [],
+        total: r.total,
+        contactNumber: r.contact_number ?? null,
+        estimatedArrival: r.estimated_arrival ?? null,
+        estimatedReady: r.estimated_ready ?? null,
+        rejectionReason: r.rejection_reason ?? null,
+        createdAt: r.created_at,
+      };
+    }
+
     // Auto-expire pending_approval orders older than the configured threshold
     if (row.status === 'pending_approval' && ageMs > expiryMs) {
       await sql`UPDATE tray_orders SET status = 'expired' WHERE id = ${orderId}`;
-      return NextResponse.json(
-        { id: row.id, status: 'expired', createdAt: row.created_at },
-        { headers: { "Cache-Control": "no-store" } }
-      );
+      return NextResponse.json(rowToOrder(row, 'expired'), { headers: { "Cache-Control": "no-store" } });
     }
 
     // Auto-expire approved orders with no payment after 30 minutes
     if (row.status === 'approved' && ageMs > 30 * 60 * 1000) {
       await sql`UPDATE tray_orders SET status = 'expired' WHERE id = ${orderId}`;
-      return NextResponse.json(
-        { id: row.id, status: 'expired', createdAt: row.created_at },
-        { headers: { "Cache-Control": "no-store" } }
-      );
+      return NextResponse.json(rowToOrder(row, 'expired'), { headers: { "Cache-Control": "no-store" } });
     }
 
-    return NextResponse.json(
-      { id: row.id, status: row.status, createdAt: row.created_at },
-      { headers: { "Cache-Control": "no-store" } }
-    );
+    return NextResponse.json(rowToOrder(row), { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     console.error("[GET /api/orders/[id]]", err);
     return NextResponse.json({ error: "Failed to fetch order" }, { status: 500 });
