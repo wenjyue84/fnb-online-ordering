@@ -1001,3 +1001,9 @@ Completed: Hreflang alternate links on all locale pages via generateMetadata (ID
 - Home page inherits alternates from layout metadata (no separate generateMetadata needed)
 - Build passes, no new lint errors
 
+## Iteration 4 - Fri, Mar 13, 2026  3:29:43 PM
+Completed: Hreflang alternate links on all locale pages via generateMetadata (ID: US-640) in 8m
+
+## Iteration 5 - Fri, Mar 13, 2026  3:42:00 PM
+Incomplete: On-demand menu cache invalidation via revalidateTag after admin edits (ID: US-642) — attempt 1/3
+

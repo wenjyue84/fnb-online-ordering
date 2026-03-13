@@ -81,6 +81,8 @@ export function MenuGrid({
   // Initialise search from server-passed ?q= value so it survives page refresh
   const [search, setSearch] = useState(initialSearch);
 
+  const [allergenFree, setAllergenFree] = useState<string | null>(initialAllergenFree);
+
   // Keep URL ?q= param in sync with search state.
   // Build params explicitly from known props — avoids useSearchParams() which requires Suspense
   // and can cause NextIntlClientProvider context to be missing during SSR hydration.
@@ -88,10 +90,11 @@ export function MenuGrid({
     const params = new URLSearchParams();
     if (search) params.set("q", search);
     if (previewTime) params.set("previewTime", previewTime);
+    if (allergenFree) params.set("allergenFree", allergenFree);
     const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
     router.replace(newUrl, { scroll: false });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, previewTime]);
+  }, [search, previewTime, allergenFree]);
   const debouncedSearch = useDebounce(search, 300);
 
   // Defer category and search so the filter pill highlights immediately (within 50ms)
@@ -404,6 +407,8 @@ export function MenuGrid({
         itemCount={filtered.length}
         servingNowCategories={servingNowCategories}
         favoritesCount={favorites.length}
+        allergenFree={allergenFree}
+        onAllergenFreeChange={setAllergenFree}
       />
 
       {/* Admin edit/customer mode toggle */}

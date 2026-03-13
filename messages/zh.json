@@ -298,5 +298,17 @@
     "copyOrderId": "复制订单号",
     "copied": "已复制！",
     "autoRedirect": "{seconds}秒后追踪"
+  },
+  "allergens": {
+    "contains": "含有",
+    "filterFreeOf": "不含{allergen}",
+    "allergenFilter": "过敏原",
+    "noFilter": "全部",
+    "nuts": "坚果",
+    "shellfish": "甲壳类",
+    "dairy": "乳制品",
+    "eggs": "鸡蛋",
+    "gluten": "麸质",
+    "soy": "大豆"
   }
 }

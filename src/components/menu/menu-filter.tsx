@@ -296,6 +296,34 @@ export function MenuFilter({
               <span className="rounded-full bg-current/20 px-1.5 py-0 text-xs">{favoritesCount}</span>
             </button>
           )}
+
+          {/* Allergen-free filter — shows active badge or a compact select */}
+          {onAllergenFreeChange && (
+            <div className="flex-shrink-0 snap-start">
+              {allergenFree ? (
+                <button
+                  type="button"
+                  onClick={() => onAllergenFreeChange(null)}
+                  className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium min-h-[44px] bg-purple-500 text-white scale-[1.04] transition-all"
+                >
+                  {ta("filterFreeOf", { allergen: ta(allergenFree as "nuts" | "shellfish" | "dairy" | "eggs" | "gluten" | "soy") })}
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              ) : (
+                <select
+                  value=""
+                  onChange={(e) => onAllergenFreeChange(e.target.value || null)}
+                  className={cn(pillBase, pillInactive, "cursor-pointer appearance-none")}
+                  aria-label={ta("allergenFilter")}
+                >
+                  <option value="">{ta("allergenFilter")}</option>
+                  {ALLERGEN_SLUGS.map((slug) => (
+                    <option key={slug} value={slug}>{ta(slug)}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Search toggle button — mobile only; shows "Search" text when idle for discoverability */}

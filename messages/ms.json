@@ -298,5 +298,17 @@
     "copyOrderId": "Salin ID Pesanan",
     "copied": "Disalin!",
     "autoRedirect": "Menjejak dalam {seconds}s"
+  },
+  "allergens": {
+    "contains": "Mengandungi",
+    "filterFreeOf": "Tanpa {allergen}",
+    "allergenFilter": "Alergen",
+    "noFilter": "Semua alergen",
+    "nuts": "Kacang",
+    "shellfish": "Kerang-kerangan",
+    "dairy": "Tenusu",
+    "eggs": "Telur",
+    "gluten": "Gluten",
+    "soy": "Soya"
   }
 }

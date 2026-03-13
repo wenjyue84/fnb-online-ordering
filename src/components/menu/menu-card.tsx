@@ -9,6 +9,7 @@ import { useTrayActions, useTrayItemCount } from "@/lib/tray-context";
 import type { MenuItemWithRules } from "@/types/menu";
 import { formatPrice, getLocalizedName, cn, getCategoryEmoji } from "@/lib/utils";
 import { DietaryBadge } from "./dietary-badge";
+import { AllergenBadges } from "./allergen-badge";
 import { ImageCarousel } from "./image-carousel";
 
 const RecipeModal = dynamic(
@@ -209,6 +210,9 @@ export function MenuCard({ item, priority = false, isHighlighted = false, isFavo
                     <DietaryBadge key={d} label={d} />
                   ))}
                 </div>
+              )}
+              {item.allergens && item.allergens.length > 0 && (
+                <AllergenBadges allergens={item.allergens} />
               )}
             </div>
 

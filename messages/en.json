@@ -298,5 +298,17 @@
     "copyOrderId": "Copy Order ID",
     "copied": "Copied!",
     "autoRedirect": "Tracking in {seconds}s"
+  },
+  "allergens": {
+    "contains": "Contains",
+    "filterFreeOf": "No {allergen}",
+    "allergenFilter": "Allergen",
+    "noFilter": "All allergens",
+    "nuts": "Nuts",
+    "shellfish": "Shellfish",
+    "dairy": "Dairy",
+    "eggs": "Eggs",
+    "gluten": "Gluten",
+    "soy": "Soy"
   }
 }

@@ -638,7 +638,7 @@
       "id": "US-621",
       "title": "Google Maps Place integration: hasMap property and static map on Contact page",
       "priority": "low",
-      "description": "The contact and about pages link to the cafe's location but do not embed a visual map or provide the hasMap property in structured data. A static Google Maps embed (no JS, no API key required) and the hasMap schema property improve local SEO and directly serve the primary use case for visiting customers: finding the cafe.",
+      "description": "Completed in iteration 5. Map embed, lazy loading, hasMap JSON-LD, Get Directions CTA, print:hidden, and aria title already implemented.",
       "acceptanceCriteria": [
         "The contact/about page includes a responsive static Google Maps embed iframe (no API key required) showing the cafe pin",
         "The iframe is lazy-loaded (loading='lazy') to avoid blocking page render",
@@ -656,7 +656,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-622",
@@ -758,7 +758,7 @@
         "Built-in Simple POS Dashboard"
       ],
       "estimatedComplexity": "large",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-626",
@@ -1127,7 +1127,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-641",
