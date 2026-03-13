@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, X, Clock, Eye, AlertTriangle, RefreshCw } from "lucide-react";
+import { Check, X, Clock, Eye, AlertTriangle, RefreshCw, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDateTimeCompact as formatDateTime, formatTime } from "@/lib/date-utils";
 import type { AdminOrder, ActionResult } from "@/hooks/useAdminOrders";
@@ -374,6 +374,15 @@ export function AdminOrderCard({ order, posMode = "feedme_manual", escalationMin
             {notifStatus === "pending" && !resending && (
               <span className="ml-1.5 inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-semibold text-yellow-700">
                 WA Sending…
+              </span>
+            )}
+            {notifStatus === "email_fallback" && (
+              <span
+                className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700"
+                title="WhatsApp failed — notification sent via email fallback"
+              >
+                <Mail className="h-3 w-3" />
+                Notified via email
               </span>
             )}
           </div>

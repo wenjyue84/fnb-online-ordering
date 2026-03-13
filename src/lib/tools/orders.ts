@@ -127,6 +127,8 @@ export async function submitOrderHandler(args: {
 
   void sendPushToAllAdmins(items.length, total);
 
+  const toolSettings = await getSiteSettings();
+
   // Fire-and-forget WhatsApp notification with retry
   void sendOrderWhatsAppNotification({
     orderId,
@@ -138,7 +140,7 @@ export async function submitOrderHandler(args: {
     total,
     contactNumber: phone,
     estimatedArrival: new Date(arrival).toISOString(),
-  });
+  }, toolSettings.waiterEmail);
 
   return JSON.stringify({
     ok: true,

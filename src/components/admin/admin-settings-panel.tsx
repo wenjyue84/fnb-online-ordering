@@ -444,6 +444,27 @@ export function AdminSettingsPanel({ displayCategories }: AdminSettingsPanelProp
       {/* Notifications */}
       {activeTab === "Notifications" && (
         <div className="space-y-6">
+          <section className="rounded-xl border border-gray-200 bg-white p-6">
+            <h2 className="mb-1 text-base font-semibold text-gray-900">Email Fallback</h2>
+            <p className="mb-4 text-xs text-gray-500">
+              When WhatsApp notification fails after all retries, an urgent email is sent to this address.
+              Requires <code className="rounded bg-gray-100 px-1 font-mono text-xs">RESEND_API_KEY</code> in environment variables.
+            </p>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Waiter / Owner Email</label>
+              <input
+                type="email"
+                value={settings.waiterEmail ?? ""}
+                onChange={(e) => setField("waiterEmail", e.target.value || undefined)}
+                className="w-full max-w-sm rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                placeholder="e.g. owner@makanmoments.cafe"
+              />
+              <p className="mt-1 text-xs text-gray-500">Leave blank to disable email fallback.</p>
+            </div>
+            <div className="mt-4">
+              <SaveBar />
+            </div>
+          </section>
           <AdminPushSettings />
         </div>
       )}

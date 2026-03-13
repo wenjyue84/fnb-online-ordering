@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
       total,
       contactNumber: normalizedPhone,
       estimatedArrival: arrivalTime.toISOString(),
-    });
+    }, settings.waiterEmail);
 
     return NextResponse.json({ ok: true, id: orderId }, { status: 201 });
   } catch (err) {

@@ -50,6 +50,7 @@ export interface SiteSettings {
   ratingProvider?: string;
   escalationMinutes: number;
   maxOrdersPerSlot: number;
+  waiterEmail?: string;
 }
 
 export const DEFAULT_SETTINGS: SiteSettings = {

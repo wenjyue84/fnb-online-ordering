@@ -206,6 +206,8 @@ export async function PATCH(
       // Reset notification_status to 'pending' before retrying
       await sql`UPDATE tray_orders SET notification_status = 'pending' WHERE id = ${orderId}`;
 
+      const resendSettings = await getSiteSettings();
+
       // Fire-and-forget resend — same pattern as initial send
       void sendOrderWhatsAppNotification({
         orderId,
@@ -213,7 +215,7 @@ export async function PATCH(
         total: parseFloat(orderRow.total),
         contactNumber: orderRow.contact_number ?? "",
         estimatedArrival: orderRow.estimated_arrival ?? new Date().toISOString(),
-      });
+      }, resendSettings.waiterEmail);
 
       return NextResponse.json({ ok: true, notification_status: "pending" });
     }

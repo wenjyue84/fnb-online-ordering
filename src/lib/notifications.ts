@@ -1,10 +1,12 @@
 /**
  * WhatsApp notification delivery with exponential backoff retry.
+ * Falls back to email (Resend) when WhatsApp fails after all retries.
  *
  * Reads config from env vars:
  *   WHATSAPP_API_URL   - endpoint that accepts { to, message } POST
  *   WHATSAPP_API_KEY   - bearer token for the API
  *   WAITER_WHATSAPP_NUMBER - destination phone (e.g. "601XXXXXXXXX")
+ *   RESEND_API_KEY     - Resend API key for email fallback
  */
 
 import sql from "@/lib/db";
@@ -96,16 +98,111 @@ async function sendWhatsAppMessage(to: string, message: string): Promise<void> {
   }
 }
 
-export type NotificationStatus = "pending" | "sent" | "failed" | "skipped";
+export type NotificationStatus = "pending" | "sent" | "failed" | "skipped" | "email_fallback";
+
+// ---------------------------------------------------------------------------
+// Email fallback (Resend)
+// ---------------------------------------------------------------------------
+
+function formatOrderEmailHtml(payload: OrderNotificationPayload): string {
+  const itemRows = payload.items
+    .map(
+      (item) =>
+        `<tr><td style="padding:4px 8px;">${item.quantity}x ${item.name}</td>` +
+        `<td style="padding:4px 8px;text-align:right;">RM ${(item.price * item.quantity).toFixed(2)}</td></tr>`
+    )
+    .join("");
+
+  const eta = new Date(payload.estimatedArrival).toLocaleTimeString("en-MY", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Kuala_Lumpur",
+  });
+
+  return `
+<!DOCTYPE html>
+<html>
+<body style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#222;">
+  <h2 style="color:#b45309;">⚠️ WhatsApp Failed — New Pre-Order</h2>
+  <p>WhatsApp notification could not be delivered after 3 retries. Details below:</p>
+  <table style="border-collapse:collapse;width:100%;border:1px solid #ddd;border-radius:8px;overflow:hidden;">
+    <thead>
+      <tr style="background:#fef3c7;">
+        <th style="padding:8px;text-align:left;">Item</th>
+        <th style="padding:8px;text-align:right;">Subtotal</th>
+      </tr>
+    </thead>
+    <tbody>${itemRows}</tbody>
+    <tfoot>
+      <tr style="background:#f9fafb;">
+        <td style="padding:8px;font-weight:bold;">Total</td>
+        <td style="padding:8px;text-align:right;font-weight:bold;">RM ${payload.total.toFixed(2)}</td>
+      </tr>
+    </tfoot>
+  </table>
+  <p><strong>Customer:</strong> ${payload.contactNumber}</p>
+  <p><strong>ETA:</strong> ${eta}</p>
+  <p><strong>Order ID:</strong> #${payload.orderId}</p>
+  <hr style="margin:16px 0;border:none;border-top:1px solid #e5e7eb;" />
+  <p style="color:#6b7280;font-size:12px;">Please enter this order into FeedMe POS or manage it at <a href="/admin">the admin dashboard</a>.</p>
+</body>
+</html>`;
+}
+
+/**
+ * Send a fallback email via Resend when WhatsApp fails.
+ * Reads RESEND_API_KEY from env. Reads waiterEmail from site settings.
+ * Never throws.
+ */
+async function sendEmailFallback(
+  payload: OrderNotificationPayload,
+  waiterEmail: string
+): Promise<boolean> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.warn(`[email-fallback] RESEND_API_KEY not configured — skipping email for order #${payload.orderId}`);
+    return false;
+  }
+  if (!waiterEmail) {
+    console.warn(`[email-fallback] No waiterEmail configured — skipping email for order #${payload.orderId}`);
+    return false;
+  }
+
+  const subject = `[URGENT] New Pre-Order — #${payload.orderId} — WhatsApp failed`;
+  const html = formatOrderEmailHtml(payload);
+
+  try {
+    const { Resend } = await import("resend");
+    const resend = new Resend(apiKey);
+    const { error } = await resend.emails.send({
+      from: "Makan Moments <orders@makanmoments.cafe>",
+      to: [waiterEmail],
+      subject,
+      html,
+    });
+    if (error) throw new Error(error.message);
+    console.info(`[email-fallback] Sent for order #${payload.orderId} to ${waiterEmail} at ${new Date().toISOString()}`);
+    return true;
+  } catch (err) {
+    console.error(
+      `[email-fallback] FAILED for order #${payload.orderId}:`,
+      err instanceof Error ? err.message : err,
+      `at ${new Date().toISOString()}`
+    );
+    return false;
+  }
+}
 
 /**
  * Send a WhatsApp notification for a new order, with retry.
+ * Falls back to email (Resend) when WhatsApp fails after all retries.
  * Updates the `notification_status` column in tray_orders.
  *
  * Never throws — a notification failure must never break order submission.
  */
 export async function sendOrderWhatsAppNotification(
-  payload: OrderNotificationPayload
+  payload: OrderNotificationPayload,
+  waiterEmail?: string
 ): Promise<NotificationStatus> {
   const waiterNumber = process.env.WAITER_WHATSAPP_NUMBER;
   const apiUrl = process.env.WHATSAPP_API_URL;
@@ -138,6 +235,14 @@ export async function sendOrderWhatsAppNotification(
       `[whatsapp] FAILED after 3 retries for order #${payload.orderId}:`,
       err instanceof Error ? err.message : err
     );
+
+    // Attempt email fallback
+    const emailSent = await sendEmailFallback(payload, waiterEmail ?? "");
+    if (emailSent) {
+      await sql`UPDATE tray_orders SET notification_status = 'email_fallback' WHERE id = ${payload.orderId}`;
+      return "email_fallback";
+    }
+
     await sql`UPDATE tray_orders SET notification_status = 'failed' WHERE id = ${payload.orderId}`;
     return "failed";
   }
