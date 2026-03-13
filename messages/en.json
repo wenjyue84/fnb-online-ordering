@@ -25,7 +25,9 @@
     "added": "Added",
     "favorites": "Favorites",
     "noFavorites": "No favorites yet — tap the heart icon on items you love",
-    "privacyPolicy": "Privacy Policy"
+    "privacyPolicy": "Privacy Policy",
+    "halalBadge": "Halal-Friendly",
+    "halalTooltip": "No pork, no lard. Muslim-friendly ingredients."
   },
   "home": {
     "heroTitle": "Thai-Malaysian Fusion",

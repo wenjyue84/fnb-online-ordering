@@ -55,7 +55,15 @@ export async function RestaurantJsonLd({ nonce }: { nonce?: string | null } = {}
       opens: settings.operatingHours.open,
       closes: settings.operatingHours.close,
     },
-    servesCuisine: settings.cuisineTypes,
+    servesCuisine: [...settings.cuisineTypes, "Halal-friendly"],
+    suitableForDiet: "https://schema.org/HalalDiet",
+    amenityFeature: [
+      {
+        "@type": "LocationFeatureSpecification",
+        name: "Halal-friendly",
+        value: true,
+      },
+    ],
     priceRange: settings.priceRange,
     paymentAccepted: settings.paymentMethods.join(", "),
     currenciesAccepted: "MYR",
@@ -120,20 +128,27 @@ export async function MenuPageJsonLd({
     hasMenuSection = Array.from(categoryMap.entries()).map(([category, catItems]) => ({
       "@type": "MenuSection",
       name: category,
-      hasMenuItem: catItems.map((item) => ({
-        "@type": "MenuItem",
-        name: getName(item),
-        ...(item.description && { description: item.description }),
-        ...(item.photo && { image: `${siteUrl}${item.photo}` }),
-        offers: {
-          "@type": "Offer",
-          price: item.price.toFixed(2),
-          priceCurrency: "MYR",
-          availability: item.available
-            ? "https://schema.org/InStock"
-            : "https://schema.org/OutOfStock",
-        },
-      })),
+      hasMenuItem: catItems.map((item) => {
+        const dietList: string[] = ["https://schema.org/HalalDiet"];
+        if (item.dietary.some((d) => d.toLowerCase().includes("vegetarian"))) {
+          dietList.push("https://schema.org/VegetarianDiet");
+        }
+        return {
+          "@type": "MenuItem",
+          name: getName(item),
+          ...(item.description && { description: item.description }),
+          ...(item.photo && { image: `${siteUrl}${item.photo}` }),
+          suitableForDiet: dietList,
+          offers: {
+            "@type": "Offer",
+            price: item.price.toFixed(2),
+            priceCurrency: "MYR",
+            availability: item.available
+              ? "https://schema.org/InStock"
+              : "https://schema.org/OutOfStock",
+          },
+        };
+      }),
     }));
   }
 

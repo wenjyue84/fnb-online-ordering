@@ -73,6 +73,21 @@ export async function HeroSection({ heroTitle, heroTagline, heroSubtitle, signat
               {subtitle}
             </p>
 
+            {/* Halal-Friendly badge — visible above the fold on mobile */}
+            <div
+              className="mt-3 animate-fade-up"
+              style={{ "--delay": "280ms" } as CSSProperties}
+            >
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-100 px-3 py-1.5 text-sm font-semibold text-green-800 dark:border-green-700 dark:bg-green-900/30 dark:text-green-300"
+                title={tc("halalTooltip")}
+                aria-label={`${tc("halalBadge")}: ${tc("halalTooltip")}`}
+              >
+                <span aria-hidden="true">🌙</span>
+                {tc("halalBadge")}
+              </span>
+            </div>
+
             <div
               className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap animate-fade-up"
               style={{ "--delay": "320ms" } as CSSProperties}

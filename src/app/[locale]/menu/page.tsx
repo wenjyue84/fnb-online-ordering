@@ -114,9 +114,20 @@ async function MenuContent({
 
 async function MenuPageHeader() {
   const t = await getTranslations("menu");
+  const tc = await getTranslations("common");
   return (
     <div className="mb-8">
-      <h1 className="font-display text-3xl font-bold lg:text-4xl">{t("title")}</h1>
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="font-display text-3xl font-bold lg:text-4xl">{t("title")}</h1>
+        <span
+          className="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-100 px-3 py-1.5 text-sm font-semibold text-green-800 dark:border-green-700 dark:bg-green-900/30 dark:text-green-300"
+          title={tc("halalTooltip")}
+          aria-label={`${tc("halalBadge")}: ${tc("halalTooltip")}`}
+        >
+          <span aria-hidden="true">🌙</span>
+          {tc("halalBadge")}
+        </span>
+      </div>
       <p className="mt-2 text-muted-foreground">{t("subtitle")}</p>
     </div>
   );

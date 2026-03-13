@@ -25,7 +25,9 @@
     "added": "Ditambah",
     "favorites": "Kegemaran",
     "noFavorites": "Tiada kegemaran lagi — ketik ikon hati pada item yang anda sukai",
-    "privacyPolicy": "Dasar Privasi"
+    "privacyPolicy": "Dasar Privasi",
+    "halalBadge": "Mesra Halal",
+    "halalTooltip": "Tanpa babi, tanpa lard. Bahan-bahan mesra Muslim."
   },
   "home": {
     "heroTitle": "Gabungan Thai-Malaysia",

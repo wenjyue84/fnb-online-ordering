@@ -25,7 +25,9 @@
     "added": "已加入",
     "favorites": "收藏",
     "noFavorites": "还没有收藏 — 点击喜欢菜品上的心形图标",
-    "privacyPolicy": "隐私政策"
+    "privacyPolicy": "隐私政策",
+    "halalBadge": "清真友好",
+    "halalTooltip": "无猪肉，无猪油。穆斯林友好食材。"
   },
   "home": {
     "heroTitle": "泰马融合料理",
