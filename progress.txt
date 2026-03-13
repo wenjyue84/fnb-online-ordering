@@ -168,6 +168,13 @@ data: {json}
 - Admin settings Pre-Order tab: "Max Orders Per 30-Min Slot" number input (1-50)
 - i18n: slotFull, nextAvailable, useThisTime keys added to all 3 locale files
 
+**US-613** — Tray state persistence via sessionStorage to survive page refresh
+- Changed tray-context.tsx from localStorage to sessionStorage for the mm_tray key
+- emitChange(): writes to sessionStorage when items > 0, removes key when empty (clearTray)
+- hydrate(): reads from sessionStorage on mount; uses session flag (mm_tray_cleared) to run order-history cleanup check only once per new tab
+- sessionStorage is per-tab and per-session by design — tray does not persist across browser sessions or tabs
+- clearTray() triggers emitChange() which removes sessionStorage entry, preventing stale items after order submission
+
 ### Key patterns from Iteration 6
 
 - POS page uses direct fetch() instead of useAdminOrders() hook for more control over auth redirect
@@ -911,4 +918,7 @@ Completed: WhatsApp order notification delivery retry with exponential backoff (
 
 ## Iteration 5 - Fri, Mar 13, 2026 11:20:12 AM
 Incomplete: Halal-friendly badge prominence and servesCuisine structured data (ID: US-609) — attempt 1/3
+
+## Iteration 1 - Fri, Mar 13, 2026 11:46:42 AM
+Incomplete: Halal-friendly badge prominence and servesCuisine structured data (ID: US-609) — attempt 2/3
 

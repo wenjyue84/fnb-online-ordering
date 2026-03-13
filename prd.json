@@ -369,7 +369,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-610",
@@ -394,7 +394,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-611",
@@ -417,7 +417,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-612",
@@ -443,7 +443,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "medium",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-613",
@@ -466,7 +466,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-614",
@@ -489,7 +489,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-615",
@@ -740,7 +740,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-624",
@@ -764,7 +764,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-625",
@@ -1568,6 +1568,501 @@
         "WCAG: the Tooltip must be keyboard-accessible (focusable trigger, Escape to dismiss)",
         "On mobile, tooltip hover-only behaviour violates WCAG — use a tappable popover instead",
         "Add i18n key 'menu.prepInfo' to all three message files for the icon's aria-label"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-659",
+      "title": "Open Graph and Twitter Card meta tags for all public pages",
+      "priority": "high",
+      "description": "Add per-page OpenGraph and Twitter Card meta tags so links shared on WhatsApp, Facebook, and Twitter render rich previews with the cafe's food photography, title, and description. Currently the app has no OG meta tags, so shared links display as bare URLs — a significant discoverability loss given WhatsApp is Malaysia's dominant sharing channel.",
+      "acceptanceCriteria": [
+        "Root layout exports `metadataBase` set to `NEXT_PUBLIC_SITE_URL` — without this, OG image URLs are relative and break on social crawlers",
+        "Home, Menu, Blog listing, and individual Blog post pages each export unique `og:title`, `og:description`, and `og:image` via `generateMetadata`",
+        "OG image is 1200x630px served from `/public/images/og-cover.jpg` or via `opengraph-image.tsx` file convention",
+        "Locale-aware: `og:locale` set to `en_MY`, `ms_MY`, or `zh_CN` based on active route locale",
+        "Twitter Card type `summary_large_image` configured (inherits OG images automatically — no duplication needed)",
+        "Validates without warnings in Facebook Sharing Debugger and Twitter Card Validator"
+      ],
+      "technicalNotes": [
+        "Use Next.js `generateMetadata` function — not the deprecated `<Head>` component",
+        "Blog slug pages need per-post `og:title`/`og:description` fetched from Neon Postgres in `generateMetadata`",
+        "One canonical 1200x630 image covers all locales — avoid per-locale OG image duplication",
+        "Reference: https://nextjs.org/docs/app/api-reference/functions/generate-metadata"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-660",
+      "title": "Google Analytics 4 integration via @next/third-parties",
+      "priority": "high",
+      "description": "Integrate GA4 using the official `@next/third-parties` package so the cafe owner can see which menu items customers view most, measure conversion from menu view to order submission, and understand locale/device distribution. The package loads GA after hydration with zero render-blocking overhead.",
+      "acceptanceCriteria": [
+        "`@next/third-parties` installed and `<GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />` placed in locale root layout",
+        "Measurement ID sourced from `NEXT_PUBLIC_GA_ID` env var (not hardcoded)",
+        "Script does not load in development (`NODE_ENV !== 'production'` guard in layout)",
+        "Custom events fired via `sendGAEvent`: `add_to_tray` (item added to cart), `order_submitted` (POST success), `payment_uploaded`",
+        "Pageviews tracked automatically across locale route changes without extra config",
+        "GA4 DebugView confirms all events fire correctly before production deployment",
+        "`NEXT_PUBLIC_GA_ID` added to `.env.example` with description"
+      ],
+      "technicalNotes": [
+        "Install: `npm install @next/third-parties@latest`",
+        "Import: `import { GoogleAnalytics } from '@next/third-parties/google'`",
+        "Place `<GoogleAnalytics />` after `</body>` closing — package handles deferred loading",
+        "For custom events: `import { sendGAEvent } from '@next/third-parties/google'` at call sites",
+        "Reference: https://nextjs.org/docs/app/guides/third-party-libraries"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-661",
+      "title": "Content Security Policy with nonce-based XSS protection for admin routes",
+      "priority": "high",
+      "description": "Implement a nonce-based Content Security Policy in Next.js middleware to block XSS attacks against the admin panel. The existing security-headers story sets basic HTTP headers; CSP requires a separate, more complex per-request nonce implementation. CVE-2025-29927 makes Next.js middleware hardening critical for auth-protected routes.",
+      "acceptanceCriteria": [
+        "Middleware generates a cryptographically random nonce per request attached to `script-src` and `style-src` directives for `/admin/*` routes",
+        "CSP applied in Report-Only mode first; violations logged to `POST /api/csp-report` endpoint before enforcement mode is enabled",
+        "`x-middleware-subrequest` header validated or blocked in middleware to mitigate CVE-2025-29927 auth bypass",
+        "Static/ISR public pages use hash-based CSP in `next.config.ts` headers to avoid forcing dynamic rendering",
+        "CSP evaluated with https://csp-evaluator.withgoogle.com showing no high-risk findings",
+        "`connect-src` includes Groq API, OpenRouter, and Neon Postgres WSS endpoints; `img-src` includes `blob:` and `data:` for T&G QR uploads"
+      ],
+      "technicalNotes": [
+        "Nonce-based CSP forces dynamic rendering on every request — restrict nonce approach to `/admin` routes only",
+        "CVE-2025-29927: attackers can inject `x-middleware-subrequest` header to bypass Next.js middleware auth — block or validate this header explicitly",
+        "Public pages: add hash-based CSP via `headers()` in `next.config.ts` for ISR compatibility",
+        "Nonce generation: `crypto.randomUUID()` is sufficient; attach to request headers and nonce prop on inline scripts",
+        "Reference: https://nextjs.org/docs/app/guides/content-security-policy"
+      ],
+      "dependencies": [
+        "Security response headers via Next.js middleware"
+      ],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-662",
+      "title": "Sentry error monitoring and alerting for production API routes",
+      "priority": "high",
+      "description": "Integrate Sentry to capture unhandled exceptions, API route failures, and client-side React errors in production. Critical for a live ordering system where a broken `/api/orders` route means lost revenue. Sentry provides stack traces, user context, and alert notifications to diagnose issues before customers report them.",
+      "acceptanceCriteria": [
+        "`@sentry/nextjs` installed via `npx @sentry/wizard@latest -i nextjs`; `sentry.server.config.ts`, `sentry.client.config.ts`, and `sentry.edge.config.ts` initialised with DSN from `SENTRY_DSN` env var",
+        "All uncaught exceptions in `/api/orders`, `/api/chat`, and `/api/admin/*` routes reported to Sentry with request context",
+        "Client-side React error boundaries in menu and tray components report component errors to Sentry",
+        "Source maps uploaded to Sentry on build via `SENTRY_AUTH_TOKEN` for readable (non-minified) stack traces",
+        "Alert rule configured: email notification when `/api/orders` error rate exceeds 5 events in 5 minutes",
+        "Sentry tunnel route configured at `/api/monitoring` to bypass ad-blocker interference",
+        "`SENTRY_DSN` and `SENTRY_AUTH_TOKEN` added to `.env.example`"
+      ],
+      "technicalNotes": [
+        "Sentry SDK ≥ v8 supports Next.js App Router via `instrumentation.ts` hook",
+        "Add `SENTRY_SUPPRESS_TURBOPACK_WARNING=1` to env to suppress Turbopack warnings (project uses Turbopack per next.config.ts)",
+        "Tunnel config: `tunnelRoute: '/api/monitoring'` in `withSentryConfig` options in `next.config.ts`",
+        "Wrap with `withSentryConfig(nextConfig, sentryOptions)` in `next.config.ts`",
+        "Reference: https://docs.sentry.io/platforms/javascript/guides/nextjs/"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-663",
+      "title": "Sonner toast notification system for user and admin feedback",
+      "priority": "high",
+      "description": "Replace all silent form submissions and action confirmations with a consistent Sonner toast system. Currently, order submission success/failure and admin approve/reject actions have no visible feedback, leaving users uncertain about what happened. Sonner is the shadcn/ui ecosystem's official toast library.",
+      "acceptanceCriteria": [
+        "`sonner` installed via `npx shadcn add sonner`; `<Toaster richColors />` placed in locale root layout (single global instance)",
+        "Order submission shows `toast.promise()` with loading ('Placing your order…'), success ('Order placed! ID: #XXXX'), and error ('Failed — please try again') states",
+        "Admin approve/reject actions trigger success/error toasts with order short ID",
+        "Payment screenshot upload success/failure shows toast confirmation",
+        "Service worker update prompt (US-611) uses Sonner toast instead of custom banner",
+        "Toasts announced via `aria-live` region (Sonner handles this natively)",
+        "Position: `bottom-center` on mobile (< 640px viewport), `bottom-right` on desktop",
+        "Error toasts persist until manually dismissed; success toasts auto-dismiss after 4 seconds"
+      ],
+      "technicalNotes": [
+        "Install via shadcn: `npx shadcn add sonner` — adds pre-configured component",
+        "Async pattern: `toast.promise(fetch('/api/orders', ...), { loading: '...', success: '...', error: '...' })`",
+        "Import `toast` from `'sonner'` at each call site; `Toaster` only in layout",
+        "Reference: https://sonner.emilkowal.ski/"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-664",
+      "title": "Skip-to-main-content link for keyboard accessibility (WCAG 2.4.1 Level A)",
+      "priority": "high",
+      "description": "Add a visually hidden skip link as the very first focusable element on every page, allowing keyboard and screen reader users to bypass header navigation and jump directly to main content. This is WCAG 2.4.1 Level A (mandatory baseline) and is currently absent — keyboard users must Tab through all header links on every page load.",
+      "acceptanceCriteria": [
+        "A `<a href='#main-content'>Skip to main content</a>` link is the first focusable element in the DOM on every page",
+        "Skip link is visually hidden until focused (Tailwind `sr-only` with `:focus` override to show inline)",
+        "Main content area has `id='main-content'` and `tabIndex={-1}` so programmatic focus moves the viewport",
+        "Pressing Tab once from page load focuses the skip link; pressing Enter scrolls to and focuses main content",
+        "Skip link on focus has ≥ 4.5:1 color contrast against its background",
+        "Verified with keyboard-only navigation (Chrome) and NVDA/VoiceOver screen readers"
+      ],
+      "technicalNotes": [
+        "Add to `[locale]/layout.tsx` as first child of `<body>`, before `<Header />`",
+        "Tailwind CSS: `className='sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-white focus:text-black'`",
+        "Target: `<main id='main-content' tabIndex={-1}>` wrapping page-level content",
+        "WCAG 2.4.1 Bypass Blocks — Level A (mandatory for all conformance levels)",
+        "Reference: https://www.w3.org/WAI/WCAG22/Understanding/bypass-blocks.html"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-665",
+      "title": "WCAG 2.4.13 focus appearance: visible 2px focus ring on all interactive elements",
+      "priority": "high",
+      "description": "Implement visible focus indicators meeting WCAG 2.4.13 (Level AA, new in WCAG 2.2) on all buttons, links, and form inputs. The focus ring must be ≥ 2px thick with 3:1 contrast against adjacent colors. Required under the EU European Accessibility Act (deadline June 28, 2025). Currently inconsistent across custom components.",
+      "acceptanceCriteria": [
+        "All interactive elements (buttons, links, inputs, select) display a visible focus ring when focused via keyboard",
+        "Focus indicator is ≥ 2px in width/thickness",
+        "Focus ring color has ≥ 3:1 contrast ratio against adjacent background (verified with WebAIM Contrast Checker)",
+        "Consistent `focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-amber-600` Tailwind pattern applied across all custom components",
+        "No `outline: none` or `outline: 0` without a replacement focus style anywhere in the codebase",
+        "Full keyboard navigation path tested: home → menu filter → add to tray → pre-order modal → submit",
+        "Distinct from WCAG 2.4.11 (focus not obscured by sticky bars — already pending)"
+      ],
+      "technicalNotes": [
+        "WCAG 2.4.13 Focus Appearance — Level AA, new in WCAG 2.2; required under EU EAA from June 2025",
+        "Use `focus-visible:` prefix (not `focus:`) to avoid ring on mouse clicks — keyboard-only behaviour",
+        "Audit shadcn/ui primitives — they include focus styles but custom wrapper components may strip `ring` classes",
+        "Verify amber-600 ring meets 3:1 contrast against the project's warm cream background (OKLCH palette)",
+        "Reference: https://www.w3.org/WAI/WCAG22/Understanding/focus-appearance.html"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-666",
+      "title": "Pre-order arrival time preset picker: ASAP, +30min, +1hr, +2hr, custom",
+      "priority": "high",
+      "description": "Replace the bare `datetime-local` input in the order modal with a preset picker. Preset selectors significantly reduce form abandonment vs free-form datetime inputs, which are poorly styled on mobile and unfamiliar to casual users. Industry UX research (Baymard) confirms preset time pickers outperform free-form inputs in food ordering flows.",
+      "acceptanceCriteria": [
+        "Order modal shows tap-friendly preset buttons: 'ASAP (~15 min)', '+30 min', '+1 hr', '+2 hr', 'Pick a time…'",
+        "Selecting a preset auto-computes arrival timestamp (current time + offset, rounded to nearest 5 minutes)",
+        "'Pick a time…' reveals the existing `datetime-local` input for custom entry",
+        "Selected preset button is visually highlighted with brand color and clear active state",
+        "Minimum 15-minute advance time validation still enforced for all presets and custom input",
+        "Preset labels translated in all 3 locales (en/ms/zh)",
+        "Each preset button meets ≥ 44px touch target height"
+      ],
+      "technicalNotes": [
+        "Preset computation: `new Date(Date.now() + 30 * 60 * 1000)` for +30min",
+        "Round to 5 min: `Math.ceil(minutes / 5) * 5`",
+        "Store final value as ISO string in form state before POST to `/api/orders`",
+        "ASAP preset = current time + 15 minutes (the existing minimum)",
+        "Reference: https://baymard.com/research/online-food-delivery"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-667",
+      "title": "Vercel Speed Insights for real-user Core Web Vitals monitoring",
+      "priority": "medium",
+      "description": "Install `@vercel/speed-insights` to collect real-user measurement (RUM) data on LCP, INP, and CLS per route and device type. This complements Lighthouse audits with field data from actual Malaysian mobile users on real network conditions, enabling data-driven performance regression detection.",
+      "acceptanceCriteria": [
+        "`@vercel/speed-insights` installed and `<SpeedInsights />` component added to locale root layout",
+        "Vercel dashboard shows per-route CWV breakdown after first production visits",
+        "LCP at 75th percentile on `/en` home page ≤ 2.5s on mobile (visible in Vercel Analytics dashboard)",
+        "INP ≤ 200ms on menu filter interactions at 75th percentile",
+        "CLS ≤ 0.1 across all pages — no unexpected layout shifts from menu card image loads",
+        "Component is tree-shaken out of dev builds (no local noise in dashboard)"
+      ],
+      "technicalNotes": [
+        "Install: `npm install @vercel/speed-insights`",
+        "Import: `import { SpeedInsights } from '@vercel/speed-insights/next'`",
+        "Zero configuration needed — auto-detects Vercel deployment environment",
+        "Data is per-route and device-segmentable in the Vercel Analytics dashboard",
+        "Reference: https://vercel.com/docs/speed-insights"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-668",
+      "title": "Admin activity audit log persisted in Neon Postgres",
+      "priority": "medium",
+      "description": "Create an append-only `audit_logs` table in Neon Postgres that records every mutating admin action — order approvals, menu edits, settings changes, and logins — with timestamp, actor, IP, and payload snapshot. Provides accountability and a debug trail for disputes about order status or price changes.",
+      "acceptanceCriteria": [
+        "`audit_logs` table created via migration: `id SERIAL`, `actor TEXT`, `action TEXT`, `entity_type TEXT`, `entity_id TEXT`, `payload JSONB`, `ip_address TEXT`, `created_at TIMESTAMPTZ DEFAULT NOW()`",
+        "Every PATCH/POST/DELETE handler in `/api/admin/*` routes writes an audit entry after successful mutation using a shared `logAudit()` helper",
+        "Admin login and logout events logged with IP address and timestamp",
+        "New 'Activity' tab in `/admin` panel shows last 100 entries, newest first, paginated at 50/page",
+        "Entries filterable by action type (order / menu / settings / auth) and date range in the UI",
+        "`audit_logs` table has no application-layer DELETE or UPDATE — append-only constraint enforced",
+        "Cron job or scheduled query purges entries older than 90 days"
+      ],
+      "technicalNotes": [
+        "Helper: `async function logAudit(actor, action, entityType, entityId, payload, ip)` wrapping a single INSERT",
+        "IP extraction: `req.headers.get('x-forwarded-for')?.split(',')[0]` (Vercel sets this)",
+        "Index: `CREATE INDEX ON audit_logs (created_at DESC, action)` for efficient UI queries",
+        "Payload stores before/after snapshot as JSONB — no schema changes needed for new action types",
+        "Reference: https://www.loginradius.com/blog/engineering/guest-post/audit-logging-best-practices/"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-669",
+      "title": "PWA offline order queue via Background Sync API and IndexedDB",
+      "priority": "medium",
+      "description": "Allow customers to submit orders even when momentarily offline — common on mobile networks in Malaysia. The order payload is saved to IndexedDB and the service worker retries the POST automatically when connectivity returns, using the Background Sync API on Chrome/Android and an `online` event fallback for Safari/iOS.",
+      "acceptanceCriteria": [
+        "Failed `POST /api/orders` due to network error saves order payload to IndexedDB `order_queue` store using the `idb` library",
+        "Service worker registers a `sync` event with tag `submit-order` on Chrome/Edge (Background Sync API)",
+        "Safari/Firefox fallback: `window.addEventListener('online', ...)` retries queued orders on reconnect",
+        "User sees Sonner toast: 'You are offline — your order is saved and will be submitted automatically when reconnected'",
+        "On successful background retry: toast confirms 'Your order has been submitted! ID: #XXXX'",
+        "Queued IndexedDB entry deleted on successful submission",
+        "Tested in Chrome DevTools Network offline mode and iOS Safari offline simulation"
+      ],
+      "technicalNotes": [
+        "Extend the existing service worker from US-611 — do not create a separate SW file",
+        "Install: `npm install idb` (1.9KB IndexedDB wrapper)",
+        "Background Sync: `navigator.serviceWorker.ready.then(sw => sw.sync.register('submit-order'))`",
+        "SW `sync` event handler: read from IndexedDB, replay the fetch POST, delete entry on 200 response",
+        "Reference: https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerRegistration/sync"
+      ],
+      "dependencies": [
+        "Service worker update lifecycle: prompt user to refresh on new deployment"
+      ],
+      "estimatedComplexity": "large",
+      "passes": false
+    },
+    {
+      "id": "US-670",
+      "title": "Admin-configurable special announcement banner on home page",
+      "priority": "medium",
+      "description": "Allow admins to publish a dismissible announcement banner on the home page for time-sensitive events: holiday closures, Hari Raya specials, capacity notices, or new menu launches. Stored in `data/site-settings.json` and rendered as RSC for zero layout shift on load.",
+      "acceptanceCriteria": [
+        "Admin Settings tab includes 'Announcement Banner' section with: per-locale message text (en/ms/zh), enabled toggle, optional `expiresAt` date, and severity level (info / warning / promo)",
+        "Enabled banner renders as a full-width dismissible strip at the top of the home page",
+        "Dismissed state stored in `localStorage` keyed by a hash of the message — same banner not re-shown after dismissal",
+        "Banner text falls back to `en` if `ms` or `zh` translations are left empty",
+        "Banner rendered as RSC from `getSiteSettings()` — no client-side fetch, no layout shift",
+        "No DOM elements rendered when banner is disabled or past `expiresAt`"
+      ],
+      "technicalNotes": [
+        "Add to `data/site-settings.json`: `{ announcement: { enabled: bool, message: { en, ms, zh }, severity: 'info'|'warning'|'promo', expiresAt: string|null } }`",
+        "Expose `announcement` field via `GET /api/settings` (already-public safe settings endpoint)",
+        "Dismissal key: `localStorage.setItem('banner_dismissed_' + btoa(message.en), '1')`",
+        "Severity colors: info (blue-50 bg), warning (amber-50 bg), promo (brand terracotta bg)",
+        "Reference: https://www.nngroup.com/articles/closeable-overlays/"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-671",
+      "title": "CJK font isolation: load Noto Sans SC only on zh locale routes",
+      "priority": "medium",
+      "description": "Ensure the Noto Sans SC (Chinese) font — 5–20MB unoptimised — is never requested on `/en` or `/ms` locale routes. If the font config is in the shared `[locale]/layout.tsx`, every locale pays the CJK font cost. Isolating it eliminates this overhead for the majority of non-Chinese users.",
+      "acceptanceCriteria": [
+        "Network tab on `/en/menu` shows zero requests to `fonts.gstatic.com` for Noto Sans SC",
+        "Network tab on `/ms/menu` shows zero requests to `fonts.gstatic.com` for Noto Sans SC",
+        "Network tab on `/zh/menu` shows Noto Sans SC unicode-range chunks loading correctly",
+        "Noto Sans SC imported and applied in `src/app/zh/layout.tsx` only (zh-locale layout override)",
+        "`adjustFontFallback: false` set on Noto Sans SC to prevent layout shift calculation overhead for CJK fallback metrics",
+        "`preload: false` confirmed on Noto Sans SC",
+        "Lighthouse performance score on `/en` home page shows no render-blocking CJK font warning"
+      ],
+      "technicalNotes": [
+        "Create `src/app/zh/layout.tsx` as zh-locale layout — Next.js App Router supports per-locale layout overrides via nested route segments",
+        "Font config: `const notoSansSC = Noto_Sans_SC({ subsets: ['chinese-simplified'], display: 'swap', preload: false, adjustFontFallback: false })`",
+        "This layout file overrides `[locale]/layout.tsx` for zh routes specifically",
+        "Reference: https://nextjs.org/docs/app/getting-started/fonts"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-672",
+      "title": "WhatsApp direct contact floating button separate from AI chatbot",
+      "priority": "medium",
+      "description": "Add a floating WhatsApp contact button (distinct from the AI chat widget) that opens a direct conversation with the cafe. Customers frequently prefer a human for reservation queries, large group coordination, or allergy questions. WhatsApp is the dominant messaging platform in Malaysia and this provides the lowest-friction contact path.",
+      "acceptanceCriteria": [
+        "WhatsApp icon button is fixed bottom-left on mobile (not conflicting with AI chat widget at bottom-right)",
+        "Clicking opens `https://wa.me/{NEXT_PUBLIC_WHATSAPP_NUMBER}?text=...` with a locale-appropriate pre-filled greeting",
+        "Pre-filled message translated per active locale (en: 'Hi Makan Moments!', ms: 'Hai Makan Moments!', zh: '您好，食光记忆！')",
+        "Button hidden on all `/admin/*` routes",
+        "Uses existing `NEXT_PUBLIC_WHATSAPP_NUMBER` env var",
+        "Accessible: `aria-label` set to 'Contact us on WhatsApp' (translated per locale)",
+        "Touch target ≥ 44x44px; no overlap with tray button or AI chat at 375px viewport width"
+      ],
+      "technicalNotes": [
+        "Create `src/components/layout/whatsapp-cta.tsx`, import in `[locale]/layout.tsx`",
+        "wa.me URL: `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER}?text=${encodeURIComponent(prefilledText)}`",
+        "Position: `fixed bottom-20 left-4 z-40` — leaves room for tray button (bottom-right) and AI chat widget",
+        "Use WhatsApp brand green (#25D366) or project amber per brand review",
+        "Reference: https://faq.whatsapp.com/5913398998672934/"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-673",
+      "title": "Menu item 'New', 'Seasonal', and 'Popular' admin-configurable badges",
+      "priority": "medium",
+      "description": "Allow admins to tag individual menu items with a badge rendered as a colored pill overlay on the menu card. This surfaces new additions and limited-time items without a full menu restructure, increasing their click-through rate in a long menu list.",
+      "acceptanceCriteria": [
+        "Admin menu edit form includes a 'Badge' dropdown: None / New / Seasonal / Popular",
+        "Badge value stored in `menu_items` table as new nullable `badge TEXT` column with CHECK constraint",
+        "Menu card renders badge as a small colored pill overlaid on the image (top-left): New=green, Seasonal=amber, Popular=orange",
+        "Badge text translated in all 3 locales (keys added to `messages/*.json`)",
+        "Badge field added to `MenuItem` TypeScript type in `src/types/menu.ts`",
+        "Admin can clear a badge by selecting 'None'",
+        "Badge has `aria-label` for screen readers"
+      ],
+      "technicalNotes": [
+        "DB migration: `ALTER TABLE menu_items ADD COLUMN badge TEXT CHECK (badge IN ('new', 'seasonal', 'popular'))`",
+        "Update `src/lib/menu.ts` SELECT query to include `badge` column",
+        "Update `src/types/menu.ts`: `badge?: 'new' | 'seasonal' | 'popular' | null`",
+        "Render in `menu-card.tsx`: `{item.badge && <span className='absolute top-2 left-2 ...'>{t('badge.' + item.badge)}</span>}`",
+        "Reference: https://www.nngroup.com/articles/product-list-items/"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-674",
+      "title": "Locale preference cookie so returning users land in their chosen language",
+      "priority": "medium",
+      "description": "When a user manually switches locale via the language switcher, save their preference in a `NEXT_LOCALE` cookie so their next visit opens in the same language rather than browser-detected locale. The next-intl middleware supports this pattern natively via cookie-based locale negotiation.",
+      "acceptanceCriteria": [
+        "Clicking the locale switcher sets a `NEXT_LOCALE` cookie with 1-year expiry and `SameSite=Lax; Path=/`",
+        "Middleware reads `NEXT_LOCALE` cookie as first priority in locale detection (before `Accept-Language` header)",
+        "Tested: switch to zh → close browser → reopen → lands on `/zh` route",
+        "Language switcher component reflects currently active locale as selected state",
+        "Cookie written via a Server Action or Route Handler (not `document.cookie`) for Vercel edge compatibility",
+        "Cookie supplements — does not replace — URL-based locale structure"
+      ],
+      "technicalNotes": [
+        "Update `src/i18n/request.ts` to read `NEXT_LOCALE` cookie before `Accept-Language` in locale resolution",
+        "Cookie name: `NEXT_LOCALE` (next-intl convention for compatibility)",
+        "Set via Route Handler: `cookies().set('NEXT_LOCALE', locale, { maxAge: 60*60*24*365, path: '/', sameSite: 'lax' })`",
+        "Reference: https://next-intl.dev/docs/routing/middleware#locale-detection"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-675",
+      "title": "Customer post-order emoji feedback rating",
+      "priority": "medium",
+      "description": "After an order reaches 'ready' status, prompt the customer on their order status page to submit a 1–5 emoji rating. Feedback is stored in Neon Postgres and visible to admin in the Orders panel, enabling the cafe owner to track satisfaction trends without a separate review platform.",
+      "acceptanceCriteria": [
+        "Order status page `/order/[id]` shows emoji rating widget (😞 😐 🙂 😊 🤩) when `status === 'ready'`",
+        "Widget disappears after submission and shows 'Thank you for your feedback!' message",
+        "Rating (1–5 int) and optional short text comment stored via `PATCH /api/orders/[id]/feedback` — no auth (order ID is the token)",
+        "`orders` table has new nullable columns: `rating INT CHECK (rating BETWEEN 1 AND 5)`, `feedback_text TEXT`",
+        "Admin Orders panel shows star rating for each completed order",
+        "Rating prompt and emoji labels translated in all 3 locales",
+        "Second submission to same order ID is ignored (idempotent — first rating wins)"
+      ],
+      "technicalNotes": [
+        "DB migration: `ALTER TABLE orders ADD COLUMN rating INT CHECK (rating >= 1 AND rating <= 5), ADD COLUMN feedback_text TEXT`",
+        "Widget: one-click emoji buttons — POST fires immediately on tap, no separate submit button",
+        "Admin UI: render `rating` as filled/empty Lucide `Star` icons in `AdminOrdersPanel`",
+        "New route: `src/app/api/orders/[id]/feedback/route.ts` — idempotent: only writes if `rating IS NULL`",
+        "Reference: https://www.nngroup.com/articles/rating-scales/"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-676",
+      "title": "Dynamic OpenGraph image generation for blog posts via Next.js ImageResponse",
+      "priority": "low",
+      "description": "Generate branded per-post OG images using Next.js `ImageResponse` (built-in, no external service). Each blog post will have a unique, on-brand preview card when shared on WhatsApp or Facebook — currently all posts share the same generic cover image.",
+      "acceptanceCriteria": [
+        "`src/app/[locale]/blog/[slug]/opengraph-image.tsx` exports a default async function using `ImageResponse`",
+        "Generated image includes: cafe logo, blog post title (truncated at 60 chars), category label, and warm terracotta brand background",
+        "Output size: 1200x630px declared via `export const size = { width: 1200, height: 630 }`",
+        "Image generation cached per slug at edge (Next.js caches `ImageResponse` automatically per route segment)",
+        "Validated in Facebook Sharing Debugger showing post-specific image (not default og-cover.jpg)",
+        "Falls back to `/public/images/og-cover.jpg` if post data is unavailable"
+      ],
+      "technicalNotes": [
+        "File convention: `src/app/[locale]/blog/[slug]/opengraph-image.tsx` — Next.js auto-wires this to `og:image`",
+        "Import: `import { ImageResponse } from 'next/og'`",
+        "Font in OG image: load from `/public/fonts/` via `fetch(new URL('...', import.meta.url))`",
+        "No external dependency — `ImageResponse` is built into Next.js App Router",
+        "Reference: https://nextjs.org/docs/app/api-reference/file-conventions/metadata/opengraph-image"
+      ],
+      "dependencies": [
+        "Open Graph and Twitter Card meta tags for all public pages"
+      ],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-677",
+      "title": "Catering and group order inquiry form with Resend email notification",
+      "priority": "low",
+      "description": "Add a catering inquiry form on the Contact page for corporate lunches, event catering, and large group bookings. The form captures event details and sends a notification email to the cafe owner via Resend, while persisting the enquiry in Neon Postgres for admin follow-up tracking.",
+      "acceptanceCriteria": [
+        "Contact page includes a 'Catering Enquiry' section with fields: name, phone (Malaysian format), email, event date (future only), estimated pax, dietary requirements, budget range (dropdown), message",
+        "Form submits via `POST /api/catering-enquiry` — no auth required",
+        "On submission: Resend sends email to cafe owner with all form details; customer sees 'We'll be in touch within 24 hours'",
+        "Enquiry stored in Neon Postgres `catering_enquiries` table with all fields plus `created_at`",
+        "Validated: phone (Malaysian 01X-XXXXXXX format), valid email, future event date",
+        "All form labels and error messages translated in all 3 locales",
+        "`RESEND_API_KEY` and `CAFE_OWNER_EMAIL` added to `.env.example`"
+      ],
+      "technicalNotes": [
+        "Email service: Resend (`npm install resend`) — official Next.js partner, 3,000 free emails/month",
+        "Budget range options: '<RM200', 'RM200–500', 'RM500–1,000', '>RM1,000'",
+        "DB migration: `CREATE TABLE catering_enquiries (id SERIAL PRIMARY KEY, name TEXT, phone TEXT, email TEXT, event_date DATE, pax INT, dietary_notes TEXT, budget_range TEXT, message TEXT, created_at TIMESTAMPTZ DEFAULT NOW())`",
+        "Rate limit: 3 submissions per IP per hour (reuse existing rate-limit pattern from `/api/chat`)",
+        "Reference: https://resend.com/docs/send-with-nextjs"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-678",
+      "title": "Menu page sticky anchor navigation with IntersectionObserver scroll-spy",
+      "priority": "low",
+      "description": "Add a sticky category anchor navigation on the desktop menu page that lets users jump to specific menu sections and highlights the currently visible section as they scroll. Reduces time-to-find for desktop users browsing long menus with many categories.",
+      "acceptanceCriteria": [
+        "Desktop menu page (≥ 1024px viewport) shows a sticky anchor bar with one link per POS category (Rice, Noodles, Drinks, etc.)",
+        "Clicking a category link smoothly scrolls to the corresponding section heading",
+        "Active category link is highlighted using `IntersectionObserver` on section headings",
+        "URL hash updates to `#category-slug` as sections scroll into viewport (`history.replaceState` — no new history entry)",
+        "Navigation is hidden on mobile (< 1024px) — mobile uses horizontal filter pills (existing behaviour unchanged)",
+        "Keyboard accessible: Tab navigates anchor links, Enter/Space activates scroll"
+      ],
+      "technicalNotes": [
+        "Use `IntersectionObserver` with `threshold: 0.4` and `rootMargin: '-80px 0px 0px 0px'` (accounts for sticky header height)",
+        "Section headings need `id` attributes matching category slugs: `id='category-rice'`",
+        "Hash update: `window.history.replaceState(null, '', '#' + activeSectionId)` inside observer callback",
+        "Desktop-only: wrap nav component in `hidden lg:block` container",
+        "Reference: https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API"
       ],
       "dependencies": [],
       "estimatedComplexity": "medium",
