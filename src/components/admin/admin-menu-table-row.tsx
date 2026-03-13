@@ -21,6 +21,7 @@ interface AdminMenuTableRowProps {
   onDelete: (id: string) => void;
   onToggleDay: (item: EditableItem, day: string) => void;
   onToggleDietary: (item: EditableItem, d: string) => void;
+  onToggleAllergen: (item: EditableItem, allergen: string) => void;
   onSuggestTranslation: (item: EditableItem, lang: "ms" | "zh") => void;
   onToggleAvailable: (id: string) => void;
   variant: "desktop" | "mobile";
@@ -38,6 +39,7 @@ export function AdminMenuTableRow({
   onDelete,
   onToggleDay,
   onToggleDietary,
+  onToggleAllergen,
   onToggleAvailable,
   onSuggestTranslation,
   variant,
@@ -360,6 +362,28 @@ export function AdminMenuTableRow({
                   onChange={() => onToggleDietary(item, d)}
                 />
                 {d}
+              </label>
+            ))}
+          </div>
+        </div>
+      </td>
+
+      <td className="px-3 py-2">
+        <div className="relative group">
+          <button className="rounded border border-gray-300 px-2 py-1 text-xs">
+            {(item.allergens ?? []).length > 0
+              ? (item.allergens ?? []).map((a) => `${ALLERGEN_EMOJI[a] ?? ""} ${a}`).join(", ")
+              : "None"}
+          </button>
+          <div className="absolute left-0 top-8 z-10 hidden w-44 rounded-lg border bg-white p-2 shadow-lg group-focus-within:block group-hover:block">
+            {ALLERGEN_OPTIONS.map((a) => (
+              <label key={a} className="flex items-center gap-1.5 py-0.5 text-xs cursor-pointer hover:bg-gray-50 rounded px-1">
+                <input
+                  type="checkbox"
+                  checked={(item.allergens ?? []).includes(a)}
+                  onChange={() => onToggleAllergen(item, a)}
+                />
+                <span>{ALLERGEN_EMOJI[a]}</span> {a}
               </label>
             ))}
           </div>

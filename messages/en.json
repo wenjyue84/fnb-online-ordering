@@ -180,7 +180,13 @@
     "copyOrderId": "Copy order #{id}",
     "copied": "Copied!",
     "escalation_banner": "Your order is taking longer than usual to be confirmed. You can contact us directly:",
-    "escalation_whatsapp_message": "Hi, my order #{id} has been waiting for confirmation for over {minutes} minutes"
+    "escalation_whatsapp_message": "Hi, my order #{id} has been waiting for confirmation for over {minutes} minutes",
+    "cancelBtn": "Cancel ({remaining})",
+    "cancelConfirm": "Are you sure you want to cancel this order?",
+    "cancelledTitle": "Order Cancelled",
+    "cancelledMsg": "Your order has been cancelled.",
+    "cancelFailed": "Could not cancel the order. The cancellation window may have expired.",
+    "backToMenu": "Back to Menu"
   },
   "orderForm": {
     "title": "Complete Your Pre-Order",

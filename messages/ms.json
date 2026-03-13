@@ -180,7 +180,13 @@
     "copyOrderId": "Salin nombor pesanan #{id}",
     "copied": "Disalin!",
     "escalation_banner": "Pesanan anda mengambil masa lebih lama daripada biasa untuk disahkan. Anda boleh hubungi kami terus:",
-    "escalation_whatsapp_message": "Hai, pesanan saya #{id} telah menunggu pengesahan selama lebih {minutes} minit"
+    "escalation_whatsapp_message": "Hai, pesanan saya #{id} telah menunggu pengesahan selama lebih {minutes} minit",
+    "cancelBtn": "Batal ({remaining})",
+    "cancelConfirm": "Adakah anda pasti mahu membatalkan pesanan ini?",
+    "cancelledTitle": "Pesanan Dibatalkan",
+    "cancelledMsg": "Pesanan anda telah dibatalkan.",
+    "cancelFailed": "Tidak dapat membatalkan pesanan. Tempoh pembatalan mungkin telah tamat.",
+    "backToMenu": "Kembali ke Menu"
   },
   "orderForm": {
     "title": "Lengkapkan Pra-Pesanan Anda",

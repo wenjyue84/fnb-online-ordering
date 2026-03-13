@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Search, X, Heart, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ALLERGEN_LIST } from "./allergen-badge";
 
 const speechSupported =
   typeof window !== "undefined" &&
@@ -34,6 +35,8 @@ interface MenuFilterProps {
   itemCount: number;
   servingNowCategories?: string[];
   favoritesCount?: number;
+  allergenFree?: string | null;
+  onAllergenFreeChange?: (allergen: string | null) => void;
 }
 
 export function MenuFilter({
@@ -48,9 +51,13 @@ export function MenuFilter({
   onSearchChange,
   itemCount,
   favoritesCount = 0,
+  allergenFree = null,
+  onAllergenFreeChange,
 }: MenuFilterProps) {
   const t = useTranslations("menu");
   const tc = useTranslations("common");
+  const ta = useTranslations("allergens");
+  const ALLERGEN_SLUGS = ALLERGEN_LIST;
   const locale = useLocale();
   const [isListening, setIsListening] = useState(false);
   const [voiceReady, setVoiceReady] = useState(false);

@@ -30,7 +30,7 @@ export type FilterTab = "All" | "Pending" | "Active" | "Done" | "Expired";
 export function filterOrders(orders: AdminOrder[], tab: FilterTab) {
   if (tab === "Pending") return orders.filter((o) => o.status === "pending_approval" || o.status === "pending");
   if (tab === "Active") return orders.filter((o) => ["approved", "payment_pending", "payment_uploaded", "preparing"].includes(o.status));
-  if (tab === "Done") return orders.filter((o) => o.status === "ready" || o.status === "rejected" || o.status === "seen");
+  if (tab === "Done") return orders.filter((o) => o.status === "ready" || o.status === "rejected" || o.status === "cancelled" || o.status === "seen");
   if (tab === "Expired") return orders.filter((o) => o.status === "expired");
   return orders;
 }

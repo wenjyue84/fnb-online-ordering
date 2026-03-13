@@ -375,6 +375,9 @@ export default function OrderStatusPage() {
   const [expiryLeft, setExpiryLeft] = useState<{ mins: number; secs: number; urgent: boolean } | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [copyLabel, setCopyLabel] = useState<string | null>(null);
+  const [cancelRemaining, setCancelRemaining] = useState<number | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   const failCount = useRef(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -502,6 +505,41 @@ export default function OrderStatusPage() {
     return () => clearInterval(id);
   }, [orderStatus, createdAt, tng.orderExpiryMinutes]);
 
+  // Cancel grace period countdown (120s from creation)
+  useEffect(() => {
+    if (orderStatus !== "pending_approval" || !createdAt) {
+      setCancelRemaining(null);
+      return;
+    }
+    const GRACE_SECONDS = 120;
+    function tick() {
+      const elapsed = Math.floor((Date.now() - new Date(createdAt!).getTime()) / 1000);
+      const remaining = GRACE_SECONDS - elapsed;
+      setCancelRemaining(remaining > 0 ? remaining : null);
+    }
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [orderStatus, createdAt]);
+
+  async function handleCancel() {
+    if (!order || !confirm(t("cancelConfirm"))) return;
+    setCancelling(true);
+    setCancelError(null);
+    try {
+      const res = await fetch(`/api/orders/${order.id}/cancel`, { method: "POST" });
+      if (!res.ok) {
+        setCancelError(t("cancelFailed"));
+        return;
+      }
+      void fetchOrder();
+    } catch {
+      setCancelError(t("cancelFailed"));
+    } finally {
+      setCancelling(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -558,8 +596,9 @@ export default function OrderStatusPage() {
     );
   }
 
+  const isCancelled = order.status === "cancelled";
   const isRejected =
-    order.status === "rejected" || order.status === "cancelled";
+    order.status === "rejected" || isCancelled;
   const isExpired = order.status === "expired";
   const isReady = order.status === "ready";
   const isOverdueEscalation =
@@ -630,6 +669,44 @@ export default function OrderStatusPage() {
         </div>
       )}
 
+      {/* Cancel button — 2-minute grace period */}
+      {order.status === "pending_approval" && cancelRemaining !== null && cancelRemaining > 0 && (
+        <div className="mb-6">
+          <button
+            onClick={() => void handleCancel()}
+            disabled={cancelling}
+            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-red-300 bg-white px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
+          >
+            <XCircle className="h-4 w-4" />
+            {cancelling
+              ? "Cancelling…"
+              : t("cancelBtn", { remaining: `${Math.floor(cancelRemaining / 60)}:${String(cancelRemaining % 60).padStart(2, "0")}` })}
+          </button>
+          {cancelError && (
+            <p className="mt-2 text-center text-sm text-red-600">{cancelError}</p>
+          )}
+        </div>
+      )}
+
+      {/* Cancelled state */}
+      {order.status === "cancelled" && (
+        <div className="mb-6 rounded-2xl border border-stone-300 bg-stone-50 p-5">
+          <div className="flex items-start gap-3">
+            <XCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-stone-500" />
+            <div className="w-full">
+              <p className="font-semibold text-stone-700">{t("cancelledTitle")}</p>
+              <p className="mt-1 text-sm text-stone-600">{t("cancelledMsg")}</p>
+              <Link
+                href="/menu"
+                className="mt-3 inline-flex min-h-[44px] items-center gap-1.5 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-amber-700"
+              >
+                {t("backToMenu")}
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Progress bar */}
       {!isRejected && !isExpired && (
         <div className="mb-8 overflow-hidden rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
@@ -637,8 +714,8 @@ export default function OrderStatusPage() {
         </div>
       )}
 
-      {/* Rejected / Cancelled state */}
-      {isRejected && (
+      {/* Rejected state (not cancelled — cancelled has its own section above) */}
+      {order.status === "rejected" && (
         <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-5">
           <div className="flex items-start gap-3">
             <XCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-500" />

@@ -134,12 +134,22 @@ export async function MenuPageJsonLd({
         if (item.dietary.some((d) => d.toLowerCase().includes("vegetarian"))) {
           dietList.push("https://schema.org/VegetarianDiet");
         }
+        const allergenProps = (item.allergens ?? []).length > 0
+          ? {
+              additionalProperty: item.allergens.map((a) => ({
+                "@type": "PropertyValue",
+                name: "allergen",
+                value: a,
+              })),
+            }
+          : {};
         return {
           "@type": "MenuItem",
           name: getName(item),
           ...(item.description && { description: item.description }),
           ...(item.photo && { image: `${siteUrl}${item.photo}` }),
           suitableForDiet: dietList,
+          ...allergenProps,
           offers: {
             "@type": "Offer",
             price: item.price.toFixed(2),

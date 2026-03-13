@@ -43,6 +43,7 @@ interface MenuGridProps {
   servingNowCategories?: string[];
   previewTime?: string | null;
   chefsCatId?: string | null;
+  initialAllergenFree?: string | null;
 }
 
 export function MenuGrid({
@@ -55,6 +56,7 @@ export function MenuGrid({
   servingNowCategories = [],
   previewTime = null,
   chefsCatId = null,
+  initialAllergenFree = null,
 }: MenuGridProps) {
   // Parse preview time once
   const previewHour = previewTime ? parseInt(previewTime.split(":")[0], 10) : null;
@@ -225,6 +227,7 @@ export function MenuGrid({
     displayCategories,
     favorites,
     removedFromChefsPick,
+    allergenFree,
   });
 
   // ── Archived items list ──────────────────────────────────────────────────────

@@ -17,6 +17,7 @@ const COLUMN_TOOLTIPS: Record<string, string> = {
   ON: "Toggle item visibility on the public menu (on/off switch)",
   STAR: "Featured — marks item for the homepage highlights section",
   DIETARY: "Dietary tags shown to customers (Spicy, Vegetarian, Vegan, Gluten Free)",
+  ALLERGENS: "Allergen tags (Nuts, Shellfish, Dairy, Eggs, Gluten, Soy) — shown as icon badges on menu",
   DAYS: "Days of week this item is available (e.g., Mon-Fri only)",
   TIME: "Time window this item is served (e.g., 11:00-15:00)",
   DATES: "Special dates this item is available or unavailable",
@@ -79,6 +80,7 @@ export function AdminMenuTable({
     deleteItem,
     toggleDay,
     toggleDietary,
+    toggleAllergen,
     suggestTranslation,
     toggleAvailable,
     restoreAll,
@@ -153,6 +155,7 @@ export function AdminMenuTable({
     onDelete: deleteItem,
     onToggleDay: toggleDay,
     onToggleDietary: toggleDietary,
+    onToggleAllergen: toggleAllergen,
     onSuggestTranslation: suggestTranslation,
     onToggleAvailable: toggleAvailable,
   };
@@ -167,6 +170,7 @@ export function AdminMenuTable({
         <th className="px-3 py-3"><span title={COLUMN_TOOLTIPS.ON} className="cursor-help border-b border-dashed border-gray-400">On</span></th>
         <th className="px-3 py-3"><span title={COLUMN_TOOLTIPS.STAR} className="cursor-help border-b border-dashed border-gray-400">★</span></th>
         <th className="px-3 py-3"><span title={COLUMN_TOOLTIPS.DIETARY} className="cursor-help border-b border-dashed border-gray-400">Dietary</span></th>
+        <th className="px-3 py-3"><span title={COLUMN_TOOLTIPS.ALLERGENS} className="cursor-help border-b border-dashed border-gray-400">Allergens</span></th>
         <th className="px-3 py-3"><span title={COLUMN_TOOLTIPS.DAYS} className="cursor-help border-b border-dashed border-gray-400">Days</span></th>
         <th className="px-3 py-3"><span title={COLUMN_TOOLTIPS.TIME} className="cursor-help border-b border-dashed border-gray-400">Time</span></th>
         <th className="px-3 py-3"><span title={COLUMN_TOOLTIPS.DATES} className="cursor-help border-b border-dashed border-gray-400">Dates</span></th>
@@ -317,7 +321,7 @@ export function AdminMenuTable({
                 {groupedItems.map(({ cat, label, items: groupItems }) => (
                   <Fragment key={cat}>
                     <tr className="border-t border-b border-gray-200 bg-amber-50/60">
-                      <td colSpan={12} className="px-3 py-1.5">
+                      <td colSpan={13} className="px-3 py-1.5">
                         <div className="rounded px-2 py-1 text-xs font-semibold uppercase tracking-wide text-amber-800">
                           {label} ({groupItems.length})
                         </div>

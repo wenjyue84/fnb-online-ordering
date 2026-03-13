@@ -218,6 +218,15 @@ data: {json}
 
 ### Completed Stories
 
+**US-626** — Allergen icon badges for common food allergens
+- Feature was ~70% scaffolded but broken: MenuFilter/MenuGrid referenced undefined variables
+- Fixed MenuFilter: added allergenFree/onAllergenFreeChange props, imported ALLERGEN_LIST, declared ta translations hook
+- Fixed MenuGrid: added initialAllergenFree to props, passed allergenFree to useMenuFiltering hook
+- Fixed menu page.tsx: parses ?allergenFree= from searchParams, passes through MenuContent to MenuGrid
+- Admin menu table: wired allergen toggle checkboxes (ALLERGEN_OPTIONS + onToggleAllergen), added Allergens column header
+- Schema.org: added allergen additionalProperty (PropertyValue type) to MenuItem structured data in json-ld.tsx
+- DB column, AllergenBadge component, i18n keys, useMenuFiltering filter logic, admin PATCH/POST routes were already done
+
 **US-619** — Admin-configurable pre-order minimum advance time
 - Added `minAdvanceMinutes: number` (default: 15) to SiteSettings type and DEFAULT_SETTINGS
 - Exposed via GET /api/settings (public endpoint)
@@ -1006,4 +1015,8 @@ Completed: Hreflang alternate links on all locale pages via generateMetadata (ID
 
 ## Iteration 5 - Fri, Mar 13, 2026  3:42:00 PM
 Incomplete: On-demand menu cache invalidation via revalidateTag after admin edits (ID: US-642) — attempt 1/3
+
+
+## Iteration 5 - Fri, Mar 13, 2026  4:42:44 PM
+Incomplete: On-demand menu cache invalidation via revalidateTag after admin edits (ID: US-642) — attempt 2/3
 

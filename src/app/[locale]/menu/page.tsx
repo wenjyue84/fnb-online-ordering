@@ -35,7 +35,7 @@ export default async function MenuPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ previewTime?: string; q?: string }>;
+  searchParams: Promise<{ previewTime?: string; q?: string; allergenFree?: string }>;
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
@@ -48,6 +48,7 @@ export default async function MenuPage({
   // previewTime is admin-only; strip it for customers
   const previewTime = isAdmin ? (resolvedParams.previewTime ?? null) : null;
   const initialSearch = resolvedParams.q ?? "";
+  const initialAllergenFree = resolvedParams.allergenFree ?? null;
 
   return (
     <>
@@ -65,6 +66,7 @@ export default async function MenuPage({
             isAdmin={isAdmin}
             previewTime={previewTime}
             initialSearch={initialSearch}
+            initialAllergenFree={initialAllergenFree}
           />
         </Suspense>
       </div>
@@ -78,12 +80,14 @@ async function MenuContent({
   isAdmin,
   previewTime,
   initialSearch,
+  initialAllergenFree,
 }: {
   locale: string;
   nonce: string | undefined;
   isAdmin: boolean;
   previewTime: string | null;
   initialSearch: string;
+  initialAllergenFree: string | null;
 }) {
   const [items, displayCats, persistedHighlights] = await Promise.all([
     isAdmin ? getAllMenuItemsWithRulesForAdmin() : getMenuItems(),
@@ -112,6 +116,7 @@ async function MenuContent({
         servingNowCategories={servingNowCategories}
         previewTime={previewTime}
         chefsCatId={chefsCatId}
+        initialAllergenFree={initialAllergenFree}
       />
     </>
   );

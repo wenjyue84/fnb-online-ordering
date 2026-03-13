@@ -16,6 +16,7 @@ export const STATUS_LABELS: Record<string, string> = {
   preparing: "Preparing",
   ready: "Ready",
   expired: "Expired",
+  cancelled: "Cancelled by Customer",
   seen: "Seen",
   pending: "Pending",
 };
@@ -29,6 +30,7 @@ export const STATUS_COLORS: Record<string, string> = {
   preparing: "bg-blue-100 text-blue-800",
   ready: "bg-purple-100 text-purple-800",
   expired: "bg-stone-100 text-stone-600",
+  cancelled: "bg-pink-100 text-pink-800",
   seen: "bg-gray-100 text-gray-600",
   pending: "bg-yellow-100 text-yellow-800",
 };

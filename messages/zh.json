@@ -180,7 +180,13 @@
     "copyOrderId": "复制订单号 #{id}",
     "copied": "已复制！",
     "escalation_banner": "您的订单确认时间超出预期，请直接联系我们：",
-    "escalation_whatsapp_message": "您好，我的订单 #{id} 已等待确认超过 {minutes} 分钟"
+    "escalation_whatsapp_message": "您好，我的订单 #{id} 已等待确认超过 {minutes} 分钟",
+    "cancelBtn": "取消 ({remaining})",
+    "cancelConfirm": "您确定要取消此订单吗？",
+    "cancelledTitle": "订单已取消",
+    "cancelledMsg": "您的订单已被取消。",
+    "cancelFailed": "无法取消订单。取消窗口可能已过期。",
+    "backToMenu": "返回菜单"
   },
   "orderForm": {
     "title": "完成预订",
