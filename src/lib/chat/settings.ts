@@ -1,7 +1,4 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
-import { join } from "path";
-
-const SETTINGS_PATH = join(process.cwd(), "data", "chat-settings.json");
+import sql from "@/lib/db";
 
 export interface ChatSettings {
   systemPromptPrefix: string;
@@ -15,11 +12,13 @@ export const DEFAULT_SETTINGS: ChatSettings = {
   temperature: 0.7,
 };
 
-export function readChatSettings(): ChatSettings {
+export async function readChatSettings(): Promise<ChatSettings> {
   try {
-    if (!existsSync(SETTINGS_PATH)) return { ...DEFAULT_SETTINGS };
-    const raw = readFileSync(SETTINGS_PATH, "utf-8");
-    const parsed = JSON.parse(raw);
+    const rows = await sql<{ value: Record<string, unknown> }>`
+      SELECT value FROM site_settings WHERE key = 'chat'
+    `;
+    if (!rows.length) return { ...DEFAULT_SETTINGS };
+    const parsed = rows[0].value;
     return {
       systemPromptPrefix:
         typeof parsed.systemPromptPrefix === "string"
@@ -27,7 +26,7 @@ export function readChatSettings(): ChatSettings {
           : DEFAULT_SETTINGS.systemPromptPrefix,
       model:
         parsed.model === "groq" || parsed.model === "openrouter"
-          ? parsed.model
+          ? (parsed.model as ChatSettings["model"])
           : DEFAULT_SETTINGS.model,
       temperature:
         typeof parsed.temperature === "number" &&
@@ -41,8 +40,12 @@ export function readChatSettings(): ChatSettings {
   }
 }
 
-export function writeChatSettings(settings: ChatSettings): void {
-  const dir = join(process.cwd(), "data");
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2), "utf-8");
+export async function writeChatSettings(settings: ChatSettings): Promise<void> {
+  await sql`
+    INSERT INTO site_settings (key, value, updated_at)
+    VALUES ('chat', ${JSON.stringify(settings)}::jsonb, NOW())
+    ON CONFLICT (key) DO UPDATE
+      SET value = EXCLUDED.value,
+          updated_at = NOW()
+  `;
 }

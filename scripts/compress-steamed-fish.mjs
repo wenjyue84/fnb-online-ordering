@@ -1,9 +1,14 @@
 import sharp from 'sharp';
 import fs from 'fs';
+import path from 'path';
 
-const inputPath = 'C:\\\\Users\\\\Jyue\\\\.gemini\\\\antigravity\\\\brain\\\\66eb31aa-8aed-4665-943a-b6a6a417731f\\\\steamed_fish_promo_1773115632441.png';
-const outputPath = 'C:\\\\Users\\\\Jyue\\\\Documents\\\\2-areas\\\\makan-moments-cafe\\\\1-projects\\\\makanmoments.cafe\\\\public\\\\images\\\\hero\\\\hero-mobile.webp';
-const blurPath = 'C:\\\\Users\\\\Jyue\\\\Documents\\\\2-areas\\\\makan-moments-cafe\\\\1-projects\\\\makanmoments.cafe\\\\src\\\\data\\\\hero-blur.ts';
+const inputPath = process.argv[2];
+if (!inputPath) {
+    console.error('Usage: node scripts/compress-steamed-fish.mjs <input-image-path>');
+    process.exit(1);
+}
+const outputPath = path.join(process.cwd(), 'public', 'images', 'hero', 'hero-mobile.webp');
+const blurPath = path.join(process.cwd(), 'src', 'data', 'hero-blur.ts');
 
 async function main() {
     const { data, info } = await sharp(inputPath)

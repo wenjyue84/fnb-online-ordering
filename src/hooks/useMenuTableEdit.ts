@@ -24,8 +24,11 @@ export interface UseMenuTableEditResult {
   addNewRow: () => void;
   toggleDay: (item: EditableItem, day: string) => void;
   toggleDietary: (item: EditableItem, d: string) => void;
+  toggleAllergen: (item: EditableItem, a: string) => void;
   toggleCategory: (item: EditableItem, cat: string) => void;
   suggestTranslation: (item: EditableItem, lang: "ms" | "zh") => Promise<void>;
+  toggleAvailable: (id: string) => Promise<void>;
+  restoreAll: () => Promise<number>;
 }
 
 export function useMenuTableEdit(initialItems: MenuItemWithRules[]): UseMenuTableEditResult {
@@ -71,6 +74,7 @@ export function useMenuTableEdit(initialItems: MenuItemWithRules[]): UseMenuTabl
         updatedAt: new Date().toISOString(),
         isSignature: false,
         archived: false,
+        allergens: [],
         _new: true,
         _dirty: true,
       },
@@ -97,6 +101,7 @@ export function useMenuTableEdit(initialItems: MenuItemWithRules[]): UseMenuTabl
       timeFrom: item.timeFrom,
       timeUntil: item.timeUntil,
       specialDates: item.specialDates,
+      allergens: item.allergens,
     };
 
     try {
@@ -156,6 +161,13 @@ export function useMenuTableEdit(initialItems: MenuItemWithRules[]): UseMenuTabl
     updateItem(item.id, { dietary });
   }
 
+  function toggleAllergen(item: EditableItem, a: string) {
+    const allergens = item.allergens.includes(a)
+      ? item.allergens.filter((x) => x !== a)
+      : [...item.allergens, a];
+    updateItem(item.id, { allergens });
+  }
+
   function toggleCategory(item: EditableItem, cat: string) {
     const cats = item.categories.includes(cat)
       ? item.categories.filter((c) => c !== cat)
@@ -181,6 +193,46 @@ export function useMenuTableEdit(initialItems: MenuItemWithRules[]): UseMenuTabl
       // silently fail — user can retry
     } finally {
       setSuggesting((prev) => ({ ...prev, [key]: false }));
+    }
+  }
+
+  /** Instant toggle: optimistically flip available, PATCH server, rollback on failure */
+  async function toggleAvailable(id: string) {
+    const item = items.find((i) => i.id === id);
+    if (!item || item._new) return;
+    const newAvailable = !item.available;
+    // Optimistic update (don't set _dirty — this auto-saves)
+    setItems((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, available: newAvailable } : i))
+    );
+    try {
+      const res = await fetch(`/api/admin/menu/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ available: newAvailable }),
+      });
+      if (!res.ok) throw new Error("Failed");
+    } catch {
+      // Rollback on failure
+      setItems((prev) =>
+        prev.map((i) => (i.id === id ? { ...i, available: !newAvailable } : i))
+      );
+      setError("Failed to update availability");
+    }
+  }
+
+  /** Restore all sold-out items to available */
+  async function restoreAll(): Promise<number> {
+    try {
+      const res = await fetch("/api/admin/menu/restore-all", { method: "POST" });
+      if (!res.ok) throw new Error("Failed");
+      const data = await res.json() as { restored: number };
+      // Update local state
+      setItems((prev) => prev.map((i) => ({ ...i, available: true })));
+      return data.restored;
+    } catch {
+      setError("Failed to restore items");
+      return 0;
     }
   }
 
@@ -215,7 +267,10 @@ export function useMenuTableEdit(initialItems: MenuItemWithRules[]): UseMenuTabl
     addNewRow,
     toggleDay,
     toggleDietary,
+    toggleAllergen,
     toggleCategory,
     suggestTranslation,
+    toggleAvailable,
+    restoreAll,
   };
 }

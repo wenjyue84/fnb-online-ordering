@@ -4,14 +4,14 @@ import { invalidateSystemPromptCache } from "@/lib/chat/system-prompt";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const settings = readChatSettings();
+  const settings = await readChatSettings();
   return Response.json(settings);
 }
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const current = readChatSettings();
+    const current = await readChatSettings();
 
     const updated = {
       systemPromptPrefix:
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
           : current.temperature,
     } satisfies typeof DEFAULT_SETTINGS;
 
-    writeChatSettings(updated);
+    await writeChatSettings(updated);
     invalidateSystemPromptCache();
 
     return Response.json({ ok: true, settings: updated });

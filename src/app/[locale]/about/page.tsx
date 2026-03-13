@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
+import { buildAlternates } from "@/lib/seo";
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
 import { cookies } from "next/headers";
-import { getTranslations } from "next-intl/server";
-import { CAFE } from "@/lib/constants";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Leaf, Users, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import { COOKIE_NAME, verifyAdminToken } from "@/lib/auth";
-import { AboutInlineEditor, type AboutContent } from "@/components/admin/about-inline-editor";
+import type { AboutContent } from "@/components/admin/about-inline-editor";
+import dynamic from "next/dynamic";
+const AboutInlineEditor = dynamic(() => import("@/components/admin/about-inline-editor").then(m => m.AboutInlineEditor));
 
 export const runtime = "nodejs";
 
@@ -63,6 +65,10 @@ export async function generateMetadata({
   return {
     title: t("title"),
     description: t("subtitle"),
+    alternates: {
+      canonical: `/${locale}/about`,
+      ...buildAlternates("/about"),
+    },
   };
 }
 
@@ -72,6 +78,7 @@ export default async function AboutPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "about" });
 
   const fallback: Record<string, string> = {
@@ -99,7 +106,14 @@ export default async function AboutPage({
     return (
       <AboutInlineEditor
         content={content}
-        ambianceFeatures={CAFE.ambiance}
+        ambianceFeatures={[
+          "Corner shop unit",
+          "Natural ventilation",
+          "Indoor plants",
+          "Hand-drawn wall art",
+          "Power outlets available",
+          "Free WiFi",
+        ]}
       />
     );
   }
@@ -159,7 +173,14 @@ export default async function AboutPage({
           <div>
             <h2 className="mb-6 font-display text-2xl font-bold">{content.ambianceTitle}</h2>
             <div className="grid gap-3 sm:grid-cols-2">
-              {CAFE.ambiance.map((feature) => (
+              {[
+                "Corner shop unit",
+                "Natural ventilation",
+                "Indoor plants",
+                "Hand-drawn wall art",
+                "Power outlets available",
+                "Free WiFi",
+              ].map((feature) => (
                 <div
                   key={feature}
                   className="rounded-lg border border-border bg-card p-4 text-sm font-medium"

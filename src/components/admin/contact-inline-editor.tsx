@@ -19,12 +19,14 @@ interface ContactInlineEditorProps {
   content: ContactContent;
   social: { facebook: string; instagram: string };
   wifiPassword: string;
+  cafeName?: string;
 }
 
 export function ContactInlineEditor({
   content,
   social,
   wifiPassword,
+  cafeName = "Cafe",
 }: ContactInlineEditorProps) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -274,7 +276,7 @@ export function ContactInlineEditor({
               allowFullScreen
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
-              title="Makan Moments Cafe location"
+              title={`${cafeName} location`}
             />
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import sql from "@/lib/db";
-import { revalidateLocalePaths } from "@/lib/cache-utils";
+import { revalidateMenuCache } from "@/lib/cache-utils";
 import { invalidateSystemPromptCache } from "@/lib/chat/system-prompt";
 
 export const runtime = "nodejs";
@@ -31,12 +31,8 @@ export async function PATCH(
     imagePosition,
     isSignature,
     archived,
+    allergens,
   } = body;
-
-  // Ensure columns exist (idempotent migrations)
-  await sql`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS image_position TEXT DEFAULT '50% 50%'`;
-  await sql`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS is_signature BOOLEAN DEFAULT false`;
-  await sql`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS archived BOOLEAN DEFAULT false`;
 
   // Only one item can be the signature dish — clear others before setting this one
   if (isSignature === true) {
@@ -63,6 +59,7 @@ export async function PATCH(
       image_position = COALESCE(${imagePosition ?? null}, image_position),
       is_signature = COALESCE(${isSignature ?? null}, is_signature),
       archived = COALESCE(${archived ?? null}, archived),
+      allergens = COALESCE(${allergens ?? null}, allergens),
       updated_at = now()
     WHERE id = ${id}
     RETURNING *
@@ -72,11 +69,8 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Revalidate ISR cache for menu and home pages across all locales
-  revalidateLocalePaths("/menu");
-  if (isSignature !== undefined) {
-    revalidateLocalePaths("");
-  }
+  // Invalidate all menu-related caches (covers menu page, home page highlights, etc.)
+  revalidateMenuCache();
 
   // Invalidate AI system prompt cache so new menu data is picked up immediately
   invalidateSystemPromptCache();
@@ -90,5 +84,6 @@ export async function DELETE(
 ) {
   const { id } = await params;
   await sql`DELETE FROM menu_items WHERE id = ${id}`;
+  revalidateMenuCache();
   return NextResponse.json({ ok: true });
 }

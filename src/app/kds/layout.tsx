@@ -1,14 +1,30 @@
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { getSiteSettings } from "@/lib/site-settings";
+import { SwUpdateBanner } from "@/components/pwa/sw-update-banner";
 import "../globals.css";
 
-export const metadata = {
-  title: "Kitchen Display | Makan Moments",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  return {
+    title: `Kitchen Display | ${settings.cafeName}`,
+  };
+}
 
 export default function KdsLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="antialiased">{children}</body>
+      <head>
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <meta name="theme-color" content="#111827" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-title" content="MM Kitchen" />
+      </head>
+      <body className="antialiased">
+        <SwUpdateBanner priority="high" />
+        {children}
+      </body>
     </html>
   );
 }

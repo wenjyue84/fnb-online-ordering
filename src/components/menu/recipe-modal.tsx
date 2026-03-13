@@ -21,7 +21,7 @@ export function RecipeModal({ item, open, onClose }: RecipeModalProps) {
   const name = getLocalizedName(item, locale);
   const recipe = getRecipeInfo(item.nameEn);
   const [imgError, setImgError] = useState(false);
-  const hasPhoto = !!item.code && !imgError;
+  const hasPhoto = !!item.photo && !imgError;
 
   useEffect(() => {
     if (!open) return;
@@ -54,7 +54,7 @@ export function RecipeModal({ item, open, onClose }: RecipeModalProps) {
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-3 top-3 z-20 rounded-full bg-black/50 p-1.5 text-white transition-colors hover:bg-black/70"
+          className="absolute right-2 top-2 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
           aria-label={t("close")}
         >
           <X className="h-4 w-4" />
@@ -66,7 +66,7 @@ export function RecipeModal({ item, open, onClose }: RecipeModalProps) {
           {hasPhoto && (
             <div className="relative aspect-video w-full overflow-hidden rounded-t-2xl">
               <Image
-                src={item.photo ?? ""}
+                src={item.photo!}
                 alt={name}
                 fill
                 className="object-cover"

@@ -9,7 +9,7 @@ page.on('console', msg => {
   if (msg.type() === 'error') errors.push(msg.text());
 });
 
-await page.goto('http://localhost:3030/en/menu', { waitUntil: 'networkidle', timeout: 30000 });
+await page.goto('http://localhost:3031/en/menu', { waitUntil: 'networkidle', timeout: 30000 });
 await page.waitForTimeout(2000);
 
 const beforeState = await page.evaluate(() => ({

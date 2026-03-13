@@ -1,9 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
 import sql from "@/lib/db";
+import { put } from "@vercel/blob";
 import fs from "fs";
 import path from "path";
+import { createRateLimiter } from "@/lib/chat/rate-limit";
 
 export const runtime = "nodejs";
+
+// 10 upload attempts per IP per hour — prevents storage exhaustion / DoS
+const paymentRateLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10,
+  name: "POST /api/orders/[id]/payment",
+});
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -37,12 +46,55 @@ const EXT_MAP: Record<string, string> = {
   "image/webp": "webp",
 };
 
+/** Upload to Vercel Blob (production) or local filesystem (dev fallback) */
+async function uploadScreenshot(
+  orderId: number,
+  buffer: Buffer,
+  contentType: string
+): Promise<string> {
+  const ext = EXT_MAP[contentType] ?? "jpg";
+  const safeId = String(orderId).replace(/[^a-zA-Z0-9-]/g, "");
+  const filename = `payments/${safeId}.${ext}`;
+
+  // Use Vercel Blob when token is available (production / preview)
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const blob = await put(filename, buffer, {
+      access: "public",
+      contentType,
+      addRandomSuffix: false,
+    });
+    return blob.url; // Full HTTPS URL
+  }
+
+  // Local filesystem fallback for development
+  const uploadsDir = path.join(process.cwd(), "public", "uploads", "payments");
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  const filePath = path.join(uploadsDir, `${safeId}.${ext}`);
+  fs.writeFileSync(filePath, buffer);
+  return `/uploads/payments/${safeId}.${ext}`;
+}
+
 // POST /api/orders/:id/payment — customer uploads TnG payment screenshot
 // Public endpoint (order ID acts as a shared secret, no auth required)
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Rate limiting — 10 uploads per IP per hour
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "127.0.0.1";
+  const rateCheck = await paymentRateLimiter(ip);
+  if (!rateCheck.allowed) {
+    return NextResponse.json(
+      { error: "Too many upload attempts. Please try again later." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rateCheck.retryAfter ?? 3600) },
+      }
+    );
+  }
+
   try {
     const { id } = await params;
     const orderId = parseInt(id, 10);
@@ -89,11 +141,11 @@ export async function POST(
       );
     }
 
-    // Validate size
+    // Validate size — 413 Payload Too Large
     if (file.size > MAX_SIZE) {
       return NextResponse.json(
         { error: "File must be smaller than 5MB" },
-        { status: 400 }
+        { status: 413 }
       );
     }
 
@@ -108,22 +160,9 @@ export async function POST(
       );
     }
 
-    // Save file to public/uploads/payments/
-    const ext = EXT_MAP[file.type] ?? "jpg";
-    const safeId = String(orderId).replace(/[^a-zA-Z0-9-]/g, "");
-    const filename = `${safeId}.${ext}`;
-    const uploadsDir = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      "payments"
-    );
-    fs.mkdirSync(uploadsDir, { recursive: true });
-    const filePath = path.join(uploadsDir, filename);
+    // Upload to cloud storage (or local fallback)
     const buffer = Buffer.from(arrayBuffer);
-    fs.writeFileSync(filePath, buffer);
-
-    const screenshotUrl = `/uploads/payments/${filename}`;
+    const screenshotUrl = await uploadScreenshot(orderId, buffer, file.type);
 
     // Update order status
     await sql`

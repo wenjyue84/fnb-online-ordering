@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, X, Clock, Eye } from "lucide-react";
+import { Check, X, Clock, Eye, AlertTriangle, RefreshCw, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDateTimeCompact as formatDateTime, formatTime } from "@/lib/date-utils";
 import type { AdminOrder, ActionResult } from "@/hooks/useAdminOrders";
+import { calculateSmartReadyTime, toDatetimeLocal } from "@/lib/orders";
 
 export const STATUS_LABELS: Record<string, string> = {
   pending_approval: "Pending Approval",
@@ -15,6 +16,7 @@ export const STATUS_LABELS: Record<string, string> = {
   preparing: "Preparing",
   ready: "Ready",
   expired: "Expired",
+  cancelled: "Cancelled by Customer",
   seen: "Seen",
   pending: "Pending",
 };
@@ -28,28 +30,23 @@ export const STATUS_COLORS: Record<string, string> = {
   preparing: "bg-blue-100 text-blue-800",
   ready: "bg-purple-100 text-purple-800",
   expired: "bg-stone-100 text-stone-600",
+  cancelled: "bg-pink-100 text-pink-800",
   seen: "bg-gray-100 text-gray-600",
   pending: "bg-yellow-100 text-yellow-800",
 };
-
-function defaultReadyTime() {
-  const d = new Date(Date.now() + 30 * 60 * 1000);
-  d.setSeconds(0, 0);
-  d.setMinutes(Math.ceil(d.getMinutes() / 5) * 5);
-  return d.toISOString().slice(0, 16);
-}
 
 // ---------------------------------------------------------------------------
 // Approve modal
 // ---------------------------------------------------------------------------
 interface ApproveModalProps {
   orderId: number;
+  items: { quantity: number }[];
   onClose: () => void;
   onApprove: (id: number, estimatedReady: string) => Promise<ActionResult>;
 }
 
-function ApproveModal({ orderId, onClose, onApprove }: ApproveModalProps) {
-  const [readyTime, setReadyTime] = useState(defaultReadyTime());
+function ApproveModal({ orderId, items, onClose, onApprove }: ApproveModalProps) {
+  const [readyTime, setReadyTime] = useState(() => toDatetimeLocal(calculateSmartReadyTime(items)));
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
@@ -269,20 +266,28 @@ function PaymentModal({ orderId, screenshotUrl, onClose, onStatusUpdate }: Payme
 // ---------------------------------------------------------------------------
 export interface AdminOrderCardProps {
   order: AdminOrder;
+  posMode?: "builtin" | "feedme_manual";
+  escalationMinutes?: number;
   onApprove: (id: number, estimatedReady: string) => Promise<ActionResult>;
   onReject: (id: number, reason: string) => Promise<ActionResult>;
   onStatusUpdate: (id: number, action: "confirm_payment" | "mark_ready" | "reject_payment", extra?: { reason?: string }) => Promise<ActionResult>;
 }
 
-export function AdminOrderCard({ order, onApprove, onReject, onStatusUpdate }: AdminOrderCardProps) {
+export function AdminOrderCard({ order, posMode = "feedme_manual", escalationMinutes = 10, onApprove, onReject, onStatusUpdate }: AdminOrderCardProps) {
   const [showApprove, setShowApprove] = useState(false);
   const [showReject, setShowReject] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [markingReady, setMarkingReady] = useState(false);
+  const [feedmeEntered, setFeedmeEntered] = useState<boolean>(order.feedme_entered ?? false);
+  const [feedmeLoading, setFeedmeLoading] = useState(false);
+  const [notifStatus, setNotifStatus] = useState<string | null>(order.notification_status ?? null);
+  const [resending, setResending] = useState(false);
 
   const isPending = order.status === "pending_approval" || order.status === "pending";
   const hasPaymentUploaded = order.status === "payment_uploaded";
+  const isOverdue = isPending && (Date.now() - new Date(order.created_at).getTime()) > escalationMinutes * 60_000;
   const isPreparing = order.status === "preparing";
+  const needsFeedmeCheck = posMode === "feedme_manual" && isPreparing && !feedmeEntered;
 
   async function handleMarkReady() {
     setMarkingReady(true);
@@ -290,12 +295,54 @@ export function AdminOrderCard({ order, onApprove, onReject, onStatusUpdate }: A
     setMarkingReady(false);
   }
 
+  async function handleFeedmeEntered(checked: boolean) {
+    if (!checked) return;
+    setFeedmeLoading(true);
+    try {
+      await fetch(`/api/admin/orders/${order.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "feedme_entered" }),
+      });
+      setFeedmeEntered(true);
+    } catch {
+      // best-effort
+    } finally {
+      setFeedmeLoading(false);
+    }
+  }
+
+  async function handleResendNotification() {
+    setResending(true);
+    setNotifStatus("pending");
+    try {
+      await fetch(`/api/admin/orders/${order.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "resend_notification" }),
+      });
+    } catch {
+      setNotifStatus("failed");
+    } finally {
+      setResending(false);
+    }
+  }
+
   return (
     <>
       <div className={cn(
         "rounded-xl border bg-white shadow-sm p-4 flex flex-col gap-3",
-        isPending && "border-yellow-300 bg-yellow-50/40"
+        isPending && "border-yellow-300 bg-yellow-50/40",
+        isOverdue && "border-red-400 bg-red-50/30"
       )}>
+        {/* OVERDUE banner */}
+        {isOverdue && (
+          <div className="flex items-center gap-1.5 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-red-700">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            Overdue — waiting {escalationMinutes}+ min
+          </div>
+        )}
+
         {/* Header row */}
         <div className="flex items-start justify-between gap-2">
           <div>
@@ -306,6 +353,40 @@ export function AdminOrderCard({ order, onApprove, onReject, onStatusUpdate }: A
             )}>
               {STATUS_LABELS[order.status] ?? order.status}
             </span>
+            {notifStatus === "failed" && (
+              <>
+                <span
+                  className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700"
+                  title="WhatsApp notification failed after 3 retries"
+                >
+                  <AlertTriangle className="h-3 w-3" />
+                  WA Failed
+                </span>
+                <button
+                  onClick={() => void handleResendNotification()}
+                  disabled={resending}
+                  title="Resend WhatsApp notification"
+                  className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-700 hover:bg-orange-200 disabled:opacity-50 transition-colors"
+                >
+                  <RefreshCw className={cn("h-3 w-3", resending && "animate-spin")} />
+                  {resending ? "Sending…" : "Resend"}
+                </button>
+              </>
+            )}
+            {notifStatus === "pending" && !resending && (
+              <span className="ml-1.5 inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-semibold text-yellow-700">
+                WA Sending…
+              </span>
+            )}
+            {notifStatus === "email_fallback" && (
+              <span
+                className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700"
+                title="WhatsApp failed — notification sent via email fallback"
+              >
+                <Mail className="h-3 w-3" />
+                Notified via email
+              </span>
+            )}
           </div>
           <span className="text-xs text-gray-400 shrink-0">{formatDateTime(order.created_at)}</span>
         </div>
@@ -375,11 +456,29 @@ export function AdminOrderCard({ order, onApprove, onReject, onStatusUpdate }: A
         )}
 
         {isPreparing && (
-          <div className="flex gap-2 pt-1">
+          <div className="flex flex-col gap-2 pt-1">
+            {posMode === "feedme_manual" && (
+              <div className="rounded-lg bg-yellow-50 border border-yellow-300 px-3 py-2">
+                <p className="text-xs font-semibold text-yellow-800 mb-1.5">Enter this order into FeedMe POS</p>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={feedmeEntered}
+                    onChange={(e) => void handleFeedmeEntered(e.target.checked)}
+                    disabled={feedmeLoading || feedmeEntered}
+                    className="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400"
+                  />
+                  <span className="text-xs text-yellow-900">
+                    {feedmeEntered ? "✓ Entered into FeedMe" : feedmeLoading ? "Saving…" : "Entered into FeedMe POS"}
+                  </span>
+                </label>
+              </div>
+            )}
             <button
               onClick={() => void handleMarkReady()}
-              disabled={markingReady}
-              className="flex-1 min-h-[40px] rounded-lg bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
+              disabled={markingReady || needsFeedmeCheck}
+              title={needsFeedmeCheck ? "Please enter into FeedMe POS first" : undefined}
+              className="flex-1 min-h-[40px] rounded-lg bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
             >
               <Check className="h-4 w-4" />
               {markingReady ? "Saving…" : "Mark Ready 🎉"}
@@ -391,6 +490,7 @@ export function AdminOrderCard({ order, onApprove, onReject, onStatusUpdate }: A
       {showApprove && (
         <ApproveModal
           orderId={order.id}
+          items={order.items}
           onClose={() => setShowApprove(false)}
           onApprove={onApprove}
         />

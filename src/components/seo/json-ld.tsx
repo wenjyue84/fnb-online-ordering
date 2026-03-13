@@ -1,40 +1,45 @@
-import { CAFE } from "@/lib/constants";
+import { getSiteSettings } from "@/lib/site-settings";
+import type { MenuItem } from "@/types/menu";
 
 interface JsonLdProps {
   data: Record<string, unknown>;
+  nonce?: string | null;
 }
 
-export function JsonLd({ data }: JsonLdProps) {
+export function JsonLd({ data, nonce }: JsonLdProps) {
   return (
     <script
       type="application/ld+json"
+      nonce={nonce ?? undefined}
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );
 }
 
-export function RestaurantJsonLd() {
+export async function RestaurantJsonLd({ nonce }: { nonce?: string | null } = {}) {
+  const settings = await getSiteSettings();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031";
+
   const data = {
     "@context": "https://schema.org",
     "@type": "Restaurant",
-    name: CAFE.name.en,
-    alternateName: [CAFE.name.ms, CAFE.name.zh],
-    description:
-      "Thai-Malaysian fusion cafe in Skudai, Johor. No Pork, No Lard, Halal-friendly.",
-    url: process.env.NEXT_PUBLIC_SITE_URL || "https://makanmoments.cafe",
-    telephone: "+60127088789",
+    name: settings.cafeName,
+    alternateName: [settings.cafeNameMs, settings.cafeNameZh],
+    description: `${settings.cuisineTypes.join(", ")} cafe in ${settings.addressLocality}, ${settings.addressRegion}. ${settings.dietary.join(", ")}.`,
+    url: siteUrl,
+    telephone: settings.phone,
     address: {
       "@type": "PostalAddress",
-      streetAddress: "Ground Floor 61, Jalan Impian Emas 5/1",
-      addressLocality: "Skudai",
-      addressRegion: "Johor",
-      postalCode: "81300",
-      addressCountry: "MY",
+      streetAddress: settings.streetAddress,
+      addressLocality: settings.addressLocality,
+      addressRegion: settings.addressRegion,
+      postalCode: settings.postalCode,
+      addressCountry: settings.addressCountry,
     },
     geo: {
       "@type": "GeoCoordinates",
-      latitude: 1.5612,
-      longitude: 103.7222,
+      latitude: settings.geoLat,
+      longitude: settings.geoLng,
     },
     openingHoursSpecification: {
       "@type": "OpeningHoursSpecification",
@@ -47,90 +52,150 @@ export function RestaurantJsonLd() {
         "Saturday",
         "Sunday",
       ],
-      opens: "11:00",
-      closes: "23:00",
+      opens: settings.operatingHours.open,
+      closes: settings.operatingHours.close,
     },
-    servesCuisine: ["Thai", "Malaysian", "Fusion"],
-    priceRange: "RM 2 - RM 90",
-    paymentAccepted: "Cash, Touch n Go, GrabPay, DuitNow QR",
+    servesCuisine: [...settings.cuisineTypes, "Halal-friendly"],
+    suitableForDiet: "https://schema.org/HalalDiet",
+    amenityFeature: [
+      {
+        "@type": "LocationFeatureSpecification",
+        name: "Halal-friendly",
+        value: true,
+      },
+    ],
+    priceRange: settings.priceRange,
+    paymentAccepted: settings.paymentMethods.join(", "),
     currenciesAccepted: "MYR",
-    image:
-      (process.env.NEXT_PUBLIC_SITE_URL || "https://makanmoments.cafe") +
-      "/images/og-image.jpg",
+    image: `${siteUrl}/images/og-image.jpg`,
     sameAs: [
-      CAFE.social.facebook,
-      CAFE.social.instagram,
-      CAFE.social.tiktok,
+      settings.social.facebook,
+      settings.social.instagram,
+      settings.social.tiktok,
     ],
     hasMenu: {
       "@type": "Menu",
-      url:
-        (process.env.NEXT_PUBLIC_SITE_URL || "https://makanmoments.cafe") +
-        "/en/menu",
-      hasMenuSection: [
-        {
-          "@type": "MenuSection",
-          name: "Must-Try",
-          description: "Our signature dishes and customer favorites",
-        },
-        {
-          "@type": "MenuSection",
-          name: "Ala Cart",
-          description: "Individual dishes — chicken, fish, eggs, vegetables",
-        },
-        {
-          "@type": "MenuSection",
-          name: "Value Set",
-          description: "Complete meal sets at great value",
-        },
-        {
-          "@type": "MenuSection",
-          name: "Noodle Soup",
-          description: "Thai-style noodle soups",
-        },
-        {
-          "@type": "MenuSection",
-          name: "Beverages",
-          description: "Hot drinks, cold drinks, fresh juices",
-        },
-      ],
+      url: `${siteUrl}/${settings.defaultLocale}/menu`,
     },
+    hasMap: `https://maps.google.com/?q=${encodeURIComponent(settings.address)}`,
+    ...(settings.ratingValue && settings.ratingCount && settings.ratingCount >= 1
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: String(settings.ratingValue),
+            reviewCount: String(settings.ratingCount),
+            ...(settings.ratingProvider ? { name: settings.ratingProvider } : {}),
+          },
+        }
+      : {}),
   };
 
-  return <JsonLd data={data} />;
+  return <JsonLd data={data} nonce={nonce} />;
 }
 
-export function MenuPageJsonLd() {
-  const data = {
+export async function MenuPageJsonLd({
+  nonce,
+  items,
+  locale,
+}: {
+  nonce?: string | null;
+  items?: MenuItem[];
+  locale?: string;
+} = {}) {
+  const settings = await getSiteSettings();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031";
+  const menuUrl = `${siteUrl}/${settings.defaultLocale}/menu`;
+
+  // Build MenuSection + MenuItem structured data when items are provided
+  let hasMenuSection: Record<string, unknown>[] | undefined;
+  if (items && items.length > 0) {
+    // Group items by POS category
+    const categoryMap = new Map<string, MenuItem[]>();
+    for (const item of items) {
+      const cats = item.categories.length > 0 ? item.categories : ["Other"];
+      for (const cat of cats) {
+        if (!categoryMap.has(cat)) categoryMap.set(cat, []);
+        categoryMap.get(cat)!.push(item);
+      }
+    }
+
+    // Helper to pick locale-appropriate name
+    const getName = (item: MenuItem): string => {
+      if (locale === "zh" && item.nameZh) return item.nameZh;
+      if (locale === "ms" && item.nameMs) return item.nameMs;
+      return item.nameEn;
+    };
+
+    hasMenuSection = Array.from(categoryMap.entries()).map(([category, catItems]) => ({
+      "@type": "MenuSection",
+      name: category,
+      hasMenuItem: catItems.map((item) => {
+        const dietList: string[] = ["https://schema.org/HalalDiet"];
+        if (item.dietary.some((d) => d.toLowerCase().includes("vegetarian"))) {
+          dietList.push("https://schema.org/VegetarianDiet");
+        }
+        const allergenProps = (item.allergens ?? []).length > 0
+          ? {
+              additionalProperty: item.allergens.map((a) => ({
+                "@type": "PropertyValue",
+                name: "allergen",
+                value: a,
+              })),
+            }
+          : {};
+        return {
+          "@type": "MenuItem",
+          name: getName(item),
+          ...(item.description && { description: item.description }),
+          ...(item.photo && { image: `${siteUrl}${item.photo}` }),
+          suitableForDiet: dietList,
+          ...allergenProps,
+          offers: {
+            "@type": "Offer",
+            price: item.price.toFixed(2),
+            priceCurrency: "MYR",
+            availability: item.available
+              ? "https://schema.org/InStock"
+              : "https://schema.org/OutOfStock",
+          },
+        };
+      }),
+    }));
+  }
+
+  const data: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Menu",
-    name: "Makan Moments Cafe Menu",
-    description: "384+ Thai-Malaysian fusion dishes",
-    url:
-      (process.env.NEXT_PUBLIC_SITE_URL || "https://makanmoments.cafe") +
-      "/en/menu",
+    name: `${settings.cafeName} Menu`,
+    description: settings.menuDescription,
+    url: menuUrl,
     mainEntity: {
       "@type": "Restaurant",
-      name: CAFE.name.en,
+      name: settings.cafeName,
     },
+    ...(hasMenuSection && { hasMenuSection }),
   };
 
-  return <JsonLd data={data} />;
+  return <JsonLd data={data} nonce={nonce} />;
 }
 
-export function BlogPostJsonLd({
+export async function BlogPostJsonLd({
   title,
   description,
   datePublished,
   url,
   image,
+  nonce,
 }: {
   title: string;
   description: string;
   datePublished: string;
   url: string;
   image?: string | null;
+  nonce?: string | null;
 }) {
+  const settings = await getSiteSettings();
+
   const data = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
@@ -140,15 +205,15 @@ export function BlogPostJsonLd({
     url,
     author: {
       "@type": "Organization",
-      name: CAFE.name.en,
+      name: settings.cafeName,
     },
     publisher: {
       "@type": "Organization",
-      name: CAFE.name.en,
-      url: process.env.NEXT_PUBLIC_SITE_URL || "https://makanmoments.cafe",
+      name: settings.cafeName,
+      url: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031",
     },
     ...(image && { image }),
   };
 
-  return <JsonLd data={data} />;
+  return <JsonLd data={data} nonce={nonce} />;
 }

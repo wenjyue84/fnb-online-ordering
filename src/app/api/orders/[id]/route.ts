@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import sql from "@/lib/db";
+import { getSiteSettings } from "@/lib/site-settings";
 
 export const runtime = "nodejs";
 
@@ -17,7 +18,7 @@ export async function GET(
     }
 
     const rows = await sql`
-      SELECT id, status, created_at
+      SELECT id, status, items, total, contact_number, estimated_arrival, estimated_ready, rejection_reason, created_at
       FROM tray_orders
       WHERE id = ${orderId}
       LIMIT 1
@@ -28,23 +29,37 @@ export async function GET(
     }
 
     const row = rows[0];
+    const ageMs = Date.now() - new Date(row.created_at as string).getTime();
+    const { orderExpiryMinutes } = await getSiteSettings();
+    const expiryMs = orderExpiryMinutes * 60 * 1000;
 
-    // Auto-expire approved orders with no payment after 30 minutes
-    if (
-      row.status === 'approved' &&
-      Date.now() - new Date(row.created_at as string).getTime() > 30 * 60 * 1000
-    ) {
-      await sql`UPDATE tray_orders SET status = 'expired' WHERE id = ${orderId}`;
-      return NextResponse.json(
-        { id: row.id, status: 'expired', createdAt: row.created_at },
-        { headers: { "Cache-Control": "no-store" } }
-      );
+    function rowToOrder(r: typeof row, overrideStatus?: string) {
+      return {
+        id: r.id,
+        status: overrideStatus ?? r.status,
+        items: r.items ?? [],
+        total: r.total,
+        contactNumber: r.contact_number ?? null,
+        estimatedArrival: r.estimated_arrival ?? null,
+        estimatedReady: r.estimated_ready ?? null,
+        rejectionReason: r.rejection_reason ?? null,
+        createdAt: r.created_at,
+      };
     }
 
-    return NextResponse.json(
-      { id: row.id, status: row.status, createdAt: row.created_at },
-      { headers: { "Cache-Control": "no-store" } }
-    );
+    // Auto-expire pending_approval orders older than the configured threshold
+    if (row.status === 'pending_approval' && ageMs > expiryMs) {
+      await sql`UPDATE tray_orders SET status = 'expired' WHERE id = ${orderId}`;
+      return NextResponse.json(rowToOrder(row, 'expired'), { headers: { "Cache-Control": "no-store" } });
+    }
+
+    // Auto-expire approved orders with no payment after 30 minutes
+    if (row.status === 'approved' && ageMs > 30 * 60 * 1000) {
+      await sql`UPDATE tray_orders SET status = 'expired' WHERE id = ${orderId}`;
+      return NextResponse.json(rowToOrder(row, 'expired'), { headers: { "Cache-Control": "no-store" } });
+    }
+
+    return NextResponse.json(rowToOrder(row), { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     console.error("[GET /api/orders/[id]]", err);
     return NextResponse.json({ error: "Failed to fetch order" }, { status: 500 });

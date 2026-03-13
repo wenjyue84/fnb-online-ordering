@@ -1,10 +1,12 @@
 import { getTranslations } from "next-intl/server";
-import { Facebook, Instagram, Phone, MapPin, Clock } from "lucide-react";
+import { Facebook, Instagram, Phone, MapPin, Clock, ClipboardList } from "lucide-react";
 import Image from "next/image";
-import { CAFE } from "@/lib/constants";
+import { Link } from "@/i18n/navigation";
+import { getSiteSettings } from "@/lib/site-settings";
 
 export async function Footer() {
   const t = await getTranslations("common");
+  const settings = await getSiteSettings();
 
   return (
     <footer className="border-t border-border bg-muted/50">
@@ -15,7 +17,7 @@ export async function Footer() {
             <div className="flex items-center gap-2">
               <Image
                 src="/images/logo.png"
-                alt="Makan Moments Cafe logo"
+                alt={`${settings.cafeName} logo`}
                 width={80}
                 height={80}
                 className="h-10 w-10 object-contain sm:h-20 sm:w-20"
@@ -28,7 +30,7 @@ export async function Footer() {
               {t("tagline")}
             </p>
             <p className="mt-3 hidden text-xs text-muted-foreground sm:block">
-              {CAFE.dietary.join(" · ")}
+              {settings.dietary.join(" · ")}
             </p>
           </div>
 
@@ -37,15 +39,15 @@ export async function Footer() {
             <div className="flex items-start gap-2">
               <Clock className="mt-0.5 h-4 w-4 text-muted-foreground" />
               <div className="text-sm">
-                <p className="font-medium">Daily {CAFE.hours.daily}</p>
+                <p className="font-medium">Daily {settings.displayHours.daily}</p>
                 <p className="text-muted-foreground">
-                  Last order {CAFE.hours.lastOrder}
+                  Last order {settings.displayHours.lastOrder}
                 </p>
               </div>
             </div>
             <div className="flex items-start gap-2">
               <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">{CAFE.address}</p>
+              <p className="text-sm text-muted-foreground">{settings.address}</p>
             </div>
           </div>
 
@@ -54,11 +56,17 @@ export async function Footer() {
             <div className="flex items-center gap-2">
               <Phone className="h-4 w-4 text-muted-foreground" />
               <a
-                href={`tel:${CAFE.phone.replace(/[- ]/g, "")}`}
+                href={`tel:${settings.phone.replace(/[- ]/g, "")}`}
                 className="text-sm hover:text-primary"
               >
-                {CAFE.phone}
+                {settings.phone}
               </a>
+            </div>
+            <div className="flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-muted-foreground" />
+              <Link href="/orders" className="text-sm hover:text-primary">
+                {t("myOrders")}
+              </Link>
             </div>
           </div>
 
@@ -67,28 +75,28 @@ export async function Footer() {
             <p className="mb-3 text-sm font-medium">Follow Us</p>
             <div className="flex gap-2">
               <a
-                href={CAFE.social.facebook}
+                href={settings.social.facebook}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-lg p-2 text-muted-foreground transition-all hover:bg-[#1877f2]/10 hover:text-[#1877f2]"
+                className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-all hover:bg-[#1877f2]/10 hover:text-[#1877f2]"
                 aria-label="Facebook"
               >
                 <Facebook className="h-5 w-5" />
               </a>
               <a
-                href={CAFE.social.instagram}
+                href={settings.social.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-lg p-2 text-muted-foreground transition-all hover:bg-[#e4405f]/10 hover:text-[#e4405f]"
+                className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-all hover:bg-[#e4405f]/10 hover:text-[#e4405f]"
                 aria-label="Instagram"
               >
                 <Instagram className="h-5 w-5" />
               </a>
               <a
-                href={CAFE.social.tiktok}
+                href={settings.social.tiktok}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-lg p-2 text-muted-foreground transition-all hover:bg-foreground/8 hover:text-foreground"
+                className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-all hover:bg-foreground/8 hover:text-foreground"
                 aria-label="TikTok"
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -102,8 +110,12 @@ export async function Footer() {
 
         <div className="mt-8 border-t border-border pt-6 text-center text-xs text-muted-foreground">
           <p>
-            &copy; {new Date().getFullYear()} Makan Moments Cafe (Kafe Kenangan
-            Makan). All rights reserved.
+            &copy; {new Date().getFullYear()} {settings.cafeName} ({settings.cafeNameMs}). All rights reserved.
+          </p>
+          <p className="mt-2">
+            <Link href="/privacy" className="underline hover:text-primary transition-colors">
+              {t("privacyPolicy")}
+            </Link>
           </p>
         </div>
       </div>

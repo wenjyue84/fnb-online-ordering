@@ -8,11 +8,10 @@ const withBundleAnalyzer = withBundleAnalyzerFactory({
 });
 
 const nextConfig: NextConfig = {
-  experimental: {
-    // nodeMiddleware is supported in Next.js 15.1+ but not yet typed
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
-    nodeMiddleware: true,
+  devIndicators: false,
+  turbopack: {
+    // Fix workspace root detection — prevents Turbopack from selecting parent package-lock.json
+    root: ".",
   },
   // When running via WSL2 (portless), redirect .next cache to native Linux fs to avoid NTFS lock issues
   ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
@@ -21,11 +20,15 @@ const nextConfig: NextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 86400,
+    // Mobile-optimized: generate smaller variants for phones (390px, 414px screens)
+    deviceSizes: [390, 414, 640, 750, 828, 1080, 1200],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256],
     localPatterns: [
       { pathname: "/images/**" },
     ],
     remotePatterns: [
       { protocol: "https", hostname: "*.amazonaws.com" },
+      { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
     ],
@@ -35,22 +38,11 @@ const nextConfig: NextConfig = {
       {
         source: "/(.*)",
         headers: [
-          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-          {
-            key: "Content-Security-Policy",
-            value: [
-              "default-src 'self'",
-              "img-src 'self' data: https:",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-              "style-src 'self' 'unsafe-inline'",
-              "font-src 'self' https://fonts.gstatic.com",
-              // Allow Google Maps embed on /contact and Rainbow AI admin iframe (dev)
-              "frame-src 'self' https://www.google.com https://maps.google.com" + (process.env.NODE_ENV !== "production" ? " http://localhost:3002" : ""),
-            ].join("; "),
-          },
+          // CSP is set dynamically per-request in middleware.ts with a nonce
         ],
       },
     ];

@@ -1,70 +1,33 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
-import { join } from "path";
+import sql from "@/lib/db";
 
-const SLOTS_PATH = join(process.cwd(), "data", "time-slots.json");
+export type { TimeSlot, TimeSlotsConfig } from "./time-slots-shared";
+export { DEFAULT_TIME_SLOTS } from "./time-slots-shared";
 
-export interface TimeSlot {
-  id: string;
-  label: string;
-  startHour: number;
-  startMinute: number;
-  endHour: number;
-  endMinute: number;
-  defaultCategory: string;
-}
+import type { TimeSlotsConfig, TimeSlot } from "./time-slots-shared";
+import { DEFAULT_TIME_SLOTS } from "./time-slots-shared";
 
-export interface TimeSlotsConfig {
-  slots: TimeSlot[];
-}
-
-export const DEFAULT_TIME_SLOTS: TimeSlotsConfig = {
-  slots: [
-    {
-      id: "breakfast",
-      label: "Breakfast",
-      startHour: 7,
-      startMinute: 0,
-      endHour: 11,
-      endMinute: 0,
-      defaultCategory: "Chef's Picks",
-    },
-    {
-      id: "lunch",
-      label: "Lunch",
-      startHour: 11,
-      startMinute: 0,
-      endHour: 15,
-      endMinute: 0,
-      defaultCategory: "Chef's Picks",
-    },
-    {
-      id: "dinner",
-      label: "Dinner",
-      startHour: 15,
-      startMinute: 0,
-      endHour: 22,
-      endMinute: 30,
-      defaultCategory: "Chef's Picks",
-    },
-  ],
-};
-
-export function readTimeSlots(): TimeSlotsConfig {
+export async function readTimeSlots(): Promise<TimeSlotsConfig> {
   try {
-    if (!existsSync(SLOTS_PATH)) return { ...DEFAULT_TIME_SLOTS };
-    const raw = readFileSync(SLOTS_PATH, "utf-8");
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed.slots)) return parsed as TimeSlotsConfig;
+    const rows = await sql<{ value: TimeSlotsConfig }>`
+      SELECT value FROM site_settings WHERE key = 'time_slots'
+    `;
+    if (!rows.length) return { ...DEFAULT_TIME_SLOTS };
+    const val = rows[0].value as TimeSlotsConfig;
+    if (Array.isArray(val.slots)) return val;
     return { ...DEFAULT_TIME_SLOTS };
   } catch {
     return { ...DEFAULT_TIME_SLOTS };
   }
 }
 
-export function writeTimeSlots(config: TimeSlotsConfig): void {
-  const dir = join(process.cwd(), "data");
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  writeFileSync(SLOTS_PATH, JSON.stringify(config, null, 2), "utf-8");
+export async function writeTimeSlots(config: TimeSlotsConfig): Promise<void> {
+  await sql`
+    INSERT INTO site_settings (key, value, updated_at)
+    VALUES ('time_slots', ${JSON.stringify(config)}::jsonb, NOW())
+    ON CONFLICT (key) DO UPDATE
+      SET value = EXCLUDED.value,
+          updated_at = NOW()
+  `;
 }
 
 function toMinutes(hour: number, minute: number): number {
@@ -96,8 +59,8 @@ export function getMalaysiaTimeString(): string {
 }
 
 /** Returns the active slot for a given hour/minute, or null if outside all slots. */
-function getActiveSlotForTime(hour: number, minute: number): TimeSlot | null {
-  const config = readTimeSlots();
+async function getActiveSlotForTime(hour: number, minute: number): Promise<TimeSlot | null> {
+  const config = await readTimeSlots();
   const now = toMinutes(hour, minute);
   for (const slot of config.slots) {
     const start = toMinutes(slot.startHour, slot.startMinute);
@@ -108,7 +71,7 @@ function getActiveSlotForTime(hour: number, minute: number): TimeSlot | null {
 }
 
 /** Returns the active time slot for the current Malaysia time, or null if outside all slots. */
-export function getActiveSlot(): TimeSlot | null {
+export async function getActiveSlot(): Promise<TimeSlot | null> {
   const { hour, minute } = getMalaysiaTime();
   return getActiveSlotForTime(hour, minute);
 }
@@ -117,14 +80,14 @@ export function getActiveSlot(): TimeSlot | null {
  * Returns the default category for the given time (HH:MM), or current Malaysia time if omitted.
  * @param overrideTime - Optional "HH:MM" string, e.g. "08:00" for admin preview.
  */
-export function getDefaultCategoryForTime(overrideTime?: string | null): string | null {
+export async function getDefaultCategoryForTime(overrideTime?: string | null): Promise<string | null> {
   if (overrideTime) {
     const [h, m] = overrideTime.split(":").map(Number);
     if (!isNaN(h) && !isNaN(m)) {
-      return getActiveSlotForTime(h, m)?.defaultCategory ?? null;
+      return (await getActiveSlotForTime(h, m))?.defaultCategory ?? null;
     }
   }
-  return getActiveSlot()?.defaultCategory ?? null;
+  return (await getActiveSlot())?.defaultCategory ?? null;
 }
 
 /**
@@ -132,14 +95,14 @@ export function getDefaultCategoryForTime(overrideTime?: string | null): string 
  * Falls back to Chef's Picks when outside all time windows.
  * @param overrideTime - Optional "HH:MM" string for admin preview.
  */
-export function getServingNowCategories(overrideTime?: string | null): string[] {
+export async function getServingNowCategories(overrideTime?: string | null): Promise<string[]> {
   if (overrideTime) {
     const [h, m] = overrideTime.split(":").map(Number);
     if (!isNaN(h) && !isNaN(m)) {
-      const slot = getActiveSlotForTime(h, m);
+      const slot = await getActiveSlotForTime(h, m);
       return slot ? [slot.defaultCategory] : ["Chef's Picks"];
     }
   }
-  const slot = getActiveSlot();
+  const slot = await getActiveSlot();
   return slot ? [slot.defaultCategory] : ["Chef's Picks"];
 }

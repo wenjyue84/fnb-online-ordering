@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { HERO_BLUR } from "@/data/hero-blur";
-import { CAFE } from "@/lib/constants";
+import { getSiteSettings } from "@/lib/site-settings";
 import type { MenuItem } from "@/types/menu";
 import { HeroDishCard } from "@/components/home/hero-dish-card";
 
@@ -17,9 +17,10 @@ interface HeroSectionProps {
 export async function HeroSection({ heroTitle, heroTagline, heroSubtitle, signatureDish }: HeroSectionProps = {}) {
   const t = await getTranslations("home");
   const tc = await getTranslations("common");
+  const settings = await getSiteSettings();
 
   const title = heroTitle || t("heroTitle");
-  const tagline = heroTagline || CAFE.tagline.en;
+  const tagline = heroTagline || settings.cafeTagline;
   const subtitle = heroSubtitle || t("heroSubtitle");
 
   return (
@@ -31,8 +32,9 @@ export async function HeroSection({ heroTitle, heroTagline, heroSubtitle, signat
           <div className="lg:hidden">
             <HeroDishCard
               item={signatureDish ?? null}
+              cafeName={settings.cafeName}
               className="aspect-[2/1] shadow-2xl"
-              sizes="calc(100vw - 2rem)"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 1200px"
               priority
               fallbackBlurDataURL={HERO_BLUR.heroMobile}
             />
@@ -46,7 +48,7 @@ export async function HeroSection({ heroTitle, heroTagline, heroSubtitle, signat
               style={{ "--delay": "0ms" } as CSSProperties}
             >
               <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-              {CAFE.neighborhood}
+              {settings.neighborhood}
             </div>
 
             <h1
@@ -70,6 +72,21 @@ export async function HeroSection({ heroTitle, heroTagline, heroSubtitle, signat
             >
               {subtitle}
             </p>
+
+            {/* Halal-Friendly badge — visible above the fold on mobile */}
+            <div
+              className="mt-3 animate-fade-up"
+              style={{ "--delay": "280ms" } as CSSProperties}
+            >
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-100 px-3 py-1.5 text-sm font-semibold text-green-800 dark:border-green-700 dark:bg-green-900/30 dark:text-green-300"
+                title={tc("halalTooltip")}
+                aria-label={`${tc("halalBadge")}: ${tc("halalTooltip")}`}
+              >
+                <span aria-hidden="true">🌙</span>
+                {tc("halalBadge")}
+              </span>
+            </div>
 
             <div
               className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap animate-fade-up"
@@ -99,7 +116,7 @@ export async function HeroSection({ heroTitle, heroTagline, heroSubtitle, signat
               className="mt-4 hidden flex-wrap gap-2 sm:flex animate-fade-in"
               style={{ "--delay": "400ms" } as CSSProperties}
             >
-              {CAFE.dietary.map((d) => (
+              {settings.dietary.map((d) => (
                 <span key={d} className="text-xs text-muted-foreground">
                   ✓ {d}
                 </span>
@@ -111,9 +128,9 @@ export async function HeroSection({ heroTitle, heroTagline, heroSubtitle, signat
           <div className="relative hidden w-full lg:block lg:pl-8">
             <HeroDishCard
               item={signatureDish ?? null}
+              cafeName={settings.cafeName}
               className="aspect-[4/3] shadow-xl hover-lift"
               sizes="(max-width: 1024px) 50vw, 800px"
-              priority
               fallbackBlurDataURL={HERO_BLUR.heroMobile}
             />
           </div>

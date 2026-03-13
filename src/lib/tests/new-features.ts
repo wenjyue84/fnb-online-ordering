@@ -3,9 +3,9 @@ import type { MenuItem } from "@/types/menu";
 
 function getBaseUrl(): string {
   if (process.env.NODE_ENV !== "production") {
-    return "http://localhost:3030";
+    return "http://localhost:3031";
   }
-  return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3030";
+  return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031";
 }
 
 // US-041: Menu card name and price in separate DOM elements

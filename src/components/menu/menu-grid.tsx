@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo, useTransition } from "react";
+import { useState, useCallback, useEffect, useMemo, useDeferredValue } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import dynamic from "next/dynamic";
@@ -43,6 +43,7 @@ interface MenuGridProps {
   servingNowCategories?: string[];
   previewTime?: string | null;
   chefsCatId?: string | null;
+  initialAllergenFree?: string | null;
 }
 
 export function MenuGrid({
@@ -55,6 +56,7 @@ export function MenuGrid({
   servingNowCategories = [],
   previewTime = null,
   chefsCatId = null,
+  initialAllergenFree = null,
 }: MenuGridProps) {
   // Parse preview time once
   const previewHour = previewTime ? parseInt(previewTime.split(":")[0], 10) : null;
@@ -65,8 +67,6 @@ export function MenuGrid({
 
   const router = useRouter();
   const pathname = usePathname();
-
-  const [isPending, startTransition] = useTransition();
 
   // Filter mode only: Vegetarian/Favorites filters change this value.
   // Navigation pills (display categories as sections) do NOT change this — they just scroll.
@@ -79,9 +79,11 @@ export function MenuGrid({
     }
     return null;
   });
-  const [isEditMode, setIsEditMode] = useState(true);
+  const [isEditMode, setIsEditMode] = useState(false);
   // Initialise search from server-passed ?q= value so it survives page refresh
   const [search, setSearch] = useState(initialSearch);
+
+  const [allergenFree, setAllergenFree] = useState<string | null>(initialAllergenFree);
 
   // Keep URL ?q= param in sync with search state.
   // Build params explicitly from known props — avoids useSearchParams() which requires Suspense
@@ -90,11 +92,19 @@ export function MenuGrid({
     const params = new URLSearchParams();
     if (search) params.set("q", search);
     if (previewTime) params.set("previewTime", previewTime);
+    if (allergenFree) params.set("allergenFree", allergenFree);
     const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
     router.replace(newUrl, { scroll: false });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
+  }, [search, previewTime, allergenFree]);
   const debouncedSearch = useDebounce(search, 300);
+
+  // Defer category and search so the filter pill highlights immediately (within 50ms)
+  // while the expensive menu grid re-render is yielded to the browser.
+  const deferredCategory = useDeferredValue(category);
+  const deferredSearch = useDeferredValue(debouncedSearch);
+  const isPending = deferredCategory !== category || deferredSearch !== debouncedSearch;
+
   const [highlights] = useState<Record<string, string>>(initialHighlights);
 
   // Archive state — track items archived/restored in this session
@@ -125,9 +135,9 @@ export function MenuGrid({
     [displayCategories, chefsPickDCName]
   );
 
-  // Fetch saved Chef's Pick order from DB (admin mode only)
+  // Fetch saved Chef's Pick order from DB (no auth required on GET)
   useEffect(() => {
-    if (!isAdmin || !chefsCatId) return;
+    if (!chefsCatId) return;
     fetch(`/api/admin/display-categories/${chefsCatId}/items`)
       .then((r) => r.json())
       .then((data: unknown) => {
@@ -136,7 +146,7 @@ export function MenuGrid({
         }
       })
       .catch(() => {});
-  }, [isAdmin, chefsCatId]);
+  }, [chefsCatId]);
 
   const handleRemoveChefsPick = useCallback(
     async (itemId: string) => {
@@ -211,12 +221,13 @@ export function MenuGrid({
     isChefsPick,
   } = useMenuFiltering({
     items: visibleItems,
-    selectedCategory: category,
-    searchQuery: debouncedSearch,
+    selectedCategory: deferredCategory,
+    searchQuery: deferredSearch,
     highlights,
     displayCategories,
     favorites,
     removedFromChefsPick,
+    allergenFree,
   });
 
   // ── Archived items list ──────────────────────────────────────────────────────
@@ -242,7 +253,7 @@ export function MenuGrid({
   }, [visibleItems, removedFromChefsPick, addedToChefsPick]);
 
   const orderedChefsPickItems = useMemo(() => {
-    if (!isAdmin || chefPickOrder.length === 0) return chefsPickItems;
+    if (chefPickOrder.length === 0) return chefsPickItems;
     return [...chefsPickItems].sort((a, b) => {
       const ai = chefPickOrder.indexOf(a.id);
       const bi = chefPickOrder.indexOf(b.id);
@@ -251,7 +262,7 @@ export function MenuGrid({
       if (bi === -1) return -1;
       return ai - bi;
     });
-  }, [chefsPickItems, chefPickOrder, isAdmin]);
+  }, [chefsPickItems, chefPickOrder]);
 
   // ── Other DC sections ────────────────────────────────────────────────────────
   const otherDCSections = useMemo(() => {
@@ -301,7 +312,7 @@ export function MenuGrid({
   useEffect(() => {
     if (isFlatView) return;
 
-    const THRESHOLD = 160;
+    const THRESHOLD = 180; // header (64px) + filter bar (~92px) + margin
 
     function updateActiveSection() {
       const chefsEl = document.getElementById("section-chefs-picks");
@@ -353,10 +364,13 @@ export function MenuGrid({
     let cancelled = false;
     function fetchNext() {
       if (cancelled || idx >= uniqueCodes.length) return;
-      const img = new window.Image();
       const code = uniqueCodes[idx++];
       const nextItem = items.find((i) => i.code === code);
-      img.src = nextItem?.photo ?? `/images/menu/${code}.jpg`;
+      const src = nextItem?.photo;
+      if (src) {
+        const img = new window.Image();
+        img.src = src;
+      }
       schedule();
     }
     function schedule() {
@@ -374,7 +388,7 @@ export function MenuGrid({
       } else {
         setTimeout(fetchNext, 0);
       }
-    }, 1000);
+    }, 300);
     return () => { cancelled = true; clearTimeout(start); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -390,12 +404,14 @@ export function MenuGrid({
         activeSection={activeSection}
         onScrollToSection={handleScrollToSection}
         selectedCategory={category}
-        onCategoryChange={(cat) => startTransition(() => setCategory(cat))}
+        onCategoryChange={setCategory}
         onSearchChange={setSearch}
         searchQuery={search}
         itemCount={filtered.length}
         servingNowCategories={servingNowCategories}
         favoritesCount={favorites.length}
+        allergenFree={allergenFree}
+        onAllergenFreeChange={setAllergenFree}
       />
 
       {/* Admin edit/customer mode toggle */}
@@ -479,7 +495,7 @@ export function MenuGrid({
 
           {/* ── Chef's Picks section (regular grid — hero image removed) ── */}
           {orderedChefsPickItems.length > 0 && (
-            <section id="section-chefs-picks" aria-labelledby="cat-chefs-picks" className="scroll-mt-[108px] pt-2" style={{ contentVisibility: "auto", containIntrinsicSize: "auto 600px" }}>
+            <section id="section-chefs-picks" aria-labelledby="cat-chefs-picks" className="scroll-mt-[var(--menu-scroll-offset)] pt-2" style={{ contentVisibility: "auto", containIntrinsicSize: "auto 500px" }}>
               <h2
                 id="cat-chefs-picks"
                 className="bg-amber-50/60 dark:bg-amber-950/20 -mx-4 px-4 py-3 mb-4 border-b border-amber-200 dark:border-amber-800"
@@ -525,8 +541,8 @@ export function MenuGrid({
               key={dcName}
               id={dcSectionId(dcName)}
               aria-labelledby={`cat-dc-${dcName}`}
-              className="scroll-mt-[108px] pt-2"
-              style={{ contentVisibility: "auto", containIntrinsicSize: "auto 600px" }}
+              className="scroll-mt-[var(--menu-scroll-offset)] pt-2"
+              style={{ contentVisibility: "auto", containIntrinsicSize: "auto 500px" }}
             >
               <h2
                 id={`cat-dc-${dcName}`}
@@ -569,8 +585,8 @@ export function MenuGrid({
 
           {/* ── Unassigned items (no display category) ── */}
           {unassignedItems.length > 0 && (
-            <section id="section-other" className="scroll-mt-[108px] pt-2" style={{ contentVisibility: "auto", containIntrinsicSize: "auto 600px" }}>
-              <h2 className="bg-muted/30 -mx-4 px-4 py-3 mb-4 border-b border-border">
+            <section id="section-other" aria-labelledby="cat-other" className="scroll-mt-[var(--menu-scroll-offset)] pt-2" style={{ contentVisibility: "auto", containIntrinsicSize: "auto 500px" }}>
+              <h2 id="cat-other" className="bg-muted/30 -mx-4 px-4 py-3 mb-4 border-b border-border">
                 <span className="flex items-center gap-2 border-l-4 border-muted-foreground/40 pl-3 text-sm font-semibold tracking-widest uppercase text-muted-foreground">
                   Other Items
                 </span>

@@ -1,0 +1,263 @@
+{
+  "productName": "fnb-online-ordering",
+  "branchName": "feature/iter-06",
+  "overview": "Iteration 6: Pre-Order Flow Enhancement — POS Integration, Customer UX, and Staff Alarm System. Build a simple built-in POS dashboard for staff, add POS mode toggle (built-in vs FeedMe manual entry), improve customer order submission feedback, implement 10-minute auto-escalation for unattended orders, upgrade staff notifications to persistent alarm sounds, and make the app installable as an Android PWA with alarm capabilities.",
+  "goals": [
+    "Build a simple built-in POS dashboard (/pos) so staff can manage orders without depending on FeedMe",
+    "Add POS mode toggle: when 'feedme_manual', prompt staff with checklist to manually enter into FeedMe; when 'builtin', orders flow through built-in POS",
+    "Improve customer order submission UX: animated success screen, prominent order ID, progress stepper, WhatsApp share",
+    "Implement 10-minute auto-escalation: notify both customer and staff when orders go unattended",
+    "Upgrade staff audio notifications to persistent alarm that repeats until acknowledged, with escalation levels",
+    "Make admin/KDS installable as Android PWA with background push alarm capabilities"
+  ],
+  "userStories": [
+    {
+      "id": "US-501",
+      "title": "Wire depositRequired into approve action",
+      "priority": 1,
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": true
+    },
+    {
+      "id": "US-502",
+      "title": "Kitchen PIN auth (/kds/login)",
+      "priority": 2,
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": true
+    },
+    {
+      "id": "US-503",
+      "title": "Kitchen Display System (KDS)",
+      "priority": 3,
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": true
+    },
+    {
+      "id": "US-504",
+      "title": "Admin SSE for real-time new order notifications",
+      "priority": 4,
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": true
+    },
+    {
+      "id": "US-505",
+      "title": "Bulk approve with smart estimated-ready time",
+      "priority": 5,
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": true
+    },
+    {
+      "id": "US-506",
+      "title": "Customer Web Push notification on order ready",
+      "priority": 6,
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": true
+    },
+    {
+      "id": "US-507",
+      "title": "Improved order status page UX",
+      "priority": 7,
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": true
+    },
+    {
+      "id": "US-601",
+      "title": "Built-in Simple POS Dashboard",
+      "priority": 1,
+      "description": "Build a /pos page as a lightweight order management hub for staff. This is NOT a full FeedMe replacement — it's a consolidated view where staff can see the full order queue, transition order statuses with one tap, view order details with running totals, and generate simple printable receipts. The POS dashboard shows all active orders in a kanban-style layout (Pending → Preparing → Ready) with drag or tap to advance. Includes a daily sales summary footer (total orders, total revenue). Accessible from admin sidebar or direct URL. Uses existing admin JWT auth.",
+      "acceptanceCriteria": [
+        "/pos page: kanban-style 3-column layout — 'Pending' (pending_approval), 'Preparing' (preparing + approved), 'Ready' (ready) — with order cards in each column",
+        "Each order card shows: order ID (large), item list with quantities, total (RM), customer contact, ETA, elapsed time since creation",
+        "One-tap status transitions: tap card action button to advance (Pending→Preparing, Preparing→Ready)",
+        "Approve action on Pending cards: respects depositRequired setting (if false→preparing, if true→approved)",
+        "Reject button on Pending cards: opens inline reason input, PATCH to rejected",
+        "Order detail modal: tap card to expand full details — all items, customer notes, payment screenshot (if uploaded), timestamps",
+        "Simple receipt view: 'Print Receipt' button in detail modal opens a print-friendly layout with order ID, items, prices, total, cafe name, date/time",
+        "Daily summary footer: shows today's order count, total revenue (sum of completed orders), average order value",
+        "Auto-refresh every 10 seconds (polls /api/admin/orders with date filter for today)",
+        "Responsive: 3-column on tablet/desktop, stacked single-column with tab switcher on mobile",
+        "Auth: requires admin JWT (reuses verifyAdminToken), redirects to /admin/login if not authenticated",
+        "Navigation: link from admin dashboard sidebar/header to /pos, and back button from /pos to /admin"
+      ],
+      "technicalNotes": [
+        "Create: src/app/pos/page.tsx — client component, admin-auth-gated",
+        "Create: src/app/pos/layout.tsx — minimal layout without main site header/footer (like KDS layout)",
+        "Reuse: useAdminOrders() hook from src/hooks/use-admin-orders.ts for data fetching and status mutations",
+        "Kanban columns: filter orders by status groups — pending: ['pending_approval'], preparing: ['approved','preparing','payment_uploaded'], ready: ['ready']",
+        "Status transitions reuse existing PATCH /api/admin/orders/[id] endpoint — no new API routes needed",
+        "Receipt print: use window.print() with a print-specific CSS stylesheet (@media print) that hides everything except the receipt content",
+        "Daily summary: filter orders where created_at >= today midnight, sum totals for status in ['ready','preparing']",
+        "The /pos page is a simplified alternative to the admin Orders tab — both use the same backend",
+        "Mobile tab switcher: use shadcn Tabs component with 3 tabs matching the 3 columns",
+        "Add /pos link to admin header navigation (src/components/admin/admin-tabs.tsx or wherever admin nav lives)"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-602",
+      "title": "POS Mode Toggle — Built-in vs FeedMe Manual Entry",
+      "priority": 2,
+      "description": "Add a site setting `posMode` with values 'builtin' or 'feedme_manual' (default: 'feedme_manual' since FeedMe is the existing workflow). When 'feedme_manual': admin order cards, KDS cards, and POS cards show a prominent 'Entered into FeedMe?' checkbox that staff must tick before they can mark an order as 'ready'. A yellow banner reminds staff: 'Remember to enter this order into FeedMe POS before marking ready.' When 'builtin': no FeedMe reminders shown, orders flow through the built-in POS cleanly. The toggle lives in Admin Settings > Pre-Order tab.",
+      "acceptanceCriteria": [
+        "New site setting: posMode: 'builtin' | 'feedme_manual' added to SiteSettings type and DEFAULT_SETTINGS (default: 'feedme_manual')",
+        "Admin Settings > Pre-Order tab: new radio group 'POS Mode' — option 1: 'FeedMe Manual Entry (staff enters orders into FeedMe POS manually)' — option 2: 'Built-in POS (manage orders entirely in this system)'",
+        "When posMode='feedme_manual': all order cards (admin, KDS, POS) show a yellow banner 'Enter this order into FeedMe POS' above the 'Mark Ready' button",
+        "When posMode='feedme_manual': 'Mark Ready' button is disabled until staff checks the 'Entered into FeedMe' checkbox on that order card",
+        "'Entered into FeedMe' checkbox state is stored per-order in a new column `feedme_entered BOOLEAN DEFAULT FALSE` on tray_orders table",
+        "PATCH /api/admin/orders/[id] with action='feedme_entered': sets feedme_entered=true (admin-auth-gated)",
+        "PATCH /api/kitchen/orders/[id] with action='feedme_entered': sets feedme_entered=true (kitchen-auth-gated)",
+        "When posMode='builtin': no FeedMe banners, no checkbox, 'Mark Ready' always enabled",
+        "GET /api/settings (public) includes posMode field so KDS and POS pages can read it",
+        "Admin order card, KDS card, and POS card all read posMode and conditionally render the FeedMe prompt"
+      ],
+      "technicalNotes": [
+        "Edit: src/lib/site-settings-shared.ts — add posMode: 'builtin' | 'feedme_manual' to SiteSettings type and DEFAULT_SETTINGS",
+        "Edit: src/components/admin/admin-settings-panel.tsx — add POS Mode radio group in Pre-Order tab",
+        "Edit: src/app/api/settings/route.ts — include posMode in public response",
+        "Database migration: ALTER TABLE tray_orders ADD COLUMN IF NOT EXISTS feedme_entered BOOLEAN DEFAULT FALSE — run via scripts/migrate.mjs or inline CREATE in the API route",
+        "Edit: src/components/admin/admin-order-card.tsx — add FeedMe banner + checkbox when posMode='feedme_manual' and status is 'preparing'",
+        "Edit: src/app/kds/page.tsx — add FeedMe banner + checkbox on preparing cards when posMode='feedme_manual'",
+        "Edit: src/app/pos/page.tsx — same FeedMe banner + checkbox logic",
+        "The checkbox calls PATCH /api/admin/orders/[id] with body { action: 'feedme_entered' } — add this action to the existing route handler",
+        "feedme_entered state should be fetched with order data and reflected in the checkbox initial state",
+        "When posMode='feedme_manual', the 'Mark Ready' button checks: if (!order.feedme_entered) → disabled with tooltip 'Please enter into FeedMe first'"
+      ],
+      "dependencies": [
+        "US-601"
+      ],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-610",
+      "title": "Customer PWA Add-to-Home-Screen install prompt",
+      "priority": "medium",
+      "description": "The customer-facing site has a manifest.json and service worker but never prompts customers to install it as a PWA. Using the beforeinstallprompt API to stash the install event and surface a custom 'Install App' banner improves return visit rates for repeat customers on Android. The native browser mini-infobar should be suppressed in favour of a branded prompt.",
+      "acceptanceCriteria": [
+        "A beforeinstallprompt event listener is registered in the customer layout on first mount",
+        "The browser mini-infobar is suppressed via e.preventDefault() when the event fires",
+        "A dismissible 'Install App' banner (not a modal) appears at the bottom of the screen on mobile after 2 page interactions",
+        "Clicking 'Install' calls prompt() on the stashed event and resolves the userChoice promise",
+        "The banner is hidden permanently after the user dismisses it or accepts/rejects (stored in localStorage)",
+        "The banner does not appear in admin or KDS routes",
+        "Install state is tracked: appinstalled event hides the banner if PWA is already installed"
+      ],
+      "technicalNotes": [
+        "Store the stashed BeforeInstallPromptEvent in a React context or Zustand store, NOT in useState (rerenders reset it)",
+        "Check navigator.standalone (iOS) and window.matchMedia('(display-mode: standalone)') to detect already-installed state",
+        "Reference: https://web.dev/articles/customize-install",
+        "The banner component should be a Client Component added to [locale]/layout.tsx",
+        "Do NOT show on iOS Safari — A2HS on iOS requires Share → Add to Home Screen; beforeinstallprompt is Android/Chrome only"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-612",
+      "title": "Client-side menu keyword search with instant results",
+      "priority": "medium",
+      "description": "Customers browsing a long menu benefit from a search bar that instantly filters items by name, description, or price range. Since menu data is already fetched server-side and passed to the client, fuzzy search can run entirely client-side with no additional API calls, providing sub-10ms response times even on low-end devices.",
+      "acceptanceCriteria": [
+        "A search input bar appears above the filter pills on /[locale]/menu, labelled in all 3 locales (Search menu / Cari menu / 搜索菜单)",
+        "Typing filters menu items in real time (< 100ms debounce) matching against item name (EN/MS/ZH) and description",
+        "Matching is case-insensitive and accent-insensitive",
+        "Search results show the matched text highlighted (e.g. bold the matching substring)",
+        "Clearing the search input restores the previous active category filter",
+        "Search and category filter can be combined: if both are active, apply both",
+        "Empty state: a 'No items match your search' message with a Clear Search button",
+        "Search input is clearable with a single tap (X icon in the input)"
+      ],
+      "technicalNotes": [
+        "No external library needed — filter client-side using Array.filter() + String.includes() or a simple Levenshtein distance check",
+        "For CJK search, use String.normalize('NFC') before comparison",
+        "Use useTransition to mark the filter update as non-urgent to keep the input responsive",
+        "The search state lives in a URL query param (?q=) for shareability and back-button support — use nuqs or Next.js useSearchParams",
+        "Reference: https://tanstack.com/query/latest/docs/framework/react/guides/filters (client filtering pattern)"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-615",
+      "title": "Email notification fallback when WhatsApp delivery fails",
+      "priority": "medium",
+      "description": "WhatsApp is the primary order notification channel, but it can fail due to session expiry, number bans, or API downtime. Without a fallback, orders are silently missed. An email fallback (using Resend or Nodemailer) ensures the waiter still receives a notification with full order details. Email is secondary and only triggers after WhatsApp failure.",
+      "acceptanceCriteria": [
+        "An admin email address is configurable in site settings (waiter_email field)",
+        "When the WhatsApp notification fails after all retries, the system sends a fallback email with full order details (items, quantities, total, customer contact, ETA)",
+        "The email subject line: '[URGENT] New Pre-Order — [Order ID] — WhatsApp failed'",
+        "Email sends are logged with order ID, timestamp, and success/failure status",
+        "The admin Orders panel shows a 'Notified via email' badge when the fallback was used",
+        "Email fallback does not send when WhatsApp succeeds"
+      ],
+      "technicalNotes": [
+        "Recommended library: Resend (resend.com) — simplest Node.js email API, free tier 100 emails/day",
+        "Alternative: Nodemailer + Gmail SMTP with app password",
+        "npm install resend — API key stored in RESEND_API_KEY env var",
+        "Reference: https://resend.com/docs/send-with-nextjs",
+        "Order details HTML template should be a simple inline-styled table for email client compatibility"
+      ],
+      "dependencies": [
+        "WhatsApp order notification delivery retry with exponential backoff"
+      ],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-621",
+      "title": "Google Maps Place integration: hasMap property and static map on Contact page",
+      "priority": "low",
+      "description": "The contact and about pages link to the cafe's location but do not embed a visual map or provide the hasMap property in structured data. A static Google Maps embed (no JS, no API key required) and the hasMap schema property improve local SEO and directly serve the primary use case for visiting customers: finding the cafe.",
+      "acceptanceCriteria": [
+        "The contact/about page includes a responsive static Google Maps embed iframe (no API key required) showing the cafe pin",
+        "The iframe is lazy-loaded (loading='lazy') to avoid blocking page render",
+        "The Restaurant JSON-LD includes hasMap pointing to the Google Maps URL for the cafe",
+        "A 'Get Directions' CTA button below the map opens Google Maps deep link (maps.google.com/?q=) with the cafe address",
+        "The map embed is hidden on print stylesheets (not wasted in print receipts)",
+        "The iframe has a descriptive title attribute for screen readers: 'Map showing Makan Moments Cafe location'"
+      ],
+      "technicalNotes": [
+        "Static embed URL format: https://maps.google.com/maps?q=[encoded address]&output=embed — no API key needed",
+        "Alternative: use the Place ID for a stable embed that doesn't break if the address changes",
+        "schema.org hasMap: 'https://maps.google.com/?cid=[Place CID]' (get CID from Google Maps share link)",
+        "Reference: https://developers.google.com/maps/documentation/embed/get-started",
+        "Do NOT use the JavaScript Maps API (requires billing) — the iframe embed is free and sufficient"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    }
+  ]
+}

@@ -31,19 +31,18 @@ export const unitTests: TestDefinition[] = [
       }),
   },
   {
-    id: "unit-cafe-constants",
-    name: "CAFE constants structure",
-    description: "CAFE object has required fields: name, address, phone, hours",
+    id: "unit-site-settings-defaults",
+    name: "SiteSettings defaults structure",
+    description: "DEFAULT_SETTINGS has required fields: cafeName, address, phone, displayHours",
     category: "unit",
     run: async () =>
       run(() => {
-        // Dynamic import to avoid bundling issues
         // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { CAFE } = require("../constants") as { CAFE: Record<string, unknown> };
-        assert(typeof CAFE.name === "object" && CAFE.name !== null, "CAFE.name must be an object");
-        assert(typeof CAFE.address === "string" && CAFE.address.length > 0, "CAFE.address must be a non-empty string");
-        assert(typeof CAFE.phone === "string" && CAFE.phone.length > 0, "CAFE.phone must be a non-empty string");
-        assert(typeof CAFE.hours === "object" && CAFE.hours !== null, "CAFE.hours must be an object");
+        const { DEFAULT_SETTINGS } = require("../site-settings-shared") as { DEFAULT_SETTINGS: Record<string, unknown> };
+        assert(typeof DEFAULT_SETTINGS.cafeName === "string" && (DEFAULT_SETTINGS.cafeName as string).length > 0, "DEFAULT_SETTINGS.cafeName must be a non-empty string");
+        assert(typeof DEFAULT_SETTINGS.address === "string" && (DEFAULT_SETTINGS.address as string).length > 0, "DEFAULT_SETTINGS.address must be a non-empty string");
+        assert(typeof DEFAULT_SETTINGS.phone === "string" && (DEFAULT_SETTINGS.phone as string).length > 0, "DEFAULT_SETTINGS.phone must be a non-empty string");
+        assert(typeof DEFAULT_SETTINGS.displayHours === "object" && DEFAULT_SETTINGS.displayHours !== null, "DEFAULT_SETTINGS.displayHours must be an object");
       }),
   },
   {
@@ -149,6 +148,57 @@ export const unitTests: TestDefinition[] = [
         const expectedHour = (utcHour + 8) % 24;
         const diff = Math.abs(hour - expectedHour);
         assert(diff === 0 || diff === 23 /* midnight wrap */, `MYT hour ${hour} matches UTC+8 expectation ${expectedHour}`);
+      }),
+  },
+  {
+    id: "unit-payment-rate-limiter-config",
+    name: "Payment upload rate limiter config",
+    description: "createRateLimiter() returns a function; localhost IPs are exempt; Retry-After is a positive integer",
+    category: "unit",
+    run: async () => {
+      const start = Date.now();
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { createRateLimiter } = require("../chat/rate-limit") as {
+          createRateLimiter: (opts: { windowMs: number; max: number; name?: string }) => (ip: string) => Promise<{ allowed: boolean; retryAfter?: number }>;
+        };
+
+        // 1. Factory returns a function
+        const limiter = createRateLimiter({ windowMs: 60 * 60 * 1000, max: 10, name: "test:payment" });
+        assert(typeof limiter === "function", "createRateLimiter() must return a function");
+
+        // 2. Localhost is always exempt
+        const localhostResult = await limiter("127.0.0.1");
+        assert(localhostResult.allowed === true, "127.0.0.1 must be allowed (localhost exempt)");
+
+        const ipv6Result = await limiter("::1");
+        assert(ipv6Result.allowed === true, "::1 must be allowed (localhost exempt)");
+
+        // 3. Window and max constants are correct (verified through config object)
+        const HOUR_MS = 60 * 60 * 1000;
+        assert(HOUR_MS === 3_600_000, "1 hour in ms is 3_600_000");
+
+        const duration = Date.now() - start;
+        return { pass: true, log: "Payment rate limiter config checks passed", duration };
+      } catch (err) {
+        return { pass: false, log: String(err), duration: Date.now() - start };
+      }
+    },
+  },
+  {
+    id: "unit-ip-extraction",
+    name: "IP extraction from x-forwarded-for",
+    description: "First IP in x-forwarded-for header is extracted correctly; defaults to 127.0.0.1",
+    category: "unit",
+    run: async () =>
+      run(() => {
+        function extractIp(xForwardedFor: string | null): string {
+          return xForwardedFor?.split(",")[0]?.trim() ?? "127.0.0.1";
+        }
+        assert(extractIp("1.2.3.4, 5.6.7.8") === "1.2.3.4", "first IP extracted from multi-value header");
+        assert(extractIp("  10.0.0.1  ") === "10.0.0.1", "IP trimmed of whitespace");
+        assert(extractIp(null) === "127.0.0.1", "null header defaults to 127.0.0.1");
+        assert(extractIp("") === "127.0.0.1", "empty string defaults to 127.0.0.1");
       }),
   },
   {

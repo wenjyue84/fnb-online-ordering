@@ -6,6 +6,8 @@ import type { EditableItem } from "@/hooks/useMenuTableEdit";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const DIETARY_OPTIONS = ["Spicy", "Vegetarian", "Vegan", "Gluten Free"];
+const ALLERGEN_OPTIONS = ["nuts", "shellfish", "dairy", "eggs", "gluten", "soy"];
+const ALLERGEN_EMOJI: Record<string, string> = { nuts: "🥜", shellfish: "🦐", dairy: "🥛", eggs: "🥚", gluten: "🌾", soy: "🫘" };
 
 interface AdminMenuTableRowProps {
   item: EditableItem;
@@ -19,7 +21,9 @@ interface AdminMenuTableRowProps {
   onDelete: (id: string) => void;
   onToggleDay: (item: EditableItem, day: string) => void;
   onToggleDietary: (item: EditableItem, d: string) => void;
+  onToggleAllergen: (item: EditableItem, allergen: string) => void;
   onSuggestTranslation: (item: EditableItem, lang: "ms" | "zh") => void;
+  onToggleAvailable: (id: string) => void;
   variant: "desktop" | "mobile";
 }
 
@@ -35,6 +39,8 @@ export function AdminMenuTableRow({
   onDelete,
   onToggleDay,
   onToggleDietary,
+  onToggleAllergen,
+  onToggleAvailable,
   onSuggestTranslation,
   variant,
 }: AdminMenuTableRowProps) {
@@ -82,23 +88,30 @@ export function AdminMenuTableRow({
   );
 
   const availableToggle = (size: "sm" | "lg") => (
-    <button
-      onClick={() => onUpdate(item.id, { available: !item.available })}
-      className={cn(
-        "rounded-full transition-colors",
-        size === "sm" ? "h-6 w-10" : "h-7 w-12",
-        item.available ? "bg-green-500" : "bg-gray-300"
-      )}
-      aria-label={item.available ? "Available" : "Unavailable"}
-    >
-      <span
+    <div className="flex flex-col items-center gap-0.5">
+      <button
+        onClick={() => item._new ? onUpdate(item.id, { available: !item.available }) : onToggleAvailable(item.id)}
         className={cn(
-          "block rounded-full bg-white shadow transition-transform",
-          size === "sm" ? "h-5 w-5 translate-x-0.5" : "h-5 w-5 translate-x-1",
-          item.available && (size === "sm" ? "translate-x-4" : "translate-x-6")
+          "rounded-full transition-colors",
+          size === "sm" ? "h-6 w-10" : "h-7 w-12",
+          item.available ? "bg-green-500" : "bg-gray-300"
         )}
-      />
-    </button>
+        aria-label={item.available ? "Mark as sold out" : "Mark as available"}
+      >
+        <span
+          className={cn(
+            "block rounded-full bg-white shadow transition-transform",
+            size === "sm" ? "h-5 w-5 translate-x-0.5" : "h-5 w-5 translate-x-1",
+            item.available && (size === "sm" ? "translate-x-4" : "translate-x-6")
+          )}
+        />
+      </button>
+      {!item.available && (
+        <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700 whitespace-nowrap">
+          Sold Out
+        </span>
+      )}
+    </div>
   );
 
   const actionsButtons = (fullWidth: boolean) => (
@@ -311,10 +324,12 @@ export function AdminMenuTableRow({
         {availableToggle("sm")}
         {item.disabledByRule && (
           <span
-            className="mt-0.5 block rounded-full bg-red-100 px-1.5 py-0.5 text-center text-[10px] font-medium text-red-700 whitespace-nowrap"
-            title={item.appliedRules?.filter((r) => r.ruleType === "disable").map((r) => r.ruleName).join(", ")}
+            className="group relative mt-0.5 inline-block cursor-default rounded-full bg-red-100 px-1.5 py-0.5 text-center text-[10px] font-medium text-red-700 whitespace-nowrap"
           >
-            Disabled: {item.appliedRules?.find((r) => r.ruleType === "disable")?.ruleName ?? "rule"}
+            Rules
+            <span className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100">
+              {item.appliedRules?.filter((r) => r.ruleType === "disable").map((r) => r.ruleName).join(", ") ?? "rule"}
+            </span>
           </span>
         )}
       </td>
@@ -347,6 +362,28 @@ export function AdminMenuTableRow({
                   onChange={() => onToggleDietary(item, d)}
                 />
                 {d}
+              </label>
+            ))}
+          </div>
+        </div>
+      </td>
+
+      <td className="px-3 py-2">
+        <div className="relative group">
+          <button className="rounded border border-gray-300 px-2 py-1 text-xs">
+            {(item.allergens ?? []).length > 0
+              ? (item.allergens ?? []).map((a) => `${ALLERGEN_EMOJI[a] ?? ""} ${a}`).join(", ")
+              : "None"}
+          </button>
+          <div className="absolute left-0 top-8 z-10 hidden w-44 rounded-lg border bg-white p-2 shadow-lg group-focus-within:block group-hover:block">
+            {ALLERGEN_OPTIONS.map((a) => (
+              <label key={a} className="flex items-center gap-1.5 py-0.5 text-xs cursor-pointer hover:bg-gray-50 rounded px-1">
+                <input
+                  type="checkbox"
+                  checked={(item.allergens ?? []).includes(a)}
+                  onChange={() => onToggleAllergen(item, a)}
+                />
+                <span>{ALLERGEN_EMOJI[a]}</span> {a}
               </label>
             ))}
           </div>

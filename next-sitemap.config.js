@@ -1,11 +1,12 @@
 /** @type {import('next-sitemap').IConfig} */
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://makanmoments.cafe";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3031";
 
 module.exports = {
   siteUrl,
   generateRobotsTxt: true,
   generateIndexSitemap: false,
   alternateRefs: [
+    { href: `${siteUrl}/en`, hreflang: "x-default" },
     { href: `${siteUrl}/en`, hreflang: "en" },
     { href: `${siteUrl}/ms`, hreflang: "ms" },
     { href: `${siteUrl}/zh`, hreflang: "zh" },

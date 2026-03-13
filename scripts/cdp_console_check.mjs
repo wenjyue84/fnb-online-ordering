@@ -104,7 +104,7 @@ await cdp('Network.setCookie', {
 });
 
 // Navigate to hub page
-await cdp('Page.navigate', { url: 'http://localhost:3030/admin/ai-waiter-hub' });
+await cdp('Page.navigate', { url: 'http://localhost:3031/admin/ai-waiter-hub' });
 console.log('Navigating...');
 
 // Wait for page load
@@ -154,7 +154,7 @@ networkFailed.forEach(e => {
 });
 
 console.log('\n=== KEY NETWORK REQUESTS ===');
-networkReqs.filter(e => e.params.request.url.includes('localhost:3030')).forEach(e => {
+networkReqs.filter(e => e.params.request.url.includes('localhost:3031')).forEach(e => {
   console.log(`  ${e.params.request.method} ${e.params.request.url}`);
 });
 

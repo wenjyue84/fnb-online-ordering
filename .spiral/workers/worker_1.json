@@ -1,0 +1,384 @@
+{
+  "productName": "fnb-online-ordering",
+  "branchName": "feature/iter-06",
+  "overview": "Iteration 6: Pre-Order Flow Enhancement — POS Integration, Customer UX, and Staff Alarm System. Build a simple built-in POS dashboard for staff, add POS mode toggle (built-in vs FeedMe manual entry), improve customer order submission feedback, implement 10-minute auto-escalation for unattended orders, upgrade staff notifications to persistent alarm sounds, and make the app installable as an Android PWA with alarm capabilities.",
+  "goals": [
+    "Build a simple built-in POS dashboard (/pos) so staff can manage orders without depending on FeedMe",
+    "Add POS mode toggle: when 'feedme_manual', prompt staff with checklist to manually enter into FeedMe; when 'builtin', orders flow through built-in POS",
+    "Improve customer order submission UX: animated success screen, prominent order ID, progress stepper, WhatsApp share",
+    "Implement 10-minute auto-escalation: notify both customer and staff when orders go unattended",
+    "Upgrade staff audio notifications to persistent alarm that repeats until acknowledged, with escalation levels",
+    "Make admin/KDS installable as Android PWA with background push alarm capabilities"
+  ],
+  "userStories": [
+    {
+      "id": "US-501",
+      "title": "Wire depositRequired into approve action",
+      "priority": 1,
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": true
+    },
+    {
+      "id": "US-502",
+      "title": "Kitchen PIN auth (/kds/login)",
+      "priority": 2,
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": true
+    },
+    {
+      "id": "US-503",
+      "title": "Kitchen Display System (KDS)",
+      "priority": 3,
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": true
+    },
+    {
+      "id": "US-504",
+      "title": "Admin SSE for real-time new order notifications",
+      "priority": 4,
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": true
+    },
+    {
+      "id": "US-505",
+      "title": "Bulk approve with smart estimated-ready time",
+      "priority": 5,
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": true
+    },
+    {
+      "id": "US-506",
+      "title": "Customer Web Push notification on order ready",
+      "priority": 6,
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": true
+    },
+    {
+      "id": "US-507",
+      "title": "Improved order status page UX",
+      "priority": 7,
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": true
+    },
+    {
+      "id": "US-607",
+      "title": "WhatsApp order notification delivery retry with exponential backoff",
+      "priority": "high",
+      "description": "WhatsApp API calls (Periskope or Baileys) can fail transiently due to rate limits, network timeouts, or session expiry. Currently, a failed send silently drops the notification, leaving the waiter unaware of a new order. A retry queue with exponential backoff ensures critical order notifications are delivered even under transient failures.",
+      "acceptanceCriteria": [
+        "The POST /api/orders route wraps the WhatsApp send call in a try/catch; on failure it stores the pending notification in a whatsapp_queue table or in-process retry array",
+        "Up to 3 retry attempts are made with delays of 10s, 30s, 90s (exponential backoff)",
+        "After 3 failed attempts, the order status gains a notification_failed flag and the admin dashboard shows a visual indicator (bell icon with warning)",
+        "A 'Resend Notification' button in the admin Orders panel triggers an immediate retry for notification-failed orders",
+        "Successful delivery clears the failed flag",
+        "All retry attempts and outcomes are logged to the server console with order ID and attempt number"
+      ],
+      "technicalNotes": [
+        "Simplest implementation: use setTimeout chains in the API route handler for 3 retries (works within Vercel function timeout if total < 30s)",
+        "For production: use a Vercel Cron Job or background job pattern — store failed notifications in a Neon table (whatsapp_queue) with next_attempt_at TIMESTAMPTZ",
+        "The cron route /api/cron/retry-notifications polls whatsapp_queue WHERE next_attempt_at <= NOW() AND attempt_count < 3",
+        "Reference: https://vercel.com/docs/cron-jobs",
+        "Add notification_status TEXT and notification_attempts INT columns to the orders table"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false,
+      "filesTouch": [
+        "messages/en.json",
+        "messages/ms.json",
+        "messages/zh.json",
+        "prd.json",
+        "progress.txt",
+        "retry-counts.json",
+        "src/app/[locale]/order/[id]/page.tsx",
+        "src/app/api/admin/orders/[id]/route.ts",
+        "src/app/api/orders/[id]/push-subscribe/route.ts"
+      ]
+    },
+    {
+      "id": "US-608",
+      "title": "Pre-order slot capacity limits to prevent kitchen overload",
+      "priority": "high",
+      "description": "Without slot capacity controls, a surge of pre-orders for the same arrival window can overwhelm kitchen staff. Industry best practice for F&B pre-ordering is to cap the number of concurrent orders per time window. The system should reject new orders gracefully when a slot is full and suggest the next available slot.",
+      "acceptanceCriteria": [
+        "Admin can configure a max_orders_per_slot value in site settings (default: 5 orders per 30-minute window)",
+        "POST /api/orders counts existing non-rejected orders with estimated_arrival within the same 30-minute window before accepting",
+        "If the slot is at capacity, the API returns 409 with a JSON body: { error: 'slot_full', nextAvailableSlot: ISO8601 }",
+        "The order submission modal displays a user-friendly message: 'This arrival time is fully booked. Next available: [time]' in all 3 locales",
+        "The customer can select the suggested next available slot with one tap",
+        "Slot capacity check is atomic (uses a Postgres transaction or SELECT ... FOR UPDATE to prevent race conditions)"
+      ],
+      "technicalNotes": [
+        "Query: SELECT COUNT(*) FROM orders WHERE estimated_arrival BETWEEN $slotStart AND $slotEnd AND status NOT IN ('rejected', 'expired')",
+        "Use a 30-minute window: slot boundaries at :00 and :30 of each hour",
+        "Add max_orders_per_slot to data/site-settings.json and expose via GET /api/admin/settings",
+        "The nextAvailableSlot calculation iterates 30-minute windows until finding one below capacity",
+        "Reference: https://stripe.com/docs/api (pattern for capacity enforcement in payment APIs)"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false,
+      "filesTouch": [
+        "messages/en.json",
+        "messages/ms.json",
+        "messages/zh.json",
+        "prd.json",
+        "progress.txt",
+        "retry-counts.json",
+        "src/app/[locale]/order/[id]/page.tsx",
+        "src/app/api/admin/orders/[id]/route.ts",
+        "src/app/api/orders/[id]/push-subscribe/route.ts"
+      ]
+    },
+    {
+      "id": "US-603",
+      "title": "Enhanced Customer Order Submission Success UX",
+      "priority": 3,
+      "description": "After a customer submits a pre-order, replace the current minimal confirmation with an animated success screen that makes the customer feel confident their order went through. Show a large animated checkmark, the order ID prominently, a visual progress stepper showing current stage, estimated timeline, and quick actions (WhatsApp share, copy order ID). The /order/[id] status page also gets a real-time progress stepper and clearer per-stage messaging.",
+      "acceptanceCriteria": [
+        "After successful POST /api/orders: show a full-screen success overlay with animated checkmark (CSS animation, no JS library)",
+        "Success screen shows: large order ID '#ABC123', 'Order Received!' heading, item summary (count + total), estimated timeline",
+        "Progress stepper on success screen: 4 steps — 'Order Received' (active) → 'Confirmed' → 'Preparing' → 'Ready' — with current step highlighted",
+        "'Share via WhatsApp' button: opens wa.me link with pre-filled text 'I just ordered from Makan Moments! Order #ABC123'",
+        "'Copy Order ID' button: copies to clipboard with 'Copied!' tooltip feedback",
+        "'Track My Order' button: navigates to /order/[id] status page",
+        "Success overlay auto-transitions to /order/[id] after 8 seconds (with countdown indicator)",
+        "/order/[id] page: add horizontal progress stepper at top showing all stages with current stage highlighted and completed stages checked",
+        "Progress stepper stages: Received → Confirmed → Preparing → Ready (maps to: pending_approval → approved/preparing → preparing → ready)",
+        "Each stage in stepper shows timestamp when that stage was reached (if available)",
+        "Below stepper: large status badge with icon and clear message per status (e.g. '🍳 Kitchen is preparing your food' for preparing)",
+        "All new user-facing strings translated in messages/en.json, messages/ms.json, messages/zh.json",
+        "Success overlay respects reduced-motion preference (skip animation, show static checkmark)"
+      ],
+      "technicalNotes": [
+        "Edit: src/lib/tray-context.tsx or wherever the order submission handler lives — after successful POST, set state to show success overlay",
+        "Create: src/components/order/order-success-overlay.tsx — full-screen overlay with animations",
+        "Create: src/components/order/order-progress-stepper.tsx — reusable horizontal stepper, accepts currentStatus prop",
+        "Checkmark animation: CSS @keyframes — circle draws in, then checkmark path draws in (stroke-dashoffset technique)",
+        "Auto-redirect: useEffect with setTimeout(8000) → router.push(`/${locale}/order/${orderId}`), show countdown circle",
+        "Edit: src/app/[locale]/order/[id]/page.tsx — add OrderProgressStepper component at top of page",
+        "WhatsApp share: `https://wa.me/?text=${encodeURIComponent('I just ordered from Makan Moments! Order #' + orderId)}`",
+        "Progress stepper CSS: flexbox row with circles connected by lines; completed = green fill, current = pulsing blue, future = gray",
+        "Status-to-step mapping: { pending_approval: 0, approved: 1, payment_uploaded: 1, preparing: 2, ready: 3, rejected: -1 }",
+        "i18n: add keys order_success_title, order_success_subtitle, share_whatsapp, copy_order_id, track_order, step_received, step_confirmed, step_preparing, step_ready to all 3 locale files",
+        "The success overlay should be a portal (createPortal) to ensure it renders above all other content"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false,
+      "filesTouch": [
+        "messages/en.json",
+        "messages/ms.json",
+        "messages/zh.json",
+        "prd.json",
+        "progress.txt",
+        "retry-counts.json",
+        "src/app/[locale]/order/[id]/page.tsx",
+        "src/app/api/admin/orders/[id]/route.ts",
+        "src/app/api/orders/[id]/push-subscribe/route.ts"
+      ]
+    },
+    {
+      "id": "US-611",
+      "title": "Service worker update lifecycle: prompt user to refresh on new deployment",
+      "priority": "medium",
+      "description": "When a new version of the app is deployed to Vercel, the existing service worker continues serving the stale cached version to users who have the PWA open. Without a skipWaiting and clients.claim flow plus a UI prompt, users may run outdated JavaScript for hours or days. This is especially risky after order-flow or admin changes.",
+      "acceptanceCriteria": [
+        "The new service worker calls skipWaiting() inside its install event when a SKIP_WAITING message is received",
+        "The service worker registration in the app detects the 'waiting' state (new SW available)",
+        "A non-intrusive toast/banner appears at the top of the page: 'Update available — tap to refresh'",
+        "Clicking the refresh button sends the SKIP_WAITING message to the waiting SW, then calls window.location.reload()",
+        "The update check is performed on every page focus event (visibilitychange) in addition to the initial registration",
+        "Admin and KDS routes show the update banner with higher priority (immediate, not dismissible without refreshing)"
+      ],
+      "technicalNotes": [
+        "Pattern: registration.waiting.postMessage({ type: 'SKIP_WAITING' }) in the client; self.addEventListener('message', e => { if (e.data.type === 'SKIP_WAITING') self.skipWaiting(); }) in sw.js",
+        "Use navigator.serviceWorker.addEventListener('controllerchange', ...) to detect when the new SW has taken control, then reload",
+        "Reference: https://developer.chrome.com/docs/workbox/handling-service-worker-updates/",
+        "Next.js Turbopack builds change the SW file hash on each deploy — the browser detects the changed sw.js and triggers the update flow automatically"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-613",
+      "title": "Tray state persistence via sessionStorage to survive page refresh",
+      "priority": "medium",
+      "description": "The tray (cart) currently lives in React context and is lost on page refresh. Customers who accidentally reload the page or navigate away and return lose all their selections. sessionStorage persistence restores the tray on mount and keeps it in sync on every change, without requiring a backend call or user account.",
+      "acceptanceCriteria": [
+        "On tray context mount, read any saved tray state from sessionStorage key 'mm_tray'",
+        "On every tray mutation (addItem, removeItem, clearTray), write the updated state to sessionStorage",
+        "Restoring from sessionStorage is synchronous on mount — no loading flash",
+        "clearTray() also removes the sessionStorage entry",
+        "If localStorage already stores a completed order (mm_order_history), the persisted tray for that session is cleared to avoid confusion",
+        "Tray does not persist across browser sessions (sessionStorage, not localStorage — by design)"
+      ],
+      "technicalNotes": [
+        "Pattern: useEffect(() => { const saved = sessionStorage.getItem('mm_tray'); if (saved) setItems(JSON.parse(saved)); }, [])",
+        "Write on every state change: useEffect(() => { sessionStorage.setItem('mm_tray', JSON.stringify(items)); }, [items])",
+        "Wrap JSON.parse in try/catch to handle corrupted storage gracefully",
+        "sessionStorage is per-tab and per-origin — multiple tabs have independent trays (correct behaviour)"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-616",
+      "title": "Payment screenshot client-side validation: size, format, and dimension check",
+      "priority": "medium",
+      "description": "The payment screenshot upload currently accepts any file type and size, which risks storing invalid files (e.g., a 20MB RAW photo, a non-image document) in the database or CDN. Client-side validation before upload improves UX with immediate feedback and reduces unnecessary uploads, while server-side validation enforces security limits.",
+      "acceptanceCriteria": [
+        "Client-side validation rejects files > 5MB with message: 'File too large. Max 5MB.'",
+        "Client-side validation rejects non-image MIME types (only image/jpeg, image/png, image/webp, image/heic accepted)",
+        "Client side shows a thumbnail preview of the selected image before upload",
+        "Server-side /api/orders/[id]/payment validates file size (< 5MB) and MIME type before processing",
+        "Server returns 413 with a JSON error body if the file is too large",
+        "HEIC files from iPhone are accepted (common for Malaysian iPhone users); the server or client converts to JPEG if needed"
+      ],
+      "technicalNotes": [
+        "Client-side: check file.size and file.type in the onChange handler before allowing the upload to proceed",
+        "HEIC detection: file.type may be 'image/heic' or 'image/heif' — check both",
+        "For HEIC conversion: use the heic2any npm package client-side (no server dependency needed)",
+        "Server-side: check Content-Length header and file.mimetype (if using formidable or similar)",
+        "Reference: https://developer.mozilla.org/en-US/docs/Web/API/File/size"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-617",
+      "title": "Admin order export to CSV for daily reporting",
+      "priority": "medium",
+      "description": "The admin panel has no data export capability. Owners need to reconcile pre-orders with FeedMe POS daily, which currently requires manually reading the screen. A CSV export of orders (by date range or status) enables offline reporting, WhatsApp forwarding of daily summaries, and import into Google Sheets for financial tracking.",
+      "acceptanceCriteria": [
+        "A 'Export CSV' button appears in the admin Orders tab, adjacent to the status filter",
+        "Clicking Export downloads a CSV file named orders-YYYY-MM-DD.csv with columns: Order ID, Status, Customer Contact, Items (JSON), Total (RM), ETA, Created At",
+        "The export respects the currently active status filter (e.g. exporting 'preparing' orders only exports those)",
+        "A date range filter (From / To) allows exporting a specific day or week",
+        "The CSV is generated client-side from the already-fetched orders data — no separate API call for basic export",
+        "Numbers are formatted consistently for spreadsheet import (decimal points, not commas, for RM amounts)"
+      ],
+      "technicalNotes": [
+        "Use the papaparse library (npm i papaparse) for CSV generation or hand-roll a simple join with commas",
+        "Trigger download: const blob = new Blob([csv], { type: 'text/csv' }); const url = URL.createObjectURL(blob); a.click()",
+        "Encode items as a JSON string column wrapped in double-quotes with escaped internal quotes",
+        "Reference: https://csv.spec.whatwg.org/",
+        "For large exports (> 1000 orders), add a /api/admin/orders/export route that streams the CSV from Postgres with a COPY TO STDOUT command"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false,
+      "filesTouch": [
+        "messages/en.json",
+        "messages/ms.json",
+        "messages/zh.json",
+        "prd.json",
+        "progress.txt",
+        "retry-counts.json",
+        "src/app/[locale]/order/[id]/page.tsx",
+        "src/app/api/admin/orders/[id]/route.ts",
+        "src/app/api/orders/[id]/push-subscribe/route.ts"
+      ]
+    },
+    {
+      "id": "US-619",
+      "title": "Admin-configurable pre-order minimum advance time",
+      "priority": "low",
+      "description": "The 15-minute minimum arrival time before now is currently hardcoded in the order submission modal. During peak hours, the kitchen may need 30 or 45 minutes lead time. Making this configurable in admin site settings allows the owner to adjust the minimum without a code deployment.",
+      "acceptanceCriteria": [
+        "A min_advance_minutes field (integer, 1–120) is added to site settings, defaulting to 15",
+        "The admin Settings tab has a number input for 'Minimum Pre-order Advance Time (minutes)'",
+        "The order submission modal fetches this setting from GET /api/settings and enforces it for ETA selection",
+        "The ETA picker's minimum time is dynamically calculated as now() + min_advance_minutes",
+        "The error message for too-early ETA references the configured value: 'Earliest arrival is [calculated time] (minimum [N] minutes notice)'",
+        "The setting persists to data/site-settings.json via POST /api/admin/settings"
+      ],
+      "technicalNotes": [
+        "Add min_advance_minutes: number to the SiteSettings type in src/lib/site-settings.ts",
+        "Expose via GET /api/settings (public, already consumed by the order form)",
+        "Default value 15 should be backwards-compatible — do not break existing JSON files without the new field",
+        "Validate on server: estimated_arrival > new Date(Date.now() + minAdvanceMinutes * 60000)"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false,
+      "filesTouch": [
+        "messages/en.json",
+        "messages/ms.json",
+        "messages/zh.json",
+        "prd.json",
+        "progress.txt",
+        "retry-counts.json",
+        "src/app/[locale]/order/[id]/page.tsx",
+        "src/app/api/admin/orders/[id]/route.ts",
+        "src/app/api/orders/[id]/push-subscribe/route.ts"
+      ]
+    },
+    {
+      "id": "US-620",
+      "title": "Customer order history page at /account/orders",
+      "priority": "low",
+      "description": "The system already saves completed orders to localStorage (mm_order_history) and displays a last-order CTA on the success screen, but there is no dedicated page for customers to review all their past orders. A simple order history page read from localStorage improves repeat customer confidence and allows quick reordering.",
+      "acceptanceCriteria": [
+        "A /[locale]/orders page reads mm_order_history from localStorage and displays past orders in reverse chronological order",
+        "Each order card shows: order ID, date, status, items list, total",
+        "Tapping an order card navigates to /order/[id] for the live status view",
+        "If localStorage is empty, an empty state shows: 'No past orders. Browse the menu to get started.' with a link to /menu",
+        "The page is accessible without login (localStorage is client-only — no auth needed)",
+        "A link to /orders appears in the mobile footer navigation for discoverability",
+        "The page is a Client Component (reads localStorage) with a server-rendered shell for SEO"
+      ],
+      "technicalNotes": [
+        "Read localStorage only inside a useEffect to avoid SSR hydration mismatches",
+        "mm_order_history format is already defined — parse and display the existing schema",
+        "Add noindex metadata to /[locale]/orders to prevent search engines indexing personal data pages",
+        "Consider capping displayed history to last 20 orders to keep the page performant"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false,
+      "filesTouch": [
+        "messages/en.json",
+        "messages/ms.json",
+        "messages/zh.json",
+        "prd.json",
+        "progress.txt",
+        "retry-counts.json",
+        "src/app/[locale]/order/[id]/page.tsx",
+        "src/app/api/admin/orders/[id]/route.ts",
+        "src/app/api/orders/[id]/push-subscribe/route.ts"
+      ]
+    }
+  ]
+}

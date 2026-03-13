@@ -3,19 +3,103 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { CheckCircle2, Circle, Clock, XCircle, PhoneCall, Upload } from "lucide-react";
+import { CheckCircle2, Circle, Clock, XCircle, PhoneCall, Upload, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { fetchWithTimeout } from "@/lib/utils";
 import { formatDateTime } from "@/lib/date-utils";
 import type { OrderStatus } from "@/types/orders";
 import { STATUS_STEPS, TERMINAL_STATUSES } from "@/types/orders";
+// Converts a URL-safe base64 string to Uint8Array for VAPID applicationServerKey
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+type PushState = "idle" | "subscribed" | "unsupported";
+
+function PushSubscribeButton({ orderId }: { orderId: string }) {
+  const [pushState, setPushState] = useState<PushState>("idle");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (typeof navigator === "undefined" || typeof window === "undefined") return;
+    // iOS without PWA install cannot receive push notifications
+    const isIOSWithoutPWA =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+      !window.matchMedia("(display-mode: standalone)").matches;
+    if (isIOSWithoutPWA) setPushState("unsupported");
+  }, []);
+
+  if (pushState === "unsupported") {
+    return (
+      <p className="text-xs text-stone-400">
+        We&apos;ll update your status on this page automatically.
+      </p>
+    );
+  }
+
+  async function handleSubscribe() {
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+      setPushState("unsupported");
+      return;
+    }
+    setLoading(true);
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") return;
+      const reg = await navigator.serviceWorker.ready;
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidKey) return;
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as ArrayBuffer,
+      });
+      const json = sub.toJSON();
+      await fetch(`/api/orders/${orderId}/push-subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          endpoint: json.endpoint,
+          keys: { p256dh: json.keys?.p256dh, auth: json.keys?.auth },
+        }),
+      });
+      setPushState("subscribed");
+    } catch {
+      // Push is optional — silently ignore errors
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={() => void handleSubscribe()}
+      disabled={loading || pushState === "subscribed"}
+      className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 hover:bg-stone-50 disabled:cursor-default disabled:opacity-70 transition-colors"
+    >
+      {pushState === "subscribed" ? (
+        <>✓ Notifications on</>
+      ) : loading ? (
+        "Setting up…"
+      ) : (
+        <>🔔 Notify me when ready</>
+      )}
+    </button>
+  );
+}
+
 // Phone formatted for wa.me (strip non-digits, ensure 60 prefix)
 function phoneToWaMe(phone: string): string {
   const digits = phone.replace(/\D/g, "");
   return digits.startsWith("60") ? digits : `60${digits.replace(/^0/, "")}`;
 }
 
-// Status step ordering — imported from @/types/orders
 
 interface OrderData {
   id: number;
@@ -32,6 +116,9 @@ interface OrderData {
 interface TnGSettings {
   tngPhone: string;
   tngQrUrl: string;
+  depositRequired: boolean;
+  orderExpiryMinutes: number;
+  escalationMinutes: number;
 }
 
 type UploadState = "idle" | "uploading" | "success" | "error";
@@ -47,22 +134,47 @@ function PaymentSection({
   t: ReturnType<typeof useTranslations>;
   onSuccess: () => void;
 }) {
+  const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif"];
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [uploadState, setUploadState] = useState<UploadState>("idle");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [converting, setConverting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
     setErrorMsg(null);
     if (!file) { setSelectedFile(null); setPreview(null); return; }
-    if (!["image/jpeg", "image/jpg", "image/png"].includes(file.type)) {
+    if (!ALLOWED_TYPES.includes(file.type)) {
       setErrorMsg(t("invalidFileType")); setSelectedFile(null); setPreview(null); return;
     }
     if (file.size > 5 * 1024 * 1024) {
       setErrorMsg(t("fileTooLarge")); setSelectedFile(null); setPreview(null); return;
+    }
+    // Convert HEIC/HEIF to JPEG client-side (common on iPhones)
+    if (file.type === "image/heic" || file.type === "image/heif") {
+      setConverting(true);
+      try {
+        const { default: heic2any } = await import("heic2any");
+        const blob = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.85 });
+        const converted = new File(
+          [Array.isArray(blob) ? blob[0] : blob],
+          file.name.replace(/\.hei[cf]$/i, ".jpg"),
+          { type: "image/jpeg" }
+        );
+        setSelectedFile(converted);
+        const reader = new FileReader();
+        reader.onload = (ev) => setPreview(ev.target?.result as string);
+        reader.readAsDataURL(converted);
+      } catch {
+        setErrorMsg(t("heicConvertError"));
+        setSelectedFile(null); setPreview(null);
+      } finally {
+        setConverting(false);
+      }
+      return;
     }
     setSelectedFile(file);
     const reader = new FileReader();
@@ -135,15 +247,15 @@ function PaymentSection({
         <p className="mb-1 text-sm font-medium text-stone-700">{t("uploadLabel")}</p>
         <p className="mb-3 text-xs text-stone-500">{t("uploadHint")}</p>
 
-        <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png" onChange={handleFileChange} className="hidden" />
+        <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif" onChange={(e) => void handleFileChange(e)} className="hidden" />
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          disabled={uploadState === "uploading" || uploadState === "success"}
+          disabled={uploadState === "uploading" || uploadState === "success" || converting}
           className="flex min-h-[44px] items-center gap-2 rounded-xl border-2 border-dashed border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-700 hover:border-amber-500 hover:bg-amber-50 disabled:opacity-50"
         >
-          <Upload className="h-4 w-4" />
-          {selectedFile ? selectedFile.name : t("uploadBtn")}
+          {converting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+          {converting ? t("convertingHeic") : selectedFile ? selectedFile.name : t("uploadBtn")}
         </button>
 
         {preview && (
@@ -253,15 +365,23 @@ export default function OrderStatusPage() {
   const t = useTranslations("orderStatus");
 
   const [order, setOrder] = useState<OrderData | null>(null);
-  const [tng, setTng] = useState<TnGSettings>({ tngPhone: "", tngQrUrl: "" });
+  const [tng, setTng] = useState<TnGSettings>({ tngPhone: "", tngQrUrl: "", depositRequired: false, orderExpiryMinutes: 240, escalationMinutes: 10 });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [countdown, setCountdown] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [secsSince, setSecsSince] = useState(0);
+  const [expiryLeft, setExpiryLeft] = useState<{ mins: number; secs: number; urgent: boolean } | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [copyLabel, setCopyLabel] = useState<string | null>(null);
+  const [cancelRemaining, setCancelRemaining] = useState<number | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   const failCount = useRef(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prevStatusRef = useRef<OrderStatus | null>(null);
 
   const stopPolling = useCallback(() => {
     if (intervalRef.current) {
@@ -289,6 +409,12 @@ export default function OrderStatusPage() {
       // Successful response — reset fail counter
       failCount.current = 0;
       const data = (await res.json()) as OrderData;
+      // Confetti when status first becomes 'ready'
+      if (prevStatusRef.current !== "ready" && data.status === "ready") {
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 3000);
+      }
+      prevStatusRef.current = data.status;
       setOrder(data);
       setLastUpdated(new Date());
       setError(null);
@@ -352,6 +478,68 @@ export default function OrderStatusPage() {
     return () => clearInterval(id);
   }, [orderStatus, estimatedReady, t]);
 
+  // "Updated Xs ago" counter — resets whenever lastUpdated changes
+  useEffect(() => {
+    if (!lastUpdated) return;
+    setSecsSince(0);
+    const id = setInterval(() => setSecsSince((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [lastUpdated]);
+
+  // Expiry countdown — only for pending_approval
+  const createdAt = order?.createdAt;
+  useEffect(() => {
+    if (orderStatus !== "pending_approval" || !createdAt) {
+      setExpiryLeft(null);
+      return;
+    }
+    const expiryMs = new Date(createdAt).getTime() + tng.orderExpiryMinutes * 60_000;
+    function tick() {
+      const diff = expiryMs - Date.now();
+      if (diff <= 0) { setExpiryLeft({ mins: 0, secs: 0, urgent: true }); return; }
+      const total = Math.floor(diff / 1000);
+      setExpiryLeft({ mins: Math.floor(total / 60), secs: total % 60, urgent: Math.floor(total / 60) < 5 });
+    }
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [orderStatus, createdAt, tng.orderExpiryMinutes]);
+
+  // Cancel grace period countdown (120s from creation)
+  useEffect(() => {
+    if (orderStatus !== "pending_approval" || !createdAt) {
+      setCancelRemaining(null);
+      return;
+    }
+    const GRACE_SECONDS = 120;
+    function tick() {
+      const elapsed = Math.floor((Date.now() - new Date(createdAt!).getTime()) / 1000);
+      const remaining = GRACE_SECONDS - elapsed;
+      setCancelRemaining(remaining > 0 ? remaining : null);
+    }
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [orderStatus, createdAt]);
+
+  async function handleCancel() {
+    if (!order || !confirm(t("cancelConfirm"))) return;
+    setCancelling(true);
+    setCancelError(null);
+    try {
+      const res = await fetch(`/api/orders/${order.id}/cancel`, { method: "POST" });
+      if (!res.ok) {
+        setCancelError(t("cancelFailed"));
+        return;
+      }
+      void fetchOrder();
+    } catch {
+      setCancelError(t("cancelFailed"));
+    } finally {
+      setCancelling(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -408,13 +596,39 @@ export default function OrderStatusPage() {
     );
   }
 
+  const isCancelled = order.status === "cancelled";
   const isRejected =
-    order.status === "rejected" || order.status === "cancelled";
+    order.status === "rejected" || isCancelled;
   const isExpired = order.status === "expired";
   const isReady = order.status === "ready";
+  const isOverdueEscalation =
+    order.status === "pending_approval" &&
+    (Date.now() - new Date(order.createdAt).getTime()) > tng.escalationMinutes * 60_000;
 
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
+      {/* CSS confetti — 3s burst on order ready */}
+      {showConfetti && (
+        <>
+          <style>{`@keyframes confetti-fall{from{transform:translateY(-10px) rotate(0deg);opacity:1}to{transform:translateY(100vh) rotate(720deg);opacity:0}}`}</style>
+          <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden" aria-hidden="true">
+            {(["🎉","🎊","✨","🍽️","⭐","🌟","🎈"] as const).flatMap((emoji, i) =>
+              Array.from({ length: 3 }, (_, j) => (
+                <span
+                  key={`${i}-${j}`}
+                  className="absolute text-2xl"
+                  style={{
+                    left: `${(i * 3 + j) * 4.5 + 1}%`,
+                    animation: `confetti-fall ${1.5 + (i + j) * 0.25}s ease-in forwards`,
+                    animationDelay: `${(i + j) * 0.08}s`,
+                  }}
+                >{emoji}</span>
+              ))
+            )}
+          </div>
+        </>
+      )}
+
       {/* Header */}
       <div className="mb-6">
         <p className="text-sm text-stone-500">{t("orderNumber", { id: order.id })}</p>
@@ -429,10 +643,69 @@ export default function OrderStatusPage() {
         </h1>
         {lastUpdated && (
           <p className="mt-1 text-xs text-stone-400">
-            {t("lastUpdated", { time: lastUpdated.toLocaleTimeString("en-MY", { timeStyle: "short" }) })}
+            {t("lastUpdatedAgo", { secs: secsSince })}
+          </p>
+        )}
+        {expiryLeft && (
+          <p className={`mt-1 text-xs font-semibold ${expiryLeft.urgent ? "text-red-600" : "text-amber-600"}`}>
+            {t("expiryCountdown", { mins: expiryLeft.mins, secs: String(expiryLeft.secs).padStart(2, "0") })}
           </p>
         )}
       </div>
+
+      {/* Escalation banner — shown when pending_approval is overdue */}
+      {isOverdueEscalation && (
+        <div className="mb-6 rounded-2xl border border-yellow-300 bg-yellow-50 p-4">
+          <p className="text-sm font-semibold text-yellow-800">{t("escalation_banner")}</p>
+          <a
+            href={`https://wa.me/${phoneToWaMe(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "60127088789")}?text=${encodeURIComponent(t("escalation_whatsapp_message", { id: orderId, minutes: tng.escalationMinutes }))}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-yellow-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-yellow-700"
+          >
+            <PhoneCall className="h-4 w-4" />
+            WhatsApp Us
+          </a>
+        </div>
+      )}
+
+      {/* Cancel button — 2-minute grace period */}
+      {order.status === "pending_approval" && cancelRemaining !== null && cancelRemaining > 0 && (
+        <div className="mb-6">
+          <button
+            onClick={() => void handleCancel()}
+            disabled={cancelling}
+            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-red-300 bg-white px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
+          >
+            <XCircle className="h-4 w-4" />
+            {cancelling
+              ? "Cancelling…"
+              : t("cancelBtn", { remaining: `${Math.floor(cancelRemaining / 60)}:${String(cancelRemaining % 60).padStart(2, "0")}` })}
+          </button>
+          {cancelError && (
+            <p className="mt-2 text-center text-sm text-red-600">{cancelError}</p>
+          )}
+        </div>
+      )}
+
+      {/* Cancelled state */}
+      {order.status === "cancelled" && (
+        <div className="mb-6 rounded-2xl border border-stone-300 bg-stone-50 p-5">
+          <div className="flex items-start gap-3">
+            <XCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-stone-500" />
+            <div className="w-full">
+              <p className="font-semibold text-stone-700">{t("cancelledTitle")}</p>
+              <p className="mt-1 text-sm text-stone-600">{t("cancelledMsg")}</p>
+              <Link
+                href="/menu"
+                className="mt-3 inline-flex min-h-[44px] items-center gap-1.5 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-amber-700"
+              >
+                {t("backToMenu")}
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Progress bar */}
       {!isRejected && !isExpired && (
@@ -441,25 +714,33 @@ export default function OrderStatusPage() {
         </div>
       )}
 
-      {/* Rejected / Cancelled state */}
-      {isRejected && (
+      {/* Rejected state (not cancelled — cancelled has its own section above) */}
+      {order.status === "rejected" && (
         <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-5">
           <div className="flex items-start gap-3">
             <XCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-500" />
-            <div>
+            <div className="w-full">
               <p className="font-semibold text-red-700">{t("rejectedTitle")}</p>
               {order.rejectionReason && (
                 <p className="mt-1 text-sm text-red-600">{order.rejectionReason}</p>
               )}
-              <Link
-                href={`https://wa.me/${phoneToWaMe("012-708 8789")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white"
-              >
-                <PhoneCall className="h-4 w-4" />
-                {t("contactUs")}
-              </Link>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link
+                  href={`https://wa.me/${phoneToWaMe(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "60127088789")}?text=${encodeURIComponent(`Hi, my order #${orderId} was rejected. I would like to re-order.`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white"
+                >
+                  <PhoneCall className="h-4 w-4" />
+                  {t("whatsappReorder")}
+                </Link>
+                <button
+                  onClick={() => { void navigator.clipboard.writeText(`#${orderId}`).then(() => { setCopyLabel(t("copied")); setTimeout(() => setCopyLabel(null), 2000); }); }}
+                  className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-red-300 bg-white px-4 py-2.5 text-sm font-medium text-red-700 hover:bg-red-50"
+                >
+                  {copyLabel ?? t("copyOrderId", { id: orderId })}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -470,23 +751,34 @@ export default function OrderStatusPage() {
         <div className="mb-6 rounded-2xl border border-orange-200 bg-orange-50 p-5">
           <div className="flex items-start gap-3">
             <Clock className="mt-0.5 h-5 w-5 flex-shrink-0 text-orange-500" />
-            <div>
+            <div className="w-full">
               <p className="font-semibold text-orange-700">{t("expiredTitle")}</p>
-              <p className="mt-1 text-sm text-orange-600">{t("expiredMsg")}</p>
-              <Link
-                href="/"
-                className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white"
-              >
-                {t("backHome")}
-              </Link>
+              <p className="mt-1 text-sm text-orange-600">{t("expiredWhatsappMsg")}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link
+                  href={`https://wa.me/${phoneToWaMe(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "60127088789")}?text=${encodeURIComponent(`Hi, my order #${orderId} expired. I would like to re-order.`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-medium text-white"
+                >
+                  <PhoneCall className="h-4 w-4" />
+                  {t("whatsappReorder")}
+                </Link>
+                <button
+                  onClick={() => { void navigator.clipboard.writeText(`#${orderId}`).then(() => { setCopyLabel(t("copied")); setTimeout(() => setCopyLabel(null), 2000); }); }}
+                  className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-orange-300 bg-white px-4 py-2.5 text-sm font-medium text-orange-700 hover:bg-orange-50"
+                >
+                  {copyLabel ?? t("copyOrderId", { id: orderId })}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {/* Stage-specific info cards */}
-      {/* Inline payment section — shown when order is approved */}
-      {order.status === "approved" && (
+      {/* Inline payment section — shown when approved AND deposit is required */}
+      {order.status === "approved" && tng.depositRequired && (
         <PaymentSection
           order={order}
           tng={tng}
@@ -518,7 +810,7 @@ export default function OrderStatusPage() {
       {order.status === "preparing" && (
         <div className="mb-4 rounded-2xl border border-green-200 bg-green-50 p-4">
           <p className="text-sm font-semibold text-green-800">
-            {t("preparingMsg")}
+            {tng.depositRequired ? t("preparingMsg") : t("preparingConfirmedMsg")}
           </p>
           {order.estimatedReady && (
             <p className="mt-1 text-sm text-green-700">
@@ -538,6 +830,21 @@ export default function OrderStatusPage() {
           <p className="text-2xl">🎉</p>
           <p className="mt-1 font-semibold text-green-800">{t("readyMsg")}</p>
           <p className="mt-0.5 text-sm text-green-700">{t("readySubMsg")}</p>
+          <button
+            onClick={() => { void navigator.clipboard.writeText(`#${orderId}`).then(() => { setCopyLabel(t("copied")); setTimeout(() => setCopyLabel(null), 2000); }); }}
+            className="mt-3 inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-green-400 bg-white px-4 py-2.5 text-sm font-medium text-green-700 hover:bg-green-50"
+          >
+            {copyLabel ?? t("copyOrderId", { id: orderId })}
+          </button>
+        </div>
+      )}
+
+      {/* Push notification opt-in — shown for active (non-terminal) orders */}
+      {(order.status === "pending_approval" ||
+        order.status === "approved" ||
+        order.status === "preparing") && (
+        <div className="mb-4">
+          <PushSubscribeButton orderId={String(order.id)} />
         </div>
       )}
 

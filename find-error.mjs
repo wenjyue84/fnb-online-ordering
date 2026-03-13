@@ -1,4 +1,4 @@
-const response = await fetch('http://localhost:3030/en/menu');
+const response = await fetch('http://localhost:3031/en/menu');
 const html = await response.text();
 
 // Find error-related content

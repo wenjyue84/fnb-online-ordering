@@ -7,13 +7,18 @@ import { useTranslations } from "next-intl";
 import { X, Send, MessageCircle, Mic } from "lucide-react";
 import { useTray } from "@/lib/tray-context";
 import { ChatBubble } from "./chat-bubble";
+import { QuickReplies } from "./quick-replies";
 import { cn } from "@/lib/utils";
 
 const NUDGE_DELAY_MS = 3 * 60 * 1000; // 3 minutes
+const SESSION_KEY = "mm_chat_session_id";
+const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 interface ChatPanelProps {
   onClose: () => void;
 }
+
+type MenuItemLookup = Array<{ id: string; code: string; name: string; price: number }>;
 
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
 
@@ -21,6 +26,38 @@ const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
 const speechSupported =
   typeof window !== "undefined" &&
   ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
+
+// US-410: Session persistence
+function getOrCreateSession(): string {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (raw) {
+      const data = JSON.parse(raw) as { sessionId: string; createdAt: number };
+      if (Date.now() - data.createdAt < SESSION_EXPIRY_MS) {
+        return data.sessionId;
+      }
+    }
+  } catch { /* ignore */ }
+
+  const sessionId = `web_${crypto.randomUUID().slice(0, 8)}_${Date.now()}`;
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ sessionId, createdAt: Date.now() }));
+  } catch { /* ignore */ }
+  return sessionId;
+}
+
+function clearSession() {
+  try { localStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
+}
+
+function isReturningUser(): boolean {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw) as { createdAt: number };
+    return Date.now() - data.createdAt < SESSION_EXPIRY_MS;
+  } catch { return false; }
+}
 
 export function ChatPanel({ onClose }: ChatPanelProps) {
   const t = useTranslations("chat");
@@ -35,6 +72,32 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
   const nudgeSentRef = useRef(false);
   const nudgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [nudgeMessage, setNudgeMessage] = useState<string | null>(null);
+
+  // US-406: Menu items for card rendering
+  const [menuItemsLookup, setMenuItemsLookup] = useState<MenuItemLookup>([]);
+  // US-407: Track which messages have received feedback
+  const [ratedMessages, setRatedMessages] = useState<Set<number>>(new Set());
+  // US-410: Session ID
+  const sessionIdRef = useRef<string>("");
+
+  // Initialize session on mount
+  useEffect(() => {
+    sessionIdRef.current = getOrCreateSession();
+  }, []);
+
+  // US-406: Fetch menu items once for card rendering
+  useEffect(() => {
+    fetch("/api/menu")
+      .then((r) => r.json())
+      .then((data: MenuItemLookup) => setMenuItemsLookup(data))
+      .catch(() => { /* silent fail */ });
+  }, []);
+
+  // US-410: Determine welcome message
+  const returning = useRef(false);
+  useEffect(() => {
+    returning.current = isReturningUser();
+  }, []);
 
   const welcomeText = t("welcome");
   const nudgeText = t("nudge");
@@ -54,11 +117,33 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
   const handleSubmitText = useCallback(
     (text: string) => {
       if (!text.trim() || isLoading) return;
+
+      // US-410: Check for "new chat" / "start over" commands
+      const lower = text.trim().toLowerCase();
+      if (lower === "new chat" || lower === "start over") {
+        clearSession();
+        sessionIdRef.current = getOrCreateSession();
+      }
+
       sendMessage({ text });
       setInput("");
     },
     [isLoading, sendMessage]
   );
+
+  // US-407: Handle feedback submission
+  const handleFeedback = useCallback((messageIndex: number, rating: "up" | "down") => {
+    setRatedMessages((prev) => new Set(prev).add(messageIndex));
+    fetch("/api/chat/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messageIndex,
+        rating,
+        sessionId: sessionIdRef.current,
+      }),
+    }).catch(() => { /* silent fail */ });
+  }, []);
 
   function toggleVoice() {
     if (!speechSupported) return;
@@ -163,6 +248,16 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
     handleSubmitText(input);
   }
 
+  // Build message content array for quick-replies context detection
+  const messageContents = messages.map((msg) => ({
+    role: msg.role,
+    content:
+      (msg.parts as Array<{ type: string; text?: string }>)
+        ?.filter((p) => p.type === "text")
+        .map((p) => p.text ?? "")
+        .join("") ?? "",
+  }));
+
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
@@ -179,7 +274,7 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
               href={`https://wa.me/${WHATSAPP_NUMBER}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-md p-1 text-primary-foreground/70 hover:text-primary-foreground"
+              className="flex h-11 w-11 items-center justify-center rounded-md text-primary-foreground/70 hover:text-primary-foreground"
               aria-label="Order via WhatsApp"
               title="Order via WhatsApp"
             >
@@ -198,7 +293,7 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.map((msg) => {
+        {messages.map((msg, index) => {
           const text =
             (msg.parts as Array<{ type: string; text?: string }>)
               ?.filter((p) => p.type === "text")
@@ -209,7 +304,17 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
             !text && (msg.parts as Array<{ type: string }>)?.some((p) => p.type === "tool-invocation");
           if (hasPureToolCall) return null;
 
-          return <ChatBubble key={msg.id} role={msg.role} content={text} />;
+          return (
+            <ChatBubble
+              key={msg.id}
+              role={msg.role}
+              content={text}
+              messageIndex={msg.role === "assistant" ? index : undefined}
+              menuItems={menuItemsLookup}
+              feedbackGiven={ratedMessages.has(index)}
+              onFeedback={handleFeedback}
+            />
+          );
         })}
         {nudgeMessage && (
           <ChatBubble role="assistant" content={nudgeMessage} />
@@ -224,10 +329,19 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
         {error && <p className="text-sm text-destructive">{t("error")}</p>}
       </div>
 
+      {/* US-405: Quick reply buttons */}
+      <QuickReplies
+        messages={messageContents}
+        onSend={handleSubmitText}
+        isTyping={input.length > 0}
+        isLoading={isLoading}
+      />
+
       {/* Input */}
       <form
         onSubmit={handleSubmit}
         className="flex items-center gap-2 border-t border-border p-3"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
       >
         <input
           type="text"
@@ -243,7 +357,7 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
             onClick={toggleVoice}
             disabled={isLoading}
             className={cn(
-              "relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors disabled:opacity-50",
+              "relative flex h-11 w-11 shrink-0 items-center justify-center rounded-lg transition-colors disabled:opacity-50",
               isListening
                 ? "bg-red-500 text-white"
                 : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -259,7 +373,7 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
         <button
           type="submit"
           disabled={isLoading || !input.trim()}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
           aria-label="Send message"
         >
           <Send className="h-4 w-4" />

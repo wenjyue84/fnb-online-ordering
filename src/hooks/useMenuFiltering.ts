@@ -50,6 +50,7 @@ export interface UseMenuFilteringParams {
   displayCategories: string[];
   favorites: string[];
   removedFromChefsPick: Set<string>;
+  allergenFree?: string | null;
 }
 
 export interface UseMenuFilteringResult {
@@ -72,6 +73,7 @@ export function useMenuFiltering({
   searchQuery,
   favorites,
   removedFromChefsPick,
+  allergenFree = null,
 }: UseMenuFilteringParams): UseMenuFilteringResult {
   // Fuse.js instance for fuzzy search across all items (memoized to avoid re-init on every render)
   const fuse = useMemo(() => new Fuse(items, fuseOptions), [items]);
@@ -94,57 +96,62 @@ export function useMenuFiltering({
   const isFlatView = isSearching || isDisplayCategorySelected || isFavoritesSelected;
 
   const filtered = useMemo(() => {
+    // Compute base result from search / category filters
+    let result: MenuItem[];
+
     // Semantic search: expand query with synonyms, then fuzzy-search each variant.
     // E.g. "ice coffee" also searches "ice kopi", "iced coffee", "ais coffee", etc.
     if (searchQuery.trim().length >= 2) {
       const expandedQueries = expandSearchQuery(searchQuery);
       if (expandedQueries.length === 1) {
-        return fuse.search(searchQuery).map((r) => r.item);
-      }
-      // Merge results from all expanded queries, preserving order (original query first)
-      const seen = new Set<string>();
-      const results: MenuItem[] = [];
-      for (const q of expandedQueries) {
-        for (const r of fuse.search(q)) {
-          if (!seen.has(r.item.id)) {
-            seen.add(r.item.id);
-            results.push(r.item);
+        result = fuse.search(searchQuery).map((r) => r.item);
+      } else {
+        // Merge results from all expanded queries, preserving order (original query first)
+        const seen = new Set<string>();
+        result = [];
+        for (const q of expandedQueries) {
+          for (const r of fuse.search(q)) {
+            if (!seen.has(r.item.id)) {
+              seen.add(r.item.id);
+              (result as MenuItem[]).push(r.item);
+            }
           }
         }
       }
-      return results;
-    }
-
-    if (isFavoritesSelected) {
-      return items.filter((i) => favorites.includes(i.code));
-    }
-
-    if (selectedDisplayCat) {
+    } else if (isFavoritesSelected) {
+      result = items.filter((i) => favorites.includes(i.code));
+    } else if (selectedDisplayCat) {
       if (selectedDisplayCat === SPECIAL_DISPLAY_CATEGORIES.CHEFS_PICKS) {
         const fromJunction = items.filter((item) =>
           item.displayCategories.includes(selectedDisplayCat)
         );
-        return fromJunction.length > 0 ? fromJunction : items.filter((i) => i.featured);
-      }
-      if (selectedDisplayCat === SPECIAL_DISPLAY_CATEGORIES.UNDER_RM15) {
-        return items.filter(
+        result = fromJunction.length > 0 ? fromJunction : items.filter((i) => i.featured);
+      } else if (selectedDisplayCat === SPECIAL_DISPLAY_CATEGORIES.UNDER_RM15) {
+        result = items.filter(
           (i) =>
             i.price < 15 &&
             !i.displayCategories.some(
               (dc) => dc === "Hot Drinks" || dc === "Cold Drinks & Juice"
             )
         );
-      }
-      if (selectedDisplayCat === SPECIAL_DISPLAY_CATEGORIES.VEGETARIAN) {
-        return items.filter((i) =>
+      } else if (selectedDisplayCat === SPECIAL_DISPLAY_CATEGORIES.VEGETARIAN) {
+        result = items.filter((i) =>
           i.dietary?.some((d) => d.toLowerCase() === "vegetarian")
         );
+      } else {
+        result = items.filter((item) => item.displayCategories.includes(selectedDisplayCat));
       }
-      return items.filter((item) => item.displayCategories.includes(selectedDisplayCat));
+    } else {
+      result = items;
     }
 
-    return items;
-  }, [items, selectedDisplayCat, isFavoritesSelected, favorites, searchQuery, fuse]);
+    // Apply allergen-free filter: hide items that contain the selected allergen
+    if (allergenFree) {
+      result = result.filter((item) => !(item.allergens ?? []).includes(allergenFree));
+    }
+
+    return result;
+  }, [items, selectedDisplayCat, isFavoritesSelected, favorites, searchQuery, fuse, allergenFree]);
 
   // categorySections: kept in result for API compat but unused — sections built in MenuGrid
   const categorySections = useMemo<CategorySection[]>(() => [], []);

@@ -72,7 +72,7 @@ export function Header() {
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav aria-label="Main navigation" className="hidden items-center gap-1 md:flex">
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.key}
@@ -92,7 +92,7 @@ export function Header() {
         {/* Mobile controls */}
         <div className="flex items-center gap-1 md:hidden">
           <button
-            className="rounded-md p-2"
+            className="flex h-11 w-11 items-center justify-center rounded-md"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Toggle menu"
             aria-expanded={mobileOpen}
@@ -109,14 +109,14 @@ export function Header() {
       {/* Mobile Nav */}
       {mobileOpen && (
         <div className="border-t border-border bg-background px-4 pb-4 md:hidden">
-          <nav className="flex flex-col gap-1 pt-2">
+          <nav aria-label="Mobile navigation" className="flex flex-col gap-1 pt-2">
             {NAV_ITEMS.map((item) => (
               <Link
                 key={item.key}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  "rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                  "rounded-md px-3 py-3 text-sm font-medium transition-colors min-h-[44px]",
                   pathname === item.href
                     ? "bg-accent text-accent-foreground"
                     : "text-muted-foreground hover:bg-accent"
@@ -133,7 +133,7 @@ export function Header() {
                   onClick={() => switchLocale(loc)}
                   aria-label={ariaLabel}
                   className={cn(
-                    "flex items-center gap-1 rounded-md px-3 py-1.5 text-sm transition-colors",
+                    "flex items-center gap-1 rounded-md px-3 py-2 text-sm transition-colors min-h-[44px]",
                     locale === loc
                       ? "bg-primary font-semibold text-primary-foreground"
                       : "bg-secondary text-secondary-foreground hover:bg-secondary/80"

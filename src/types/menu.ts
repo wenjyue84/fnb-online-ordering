@@ -22,6 +22,7 @@ export interface MenuItem {
   updatedAt: string;       // ISO timestamp — used for image cache-busting
   isSignature: boolean;    // true = this dish appears as the hero on the landing page (max 1 at a time)
   archived: boolean;       // true = removed from menu; still restorable from admin archive list
+  allergens: string[];     // e.g. ["nuts", "shellfish", "dairy"] — CODEX STAN allergen slugs
 }
 
 export interface DisplayCategory {

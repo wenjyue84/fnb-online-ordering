@@ -101,7 +101,7 @@ console.log('Cookie set');
 await cdp('Page.enable');
 
 // Navigate to hub page
-const navResult = await cdp('Page.navigate', { url: 'http://localhost:3030/admin/ai-waiter-hub' });
+const navResult = await cdp('Page.navigate', { url: 'http://localhost:3031/admin/ai-waiter-hub' });
 console.log('Navigation result:', JSON.stringify(navResult.result));
 
 // Wait for page to load fully
@@ -118,7 +118,7 @@ if (ss.result && ss.result.data) {
 }
 
 // Navigate to admin dashboard
-await cdp('Page.navigate', { url: 'http://localhost:3030/admin' });
+await cdp('Page.navigate', { url: 'http://localhost:3031/admin' });
 await new Promise(r => setTimeout(r, 3000));
 const ss2 = await cdp('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
 if (ss2.result && ss2.result.data) {

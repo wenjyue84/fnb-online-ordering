@@ -5,9 +5,15 @@ export const runtime = "nodejs";
 // Public endpoint — no auth required.
 // Returns only the fields safe to expose to customers (TnG payment details).
 export async function GET() {
-  const settings = getSiteSettings();
+  const settings = await getSiteSettings();
   return Response.json({
     tngPhone: settings.tng_phone ?? "",
     tngQrUrl: settings.tng_qr_url ?? "",
+    depositRequired: settings.depositRequired ?? false,
+    orderExpiryMinutes: settings.orderExpiryMinutes ?? 240,
+    posMode: settings.posMode ?? "feedme_manual",
+    cafeName: settings.cafeName ?? "Makan Moments",
+    escalationMinutes: settings.escalationMinutes ?? 10,
+    minAdvanceMinutes: settings.minAdvanceMinutes ?? 15,
   });
 }

@@ -11,6 +11,8 @@ import { useTray } from "@/lib/tray-context";
 
 interface HeroDishCardProps {
   item: MenuItem | null;
+  /** Cafe name for alt text */
+  cafeName?: string;
   /** Tailwind classes for the card wrapper — include aspect ratio and shadow here */
   className?: string;
   sizes?: string;
@@ -21,6 +23,7 @@ interface HeroDishCardProps {
 
 export function HeroDishCard({
   item,
+  cafeName = "Cafe",
   className,
   sizes = "100vw",
   priority = false,
@@ -78,7 +81,7 @@ export function HeroDishCard({
       <div className={cn("relative w-full overflow-hidden rounded-2xl", className)}>
         <Image
           src="/images/hero/hero-mobile.webp"
-          alt="Makan Moments Cafe"
+          alt={cafeName}
           fill
           className="object-cover img-scale"
           sizes={sizes}
@@ -111,7 +114,7 @@ export function HeroDishCard({
       >
         <Image
           src={mainSrc}
-          alt={`${item.nameEn} — Signature dish at Makan Moments Cafe`}
+          alt={`${item.nameEn} — Signature dish at ${cafeName}`}
           fill
           className="object-cover img-scale"
           sizes={sizes}
@@ -139,7 +142,7 @@ export function HeroDishCard({
                   e.stopPropagation();
                   setLightboxOpen(true);
                 }}
-                className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-full bg-background/80 text-foreground border border-border hover:bg-muted"
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-background/80 text-foreground border border-border hover:bg-muted"
                 aria-label="Open full view"
               >
                 <ZoomIn className="h-4 w-4" />
@@ -149,7 +152,7 @@ export function HeroDishCard({
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); decrementItem(item.code); }}
-                    className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all active:scale-95"
+                    className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all active:scale-95"
                     aria-label="Remove one"
                   >
                     <Minus className="h-3.5 w-3.5" />
@@ -158,7 +161,7 @@ export function HeroDishCard({
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); addItem({ id: item.code, name: itemName, price: item.price }); }}
-                    className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-95"
+                    className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-95"
                     aria-label="Add one more"
                   >
                     <Plus className="h-3.5 w-3.5" />
@@ -168,7 +171,7 @@ export function HeroDishCard({
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); addItem({ id: item.code, name: itemName, price: item.price }); }}
-                  className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-95"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-95"
                   aria-label="Add to order"
                 >
                   <Plus className="h-3.5 w-3.5" />
@@ -195,7 +198,7 @@ export function HeroDishCard({
             {/* Close button */}
             <button
               onClick={closeLightbox}
-              className="absolute right-3 top-3 z-10 flex h-9 w-9 min-h-[36px] items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm backdrop-blur-sm hover:bg-background"
+              className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm backdrop-blur-sm hover:bg-background"
               aria-label="Close"
             >
               <X className="h-4 w-4" />

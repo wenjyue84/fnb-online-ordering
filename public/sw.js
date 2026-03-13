@@ -1,10 +1,10 @@
 // Makan Moments Cafe — Service Worker
 // Handles: push notifications + basic shell caching
 
-const CACHE_NAME = "makan-moments-v1";
-const SHELL_URLS = ["/en", "/ms", "/zh", "/manifest.json"];
+const CACHE_NAME = "makan-moments-v2";
+const SHELL_URLS = ["/en", "/ms", "/zh", "/manifest.webmanifest", "/offline.html"];
 
-// Install: pre-cache shell URLs
+// Install: pre-cache shell URLs; wait for SKIP_WAITING message before activating
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
@@ -14,7 +14,15 @@ self.addEventListener("install", (event) => {
         // Shell caching is best-effort; don't block install on failure
       })
   );
-  self.skipWaiting();
+  // Do NOT call self.skipWaiting() here — wait for the client to send SKIP_WAITING
+  // so the app can prompt the user before updating (US-611)
+});
+
+// Message: handle SKIP_WAITING from the update banner
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 // Activate: clean up old caches
@@ -39,7 +47,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(event.request).catch(() =>
         caches.match(event.request).then(
-          (cached) => cached || caches.match("/en")
+          (cached) => cached || caches.match("/offline.html")
         )
       )
     );
@@ -57,13 +65,16 @@ self.addEventListener("push", (event) => {
     // fallback to defaults
   }
 
+  const isUrgent = data.priority === "urgent";
+
   const options = {
     body: data.body,
     icon: "/images/logo.png",
     badge: "/images/logo.png",
-    tag: "new-order",
+    tag: data.tag || "new-order",
     requireInteraction: true,
     data: { url: data.url || "/admin" },
+    ...(isUrgent && { vibrate: [200, 100, 200, 100, 200] }),
   };
 
   event.waitUntil(
@@ -82,7 +93,7 @@ self.addEventListener("notificationclick", (event) => {
       .then((windowClients) => {
         // Focus existing admin tab if open
         for (const client of windowClients) {
-          if (client.url.includes("/admin") && "focus" in client) {
+          if (client.url.includes(targetUrl) && "focus" in client) {
             return client.focus();
           }
         }

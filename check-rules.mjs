@@ -1,4 +1,4 @@
-const response = await fetch('http://localhost:3030/api/admin/rules');
+const response = await fetch('http://localhost:3031/api/admin/rules');
 const rules = await response.json();
 console.log('Total rules:', rules.length);
 for (const r of rules) {

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { AiWaiterPage } from "./ai-waiter-page";
 import {
   UtensilsCrossed,
   Tag,
@@ -17,15 +16,28 @@ import {
   LogOut,
   Monitor,
   Bot,
+  BarChart3,
+  Eye,
+  LayoutDashboard,
 } from "lucide-react";
 
 const KDS_URL = process.env.NEXT_PUBLIC_KDS_URL ?? "/kds";
 import type { MenuItemWithRules } from "@/types/menu";
 import type { BlogPost } from "@/types/blog";
 import { cn } from "@/lib/utils";
+import { InstallPrompt } from "@/components/shared/install-prompt";
 
 const LoadingPlaceholder = () => (
-  <div className="p-8 text-center text-gray-400">Loading...</div>
+  <div className="space-y-4 p-6">
+    <div className="h-8 w-48 animate-pulse rounded-lg bg-gray-200" />
+    <div className="h-4 w-full animate-pulse rounded bg-gray-100" />
+    <div className="h-4 w-3/4 animate-pulse rounded bg-gray-100" />
+    <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="h-32 animate-pulse rounded-xl bg-gray-100" />
+      ))}
+    </div>
+  </div>
 );
 
 const AdminMenuTable = dynamic(
@@ -56,6 +68,14 @@ const AdminOrdersPanel = dynamic(
   () => import("./admin-orders-panel").then((m) => m.AdminOrdersPanel),
   { ssr: false, loading: LoadingPlaceholder }
 );
+const AiWaiterPage = dynamic(
+  () => import("./ai-waiter-page").then((m) => m.AiWaiterPage),
+  { ssr: false, loading: LoadingPlaceholder }
+);
+const ChatAnalyticsPanel = dynamic(
+  () => import("./chat-analytics-panel"),
+  { ssr: false, loading: LoadingPlaceholder }
+);
 
 interface AdminTabsProps {
   items: MenuItemWithRules[];
@@ -65,12 +85,15 @@ interface AdminTabsProps {
 
 const TABS = [
   "Orders",
+  "POS",
   "Menu",
+  "Preview",
   "Categories",
   "Rules",
   "Blog",
   "Tests",
   "Settings",
+  "Chat Analytics",
   "KDS",
   "AI Waiter",
 ] as const;
@@ -78,25 +101,31 @@ type Tab = (typeof TABS)[number];
 
 const TAB_ICONS: Record<Tab, React.ReactNode> = {
   Orders: <ShoppingBag className="h-4 w-4 shrink-0" />,
+  POS: <LayoutDashboard className="h-4 w-4 shrink-0" />,
   "AI Waiter": <Bot className="h-4 w-4 shrink-0" />,
   Menu: <UtensilsCrossed className="h-4 w-4 shrink-0" />,
+  Preview: <Eye className="h-4 w-4 shrink-0" />,
   Categories: <Tag className="h-4 w-4 shrink-0" />,
   Rules: <Shield className="h-4 w-4 shrink-0" />,
   Blog: <BookOpen className="h-4 w-4 shrink-0" />,
   Tests: <FlaskConical className="h-4 w-4 shrink-0" />,
   Settings: <Settings className="h-4 w-4 shrink-0" />,
+  "Chat Analytics": <BarChart3 className="h-4 w-4 shrink-0" />,
   KDS: <Monitor className="h-4 w-4 shrink-0" />,
 };
 
 const TAB_SLUGS: Record<Tab, string> = {
   Orders: "orders",
+  POS: "pos",
   "AI Waiter": "ai-waiter",
   Menu: "menu",
+  Preview: "preview",
   Categories: "categories",
   Rules: "rules",
   Blog: "blog",
   Tests: "tests",
   Settings: "settings",
+  "Chat Analytics": "chat-analytics",
   KDS: "kds",
 };
 
@@ -109,6 +138,7 @@ const SLUG_TO_TAB: Record<string, Tab> = {
   blog: "Blog",
   tests: "Tests",
   settings: "Settings",
+  "chat-analytics": "Chat Analytics",
 };
 
 export function AdminTabs({ items, displayCategories, posts }: AdminTabsProps) {
@@ -126,8 +156,18 @@ export function AdminTabs({ items, displayCategories, posts }: AdminTabsProps) {
   const activeTab: Tab = SLUG_TO_TAB[slug] ?? "Menu";
 
   const handleTabClick = (tab: Tab) => {
+    if (tab === "Preview") {
+      window.open("/en/menu", "_blank");
+      setSidebarOpen(false);
+      return;
+    }
     if (tab === "KDS") {
       window.open(KDS_URL, "_blank");
+      setSidebarOpen(false);
+      return;
+    }
+    if (tab === "POS") {
+      window.open("/pos", "_blank");
       setSidebarOpen(false);
       return;
     }
@@ -142,6 +182,7 @@ export function AdminTabs({ items, displayCategories, posts }: AdminTabsProps) {
 
   return (
     <div className="flex min-h-screen">
+      <InstallPrompt />
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -228,6 +269,7 @@ export function AdminTabs({ items, displayCategories, posts }: AdminTabsProps) {
           {activeTab === "Blog" && <AdminBlogTable initialPosts={posts} />}
           {activeTab === "Tests" && <AdminTestsPanel />}
           {activeTab === "Settings" && <AdminSettingsPanel displayCategories={displayCategories} />}
+          {activeTab === "Chat Analytics" && <ChatAnalyticsPanel />}
         </main>
       </div>
     </div>

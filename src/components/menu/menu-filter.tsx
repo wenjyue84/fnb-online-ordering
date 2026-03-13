@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Search, X, Heart, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useScrolling } from "@/lib/scrolling-context";
+import { ALLERGEN_LIST } from "./allergen-badge";
 
 const speechSupported =
   typeof window !== "undefined" &&
@@ -35,6 +35,8 @@ interface MenuFilterProps {
   itemCount: number;
   servingNowCategories?: string[];
   favoritesCount?: number;
+  allergenFree?: string | null;
+  onAllergenFreeChange?: (allergen: string | null) => void;
 }
 
 export function MenuFilter({
@@ -49,9 +51,14 @@ export function MenuFilter({
   onSearchChange,
   itemCount,
   favoritesCount = 0,
+  allergenFree = null,
+  onAllergenFreeChange,
 }: MenuFilterProps) {
   const t = useTranslations("menu");
   const tc = useTranslations("common");
+  const ta = useTranslations("allergens");
+  const ALLERGEN_SLUGS = ALLERGEN_LIST;
+  const locale = useLocale();
   const [isListening, setIsListening] = useState(false);
   const [voiceReady, setVoiceReady] = useState(false);
   // Search bar open on mobile — auto-open if there's already a query (e.g. from URL ?q=)
@@ -60,7 +67,6 @@ export function MenuFilter({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const { scrollPhase } = useScrolling();
 
   // Reveal mic after hydration to avoid SSR mismatch
   useEffect(() => { setVoiceReady(speechSupported); }, []);
@@ -104,7 +110,7 @@ export function MenuFilter({
       const Win = window as any;
       const SpeechRecognitionCtor = Win.SpeechRecognition || Win.webkitSpeechRecognition;
       const recognition = new SpeechRecognitionCtor();
-      recognition.lang = "en-US";
+      recognition.lang = locale === "zh" ? "zh-CN" : locale === "ms" ? "ms-MY" : "en-US";
       recognition.continuous = false;
       recognition.interimResults = true;
 
@@ -147,25 +153,23 @@ export function MenuFilter({
   }
 
   const pillBase =
-    "flex-shrink-0 snap-start rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1";
+    "flex-shrink-0 snap-start rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 min-h-[44px] flex items-center";
   const pillActive = "bg-primary text-primary-foreground scale-[1.04]";
   const pillInactive = "bg-secondary text-secondary-foreground hover:bg-secondary/80";
 
   return (
     <div
       className={cn(
-        // Mobile: sticky top bar below site header
-        "sticky top-16 left-0 right-0 z-40 transition-opacity",
-        scrollPhase === "scrolling" && "opacity-0 transition-opacity duration-150 pointer-events-none",
-        scrollPhase === "resting" && "scroll-fade-in",
-        "border-b border-border bg-background",
+        // Mobile: sticky top bar below site header — always visible for navigation
+        "sticky top-16 left-0 right-0 z-40",
+        "border-b border-border bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80",
         "px-4",
         // Desktop: always visible, non-sticky
-        "md:relative md:top-auto md:opacity-100 md:pointer-events-auto",
-        "md:border-0 md:bg-transparent",
+        "md:relative md:top-auto",
+        "md:border-0 md:bg-transparent md:backdrop-blur-none",
         "md:px-0 md:pb-0 md:mb-6 md:space-y-4"
       )}
-      style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
+      style={{ paddingBottom: "0.5rem" }}
     >
       {/* Search bar — hidden on mobile until toggled; always visible on desktop */}
       <div
@@ -288,7 +292,7 @@ export function MenuFilter({
               }
               data-active={selectedCategory === FAV_KEY ? "true" : "false"}
               className={cn(
-                "flex-shrink-0 snap-start inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 active:scale-95",
+                "flex-shrink-0 snap-start inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 active:scale-95 min-h-[44px]",
                 selectedCategory === FAV_KEY
                   ? "bg-red-500 text-white scale-[1.04]"
                   : "border border-red-300 bg-red-50 text-red-600 hover:bg-red-100"
@@ -299,26 +303,63 @@ export function MenuFilter({
               <span className="rounded-full bg-current/20 px-1.5 py-0 text-xs">{favoritesCount}</span>
             </button>
           )}
+
+          {/* Allergen-free filter — shows active badge or a compact select */}
+          {onAllergenFreeChange && (
+            <div className="flex-shrink-0 snap-start">
+              {allergenFree ? (
+                <button
+                  type="button"
+                  onClick={() => onAllergenFreeChange(null)}
+                  className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium min-h-[44px] bg-purple-500 text-white scale-[1.04] transition-all"
+                >
+                  {ta("filterFreeOf", { allergen: ta(allergenFree as "nuts" | "shellfish" | "dairy" | "eggs" | "gluten" | "soy") })}
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              ) : (
+                <select
+                  value=""
+                  onChange={(e) => onAllergenFreeChange(e.target.value || null)}
+                  className={cn(pillBase, pillInactive, "cursor-pointer appearance-none")}
+                  aria-label={ta("allergenFilter")}
+                >
+                  <option value="">{ta("allergenFilter")}</option>
+                  {ALLERGEN_SLUGS.map((slug) => (
+                    <option key={slug} value={slug}>{ta(slug)}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Search toggle button — mobile only */}
+        {/* Search toggle button — mobile only; shows "Search" text when idle for discoverability */}
         <button
           type="button"
           onClick={() => setSearchOpen((v) => !v)}
           className={cn(
-            "flex-shrink-0 rounded-full p-2 transition-colors md:hidden",
+            "flex-shrink-0 flex items-center gap-1.5 rounded-full transition-colors md:hidden",
             searchOpen || searchQuery
-              ? "bg-primary text-primary-foreground"
-              : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              ? "p-2.5 bg-primary text-primary-foreground"
+              : "px-3 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80"
           )}
           aria-label={searchOpen ? "Close search" : "Search dishes"}
         >
-          {searchOpen && !searchQuery ? <X className="h-4 w-4" /> : <Search className="h-4 w-4" />}
+          {searchOpen && !searchQuery ? (
+            <X className="h-4 w-4" />
+          ) : searchQuery ? (
+            <Search className="h-4 w-4" />
+          ) : (
+            <>
+              <Search className="h-3.5 w-3.5" />
+              <span className="text-sm font-medium">{tc("search")}</span>
+            </>
+          )}
         </button>
       </div>
 
-      {/* Count — desktop only */}
-      <p className="hidden md:block text-sm text-muted-foreground">
+      {/* Count — all screen sizes */}
+      <p className="text-sm text-muted-foreground">
         {t("itemsCount", { count: itemCount })}
       </p>
     </div>

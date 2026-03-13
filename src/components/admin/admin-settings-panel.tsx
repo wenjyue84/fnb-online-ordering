@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { SiteSettings } from "@/lib/site-settings";
+import { DEFAULT_SETTINGS } from "@/lib/site-settings-shared";
+import type { SiteSettings } from "@/lib/site-settings-shared";
 import { AdminOperatingHours } from "./admin-operating-hours";
 import { AdminTimeSettings } from "./admin-time-settings";
 import { AdminPushSettings } from "./admin-push-settings";
@@ -11,19 +12,8 @@ interface AdminSettingsPanelProps {
   displayCategories: string[];
 }
 
-const DEFAULT_SETTINGS: SiteSettings = {
-  defaultLocale: "en",
-  cafeName: "Makan Moments",
-  currency: "RM",
-  operatingHours: { open: "11:00", lastOrder: "22:30", close: "23:00" },
-  preOrderEnabled: true,
-  depositRequired: false,
-  paymentMethods: ["Touch & Go", "Cash on Arrival"],
-  tng_phone: "",
-  tng_qr_url: "",
-};
 
-const SETTINGS_TABS = ["General", "Operating Hours", "Pre-Order", "Notifications", "AI"] as const;
+const SETTINGS_TABS = ["General", "Operating Hours", "Pre-Order", "Notifications"] as const;
 type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 export function AdminSettingsPanel({ displayCategories }: AdminSettingsPanelProps) {
@@ -34,9 +24,6 @@ export function AdminSettingsPanel({ displayCategories }: AdminSettingsPanelProp
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentInput, setPaymentInput] = useState("");
-  const [syncing, setSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState<string | null>(null);
-
   useEffect(() => {
     fetch("/api/admin/settings")
       .then((r) => r.json())
@@ -77,22 +64,6 @@ export function AdminSettingsPanel({ displayCategories }: AdminSettingsPanelProp
       setError(err instanceof Error ? err.message : "Save failed");
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function handleSyncAI() {
-    setSyncing(true);
-    setSyncResult(null);
-    try {
-      const res = await fetch("/api/admin/sync-ai-knowledge", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Sync failed");
-      setSyncResult(`AI menu knowledge updated — ${data.count} items synced`);
-      setTimeout(() => setSyncResult(null), 5000);
-    } catch (err) {
-      setSyncResult(err instanceof Error ? `Error: ${err.message}` : "Sync failed");
-    } finally {
-      setSyncing(false);
     }
   }
 
@@ -169,7 +140,7 @@ export function AdminSettingsPanel({ displayCategories }: AdminSettingsPanelProp
                   value={settings.cafeName}
                   onChange={(e) => setField("cafeName", e.target.value)}
                   className="w-full max-w-xs rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
-                  placeholder="Makan Moments"
+                  placeholder={DEFAULT_SETTINGS.cafeName}
                 />
               </div>
 
@@ -186,6 +157,90 @@ export function AdminSettingsPanel({ displayCategories }: AdminSettingsPanelProp
               </div>
             </div>
           </section>
+          <section className="rounded-xl border border-gray-200 bg-white p-6">
+            <h2 className="mb-1 text-base font-semibold text-gray-900">Google Rating (JSON-LD)</h2>
+            <p className="mb-4 text-xs text-gray-500">
+              Optional. Only use real ratings from a verifiable source (e.g. Google Maps reviews).
+              Leave blank to omit from search results.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Rating Value (1-5)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={5}
+                  step={0.1}
+                  value={settings.ratingValue ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "") {
+                      setSettings((prev) => {
+                        const next = { ...prev };
+                        delete next.ratingValue;
+                        return next;
+                      });
+                    } else {
+                      const n = parseFloat(v);
+                      if (n >= 1 && n <= 5) setField("ratingValue", n);
+                    }
+                  }}
+                  className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                  placeholder="e.g. 4.8"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Review Count</label>
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={settings.ratingCount ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "") {
+                      setSettings((prev) => {
+                        const next = { ...prev };
+                        delete next.ratingCount;
+                        return next;
+                      });
+                    } else {
+                      const n = parseInt(v, 10);
+                      if (n >= 1) setField("ratingCount", n);
+                    }
+                  }}
+                  className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                  placeholder="e.g. 47"
+                />
+                <p className="mt-1 text-xs text-gray-500">Must be at least 1 for Google to display stars.</p>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Rating Provider</label>
+                <input
+                  type="text"
+                  value={settings.ratingProvider ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "") {
+                      setSettings((prev) => {
+                        const next = { ...prev };
+                        delete next.ratingProvider;
+                        return next;
+                      });
+                    } else {
+                      setField("ratingProvider", v);
+                    }
+                  }}
+                  className="w-full max-w-xs rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                  placeholder="e.g. Google Maps"
+                />
+                <p className="mt-1 text-xs text-gray-500">Source of the rating (optional).</p>
+              </div>
+            </div>
+          </section>
+
           <SaveBar />
         </div>
       )}
@@ -233,6 +288,114 @@ export function AdminSettingsPanel({ displayCategories }: AdminSettingsPanelProp
                   <p className="text-xs text-gray-500">Customer must upload payment proof before order is confirmed.</p>
                 </div>
               </label>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">POS Mode</label>
+                <div className="space-y-2">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="posMode"
+                      value="feedme_manual"
+                      checked={(settings.posMode ?? "feedme_manual") === "feedme_manual"}
+                      onChange={() => setField("posMode", "feedme_manual")}
+                      className="mt-0.5 h-4 w-4 border-gray-300 text-orange-500 focus:ring-orange-400"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-gray-700">FeedMe Manual Entry</span>
+                      <p className="text-xs text-gray-500">Staff must enter orders into FeedMe POS manually. A reminder banner is shown on order cards.</p>
+                    </div>
+                  </label>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="posMode"
+                      value="builtin"
+                      checked={(settings.posMode ?? "feedme_manual") === "builtin"}
+                      onChange={() => setField("posMode", "builtin")}
+                      className="mt-0.5 h-4 w-4 border-gray-300 text-orange-500 focus:ring-orange-400"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-gray-700">Built-in POS</span>
+                      <p className="text-xs text-gray-500">Orders are managed entirely in this system. No FeedMe reminders shown.</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Kitchen Display PIN</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={settings.kitchenPin ?? "1234"}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/\D/g, "").slice(0, 6);
+                    setField("kitchenPin", v);
+                  }}
+                  className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                  placeholder="1234"
+                  maxLength={6}
+                />
+                <p className="mt-1 text-xs text-gray-500">4–6 digit PIN for kitchen staff to access the KDS screen at /kds.</p>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Escalation Timeout (minutes)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={60}
+                  value={settings.escalationMinutes ?? 10}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    if (v >= 1 && v <= 60) setField("escalationMinutes", v);
+                  }}
+                  className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                  placeholder="10"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Orders pending for longer than this many minutes will be flagged as overdue (OVERDUE badge, escalation alarm).
+                </p>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Max Orders Per 30-Min Slot</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={settings.maxOrdersPerSlot ?? 5}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    if (v >= 1 && v <= 50) setField("maxOrdersPerSlot", v);
+                  }}
+                  className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                  placeholder="5"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Maximum concurrent pre-orders per 30-minute arrival window. Customers will be redirected to the next available slot when full.
+                </p>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Minimum Pre-order Advance Time (minutes)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={120}
+                  value={settings.minAdvanceMinutes ?? 15}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    if (v >= 1 && v <= 120) setField("minAdvanceMinutes", v);
+                  }}
+                  className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                  placeholder="15"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Customers must pre-order at least this many minutes before their estimated arrival. Increase during peak hours to give the kitchen more lead time.
+                </p>
+              </div>
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
@@ -300,35 +463,31 @@ export function AdminSettingsPanel({ displayCategories }: AdminSettingsPanelProp
       {/* Notifications */}
       {activeTab === "Notifications" && (
         <div className="space-y-6">
+          <section className="rounded-xl border border-gray-200 bg-white p-6">
+            <h2 className="mb-1 text-base font-semibold text-gray-900">Email Fallback</h2>
+            <p className="mb-4 text-xs text-gray-500">
+              When WhatsApp notification fails after all retries, an urgent email is sent to this address.
+              Requires <code className="rounded bg-gray-100 px-1 font-mono text-xs">RESEND_API_KEY</code> in environment variables.
+            </p>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Waiter / Owner Email</label>
+              <input
+                type="email"
+                value={settings.waiterEmail ?? ""}
+                onChange={(e) => setField("waiterEmail", e.target.value || undefined)}
+                className="w-full max-w-sm rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                placeholder="e.g. owner@gmail.com"
+              />
+              <p className="mt-1 text-xs text-gray-500">Leave blank to disable email fallback.</p>
+            </div>
+            <div className="mt-4">
+              <SaveBar />
+            </div>
+          </section>
           <AdminPushSettings />
         </div>
       )}
 
-      {/* AI */}
-      {activeTab === "AI" && (
-        <div className="space-y-6">
-          <section className="rounded-xl border border-gray-200 bg-white p-6">
-            <h2 className="mb-1 text-base font-semibold text-gray-900">AI Waiter Knowledge</h2>
-            <p className="mb-4 text-xs text-gray-500">
-              Regenerates <code className="font-mono">knowledge/menu-knowledge.md</code> from the current database and invalidates the AI cache so changes are reflected immediately.
-            </p>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={handleSyncAI}
-                disabled={syncing}
-                className="min-h-[44px] rounded-lg border border-gray-300 bg-gray-50 px-5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
-              >
-                {syncing ? "Syncing…" : "Sync AI Menu Knowledge"}
-              </button>
-              {syncResult && (
-                <span className={`text-sm font-medium ${syncResult.startsWith("Error") ? "text-red-600" : "text-green-700"}`}>
-                  {syncResult.startsWith("Error") ? syncResult : `✓ ${syncResult}`}
-                </span>
-              )}
-            </div>
-          </section>
-        </div>
-      )}
     </div>
   );
 }

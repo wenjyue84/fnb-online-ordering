@@ -1,9 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { revalidatePath } from "next/cache";
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
 import sql from "@/lib/db";
+import { revalidateBlogCache } from "@/lib/cache-utils";
 
 export const runtime = "nodejs";
 
@@ -72,8 +72,7 @@ export async function PATCH(
       }
     }
 
-    revalidatePath("/[locale]/blog", "page");
-    revalidatePath(`/[locale]/blog/${slug}`, "page");
+    revalidateBlogCache();
 
     return NextResponse.json({ ok: true });
   } catch (err) {

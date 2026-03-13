@@ -1,11 +1,13 @@
 import sql from "@/lib/db";
 import { OrderSubmitSchema } from "@/lib/schemas/order";
 import webpush from "web-push";
+import { getSiteSettings } from "@/lib/site-settings";
+import { sendOrderWhatsAppNotification } from "@/lib/notifications";
 
 // Configure VAPID — only if keys are present
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
-const vapidSubject = process.env.VAPID_SUBJECT || "mailto:admin@makanmoments.cafe";
+const vapidSubject = process.env.VAPID_SUBJECT || "mailto:admin@localhost";
 
 if (vapidPublicKey && vapidPrivateKey) {
   webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
@@ -15,8 +17,9 @@ export async function sendPushToAllAdmins(itemCount: number, total: number): Pro
   if (!vapidPublicKey || !vapidPrivateKey) return;
   try {
     const subs = await sql<{ endpoint: string; p256dh: string; auth: string }>`SELECT endpoint, p256dh, auth FROM push_subscriptions`;
+    const { cafeName } = await getSiteSettings();
     const payload = JSON.stringify({
-      title: "🍽 New Order — Makan Moments",
+      title: `🍽 New Order — ${cafeName || "Cafe"}`,
       body: `${itemCount} item${itemCount !== 1 ? "s" : ""} — RM ${total.toFixed(2)}`,
       url: "/admin",
     });
@@ -120,11 +123,28 @@ export async function submitOrderHandler(args: {
     RETURNING id
   `;
 
+  const orderId = rows[0].id as number;
+
   void sendPushToAllAdmins(items.length, total);
+
+  const toolSettings = await getSiteSettings();
+
+  // Fire-and-forget WhatsApp notification with retry
+  void sendOrderWhatsAppNotification({
+    orderId,
+    items: items.map((item) => ({
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price,
+    })),
+    total,
+    contactNumber: phone,
+    estimatedArrival: new Date(arrival).toISOString(),
+  }, toolSettings.waiterEmail);
 
   return JSON.stringify({
     ok: true,
-    orderId: rows[0].id,
+    orderId,
     message: "Order submitted! The cafe will review it shortly.",
   });
 }

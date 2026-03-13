@@ -1,12 +1,12 @@
-# CLAUDE.md — Makan Moments Cafe Website
+# CLAUDE.md — F&B Online Ordering Platform
 
-> **Project:** makanmoments.cafe — Thai-Malaysian fusion cafe website with multilingual support, Neon Postgres, and AI waiter chatbot.
+> **Project:** fnb-online-ordering — Generic F&B online ordering platform with multilingual support, Neon Postgres, and AI waiter chatbot. Cloned from makanmoments.cafe and decoupled for independent deployment.
 
 ## Project Overview
 
 Public-facing website for **Makan Moments Cafe** (食光记忆 / Kafe Kenangan Makan), located in Taman Impian Emas, Skudai, Johor, Malaysia.
 
-**Live site:** https://makanmoments.cafe
+**Live site:** TBD (not yet deployed)
 **Deploy:** Vercel (`.vercel/` config present)
 
 ### Pre-Order System
@@ -36,7 +36,7 @@ This human-in-the-loop design is deliberate: FeedMe handles payments and receipt
 ## Project Structure
 
 ```
-makanmoments.cafe/
+fnb-online-ordering/
 ├── src/
 │   ├── app/
 │   │   ├── [locale]/                    # All public pages (locale-prefixed)
@@ -132,14 +132,14 @@ makanmoments.cafe/
 ## Dev Commands
 
 ```bash
-npm run dev       # Start dev server on http://localhost:3030 — PORT LOCKED: always use 3030, do NOT change
+npm run dev       # Start dev server on http://localhost:3031 — PORT LOCKED: always use 3031, do NOT change
 npm run build     # Production build + generates sitemap (postbuild)
 npm run start     # Serve production build
 npm run lint      # ESLint check
 ```
 
-> **PORT 3030 — LOCKED.** Dev server runs on http://localhost:3030 (confirmed working).
-> Navigate to http://localhost:3030/en (middleware redirects / → /en automatically).
+> **PORT 3031 — LOCKED.** Dev server runs on http://localhost:3031 (confirmed working).
+> Navigate to http://localhost:3031/en (middleware redirects / → /en automatically).
 > Do NOT change this port unless explicitly instructed.
 
 ## Environment Variables
@@ -154,7 +154,7 @@ See `.env.example` for all required vars:
 | `ADMIN_JWT_SECRET` | JWT signing secret (≥ 32 chars) |
 | `GROQ_API_KEY` | Groq API key for AI waiter |
 | `OPENROUTER_API_KEY` | OpenRouter fallback for AI waiter |
-| `NEXT_PUBLIC_SITE_URL` | Production URL (https://makanmoments.cafe) |
+| `NEXT_PUBLIC_SITE_URL` | Production URL (set to deployment domain) |
 | `NEXT_PUBLIC_WHATSAPP_NUMBER` | Cafe's public WhatsApp CTA number |
 | `WAITER_WHATSAPP_NUMBER` | Waiter's number to receive pre-order notifications (e.g. `601XXXXXXXX`) |
 | `WHATSAPP_API_URL` | WhatsApp send endpoint (Periskope or Baileys) |
@@ -351,3 +351,4 @@ User has a logo image file (PNG/SVG). Place at `public/images/logo.png` (or `.sv
 10. **`data/*.json` are config stores** — site-settings.json, chat-settings.json, operating-hours.json, time-slots.json are server-side only; never expose secrets in them
 11. **Admin API routes require auth** — always call `verifyAdminToken()` at the top of any route under `/api/admin/`
 12. **Display categories ≠ POS categories** — `categories[]` on items = POS (Rice, Noodles, Drinks); `displayCategories[]` = website-only (Chef's Picks, Vegetarian, Under RM15). Special display categories (Under RM15, Vegetarian, Favorites) are computed client-side from price/dietary, not from the junction table
+13. **Menu filter pills = display categories ONLY** — The category filter bar on `/menu` shows ONLY display categories as pills. POS categories are NEVER rendered as customer-facing filter pills; they are internal FeedMe data used for section grouping in the All-items view. See `src/components/menu/menu-filter.tsx` for the enforced comment. Do not add POS category pills back.

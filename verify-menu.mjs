@@ -12,7 +12,7 @@ page.on('console', msg => {
 });
 page.on('pageerror', e => errors.push('PAGE ERROR: ' + e.message));
 
-await page.goto('http://localhost:3030/en/menu', { waitUntil: 'networkidle', timeout: 30000 });
+await page.goto('http://localhost:3031/en/menu', { waitUntil: 'networkidle', timeout: 30000 });
 
 // Wait a bit more for React hydration
 await page.waitForTimeout(2000);

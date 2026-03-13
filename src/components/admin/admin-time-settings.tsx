@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { TimeSlotsConfig, TimeSlot } from "@/lib/time-slots";
+import type { TimeSlotsConfig, TimeSlot } from "@/lib/time-slots-shared";
 
 interface AdminTimeSettingsProps {
   displayCategories: string[];

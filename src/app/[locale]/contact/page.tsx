@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
+import { buildAlternates } from "@/lib/seo";
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
 import { cookies } from "next/headers";
-import { getTranslations } from "next-intl/server";
-import { CAFE } from "@/lib/constants";
-import { MapPin, Clock, Phone, Wifi, Facebook, Instagram } from "lucide-react";
+import { getTranslations, setRequestLocale } from "next-intl/server";
+import { getSiteSettings } from "@/lib/site-settings";
+import { MapPin, Clock, Phone, Wifi, Facebook, Instagram, Navigation } from "lucide-react";
 import { COOKIE_NAME, verifyAdminToken } from "@/lib/auth";
-import { ContactInlineEditor, type ContactContent } from "@/components/admin/contact-inline-editor";
+import type { ContactContent } from "@/components/admin/contact-inline-editor";
+import dynamic from "next/dynamic";
+const ContactInlineEditor = dynamic(() => import("@/components/admin/contact-inline-editor").then(m => m.ContactInlineEditor));
 
 export const runtime = "nodejs";
 
@@ -52,6 +55,10 @@ export async function generateMetadata({
   return {
     title: t("title"),
     description: t("subtitle"),
+    alternates: {
+      canonical: `/${locale}/contact`,
+      ...buildAlternates("/contact"),
+    },
   };
 }
 
@@ -61,17 +68,20 @@ export default async function ContactPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "contact" });
+
+  const settings = await getSiteSettings();
 
   const fallback: Record<string, string> = {
     title: t("title"),
     subtitle: t("subtitle"),
-    address: CAFE.address,
-    neighborhood: CAFE.neighborhood,
-    phone: CAFE.phone,
-    hoursDaily: CAFE.hours.daily,
-    hoursLastOrder: CAFE.hours.lastOrder,
-    googleMapsEmbed: CAFE.googleMapsEmbed,
+    address: settings.address,
+    neighborhood: settings.neighborhood,
+    phone: settings.phone,
+    hoursDaily: settings.displayHours.daily,
+    hoursLastOrder: settings.displayHours.lastOrder,
+    googleMapsEmbed: settings.googleMapsEmbed,
   };
 
   const content = readContactContent(fallback);
@@ -84,8 +94,9 @@ export default async function ContactPage({
     return (
       <ContactInlineEditor
         content={content}
-        social={CAFE.social}
+        social={settings.social}
         wifiPassword={t("wifiPassword")}
+        cafeName={settings.cafeName}
       />
     );
   }
@@ -148,18 +159,18 @@ export default async function ContactPage({
             <h2 className="mb-3 font-semibold">{t("socialTitle")}</h2>
             <div className="flex gap-3">
               <a
-                href={CAFE.social.facebook}
+                href={settings.social.facebook}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm hover:bg-secondary/80"
+                className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2.5 text-sm min-h-[44px] hover:bg-secondary/80"
               >
                 <Facebook className="h-4 w-4" /> Facebook
               </a>
               <a
-                href={CAFE.social.instagram}
+                href={settings.social.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm hover:bg-secondary/80"
+                className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2.5 text-sm min-h-[44px] hover:bg-secondary/80"
               >
                 <Instagram className="h-4 w-4" /> Instagram
               </a>
@@ -168,17 +179,28 @@ export default async function ContactPage({
         </div>
 
         {/* Map */}
-        <div className="overflow-hidden rounded-xl border border-border">
-          <iframe
-            src={content.googleMapsEmbed}
-            width="100%"
-            height="100%"
-            style={{ minHeight: "400px", border: 0 }}
-            allowFullScreen
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            title="Makan Moments Cafe location"
-          />
+        <div className="space-y-4 print:hidden">
+          <div className="overflow-hidden rounded-xl border border-border">
+            <iframe
+              src={content.googleMapsEmbed}
+              width="100%"
+              height="100%"
+              style={{ minHeight: "400px", border: 0 }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Map showing Makan Moments Cafe location"
+            />
+          </div>
+          <a
+            href={`https://maps.google.com/?q=${encodeURIComponent(content.address)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <Navigation className="h-4 w-4" />
+            {t("getDirections")}
+          </a>
         </div>
       </div>
     </div>

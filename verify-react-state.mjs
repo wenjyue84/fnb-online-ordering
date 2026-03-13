@@ -9,7 +9,7 @@ const logs = [];
 page.on('console', msg => logs.push({ type: msg.type(), text: msg.text() }));
 
 // Navigate and wait longer for full hydration
-await page.goto('http://localhost:3030/en/menu', { waitUntil: 'networkidle', timeout: 30000 });
+await page.goto('http://localhost:3031/en/menu', { waitUntil: 'networkidle', timeout: 30000 });
 await page.waitForTimeout(3000);
 
 // Try to get the actual DOM state

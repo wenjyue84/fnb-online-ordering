@@ -18,7 +18,7 @@ export function FeaturedPost({ post, isAdmin }: FeaturedPostProps) {
       <Link href={`/blog/${post.slug}`} className="group block">
         <article className="overflow-hidden rounded-2xl border border-border bg-card transition-shadow hover:shadow-xl">
           {post.coverImage && (
-            <div className="relative aspect-[16/7] w-full overflow-hidden">
+            <div className="relative aspect-[16/7] w-full overflow-hidden bg-muted">
               <Image
                 src={post.coverImage}
                 alt={post.title}

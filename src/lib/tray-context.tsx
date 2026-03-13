@@ -18,7 +18,13 @@ const _listeners = new Set<() => void>();
 
 function emitChange() {
     for (const l of _listeners) l();
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(_items)); } catch {}
+    try {
+        if (_items.length > 0) {
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(_items));
+        } else {
+            sessionStorage.removeItem(STORAGE_KEY);
+        }
+    } catch {}
 }
 
 function subscribe(listener: () => void) {
@@ -34,7 +40,23 @@ function hydrate() {
     if (_hydrated) return;
     _hydrated = true;
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
+        // On first load of a new session, if there's a recent completed order
+        // whose items match what's in the tray, clear to avoid confusion.
+        // Use a session flag so we only run this check once per tab.
+        const CLEARED_KEY = "mm_tray_cleared";
+        if (!sessionStorage.getItem(CLEARED_KEY)) {
+            sessionStorage.setItem(CLEARED_KEY, "1");
+            const orderHistory = localStorage.getItem("mm_order_history");
+            if (orderHistory) {
+                const history = JSON.parse(orderHistory);
+                if (Array.isArray(history) && history.length > 0) {
+                    sessionStorage.removeItem(STORAGE_KEY);
+                    return;
+                }
+            }
+        }
+
+        const raw = sessionStorage.getItem(STORAGE_KEY);
         if (raw) {
             _items = JSON.parse(raw) as TrayItem[];
             emitChange();

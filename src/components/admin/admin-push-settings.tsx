@@ -109,7 +109,7 @@ export function AdminPushSettings() {
         <div className="mb-4 flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
-            Notifications are blocked by your browser. Open browser settings → Site permissions → Notifications → allow <strong>makanmoments.cafe</strong>.
+            Notifications are blocked by your browser. Open browser settings → Site permissions → Notifications → allow <strong>this site</strong>.
           </span>
         </div>
       )}

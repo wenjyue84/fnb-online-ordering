@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { buildAlternates } from "@/lib/seo";
 import { Suspense } from "react";
-import { cookies } from "next/headers";
-import { getTranslations } from "next-intl/server";
+import { cookies, headers } from "next/headers";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getMenuItems, getAllMenuItemsWithRulesForAdmin, getDisplayCategories } from "@/lib/menu";
 import { getHighlightsFromDB, computeEffectiveHighlights } from "@/lib/highlights";
 import { MenuGrid } from "@/components/menu/menu-grid";
@@ -22,14 +23,23 @@ export async function generateMetadata({
   return {
     title: t("title"),
     description: t("subtitle"),
+    alternates: {
+      canonical: `/${locale}/menu`,
+      ...buildAlternates("/menu"),
+    },
   };
 }
 
 export default async function MenuPage({
+  params,
   searchParams,
 }: {
-  searchParams: Promise<{ previewTime?: string; q?: string }>;
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ previewTime?: string; q?: string; allergenFree?: string }>;
 }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   const isAdmin = token ? await verifyAdminToken(token) : false;
@@ -38,7 +48,47 @@ export default async function MenuPage({
   // previewTime is admin-only; strip it for customers
   const previewTime = isAdmin ? (resolvedParams.previewTime ?? null) : null;
   const initialSearch = resolvedParams.q ?? "";
+  const initialAllergenFree = resolvedParams.allergenFree ?? null;
 
+  return (
+    <>
+      <div className="mx-auto max-w-6xl px-4 py-12">
+        {isAdmin && (
+          <Suspense fallback={null}>
+            <AdminPreviewBanner currentTime={getMalaysiaTimeString()} previewTime={previewTime} />
+          </Suspense>
+        )}
+        <MenuPageHeader />
+        <Suspense fallback={<MenuGridSkeleton />}>
+          <MenuContent
+            locale={locale}
+            nonce={nonce}
+            isAdmin={isAdmin}
+            previewTime={previewTime}
+            initialSearch={initialSearch}
+            initialAllergenFree={initialAllergenFree}
+          />
+        </Suspense>
+      </div>
+    </>
+  );
+}
+
+async function MenuContent({
+  locale,
+  nonce,
+  isAdmin,
+  previewTime,
+  initialSearch,
+  initialAllergenFree,
+}: {
+  locale: string;
+  nonce: string | undefined;
+  isAdmin: boolean;
+  previewTime: string | null;
+  initialSearch: string;
+  initialAllergenFree: string | null;
+}) {
   const [items, displayCats, persistedHighlights] = await Promise.all([
     isAdmin ? getAllMenuItemsWithRulesForAdmin() : getMenuItems(),
     getDisplayCategories(),
@@ -48,45 +98,81 @@ export default async function MenuPage({
   const highlightedByCategory = computeEffectiveHighlights(items, persistedHighlights);
   const activeDisplayCats = displayCats.filter((dc) => dc.active);
   const displayCategoryNames = activeDisplayCats.map((dc) => dc.name);
-  // Default to All — all category sections shown on one page; Chef's Picks section is at the top
   const chefsCat = activeDisplayCats.find((dc) => dc.name.toLowerCase().includes("chef"));
   const chefsCatId = chefsCat?.id?.toString() ?? null;
   const initialCategory: string | null = null;
-  const servingNowCategories = getServingNowCategories(previewTime);
-  const currentTime = getMalaysiaTimeString();
+  const servingNowCategories = await getServingNowCategories(previewTime);
 
   return (
     <>
-      <MenuPageJsonLd />
-      <div className="mx-auto max-w-6xl px-4 py-12">
-        {isAdmin && (
-          <Suspense fallback={null}>
-            <AdminPreviewBanner currentTime={currentTime} previewTime={previewTime} />
-          </Suspense>
-        )}
-        <MenuPageHeader />
-        <MenuGrid
-          items={items}
-          displayCategories={displayCategoryNames}
-          isAdmin={isAdmin}
-          highlightedByCategory={highlightedByCategory}
-          initialCategory={initialCategory}
-          initialSearch={initialSearch}
-          servingNowCategories={servingNowCategories}
-          previewTime={previewTime}
-          chefsCatId={chefsCatId}
-        />
-      </div>
+      <MenuPageJsonLd nonce={nonce} items={items} locale={locale} />
+      <MenuGrid
+        items={items}
+        displayCategories={displayCategoryNames}
+        isAdmin={isAdmin}
+        highlightedByCategory={highlightedByCategory}
+        initialCategory={initialCategory}
+        initialSearch={initialSearch}
+        servingNowCategories={servingNowCategories}
+        previewTime={previewTime}
+        chefsCatId={chefsCatId}
+        initialAllergenFree={initialAllergenFree}
+      />
     </>
   );
 }
 
 async function MenuPageHeader() {
   const t = await getTranslations("menu");
+  const tc = await getTranslations("common");
   return (
     <div className="mb-8">
-      <h1 className="font-display text-3xl font-bold lg:text-4xl">{t("title")}</h1>
-      <p className="mt-2 hidden text-muted-foreground sm:block">{t("subtitle")}</p>
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="font-display text-3xl font-bold lg:text-4xl">{t("title")}</h1>
+        <span
+          className="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-100 px-3 py-1.5 text-sm font-semibold text-green-800 dark:border-green-700 dark:bg-green-900/30 dark:text-green-300"
+          title={tc("halalTooltip")}
+          aria-label={`${tc("halalBadge")}: ${tc("halalTooltip")}`}
+        >
+          <span aria-hidden="true">🌙</span>
+          {tc("halalBadge")}
+        </span>
+      </div>
+      <p className="mt-2 text-muted-foreground">{t("subtitle")}</p>
     </div>
+  );
+}
+
+function MenuGridSkeleton() {
+  return (
+    <>
+      {/* Filter bar skeleton */}
+      <div className="sticky top-[60px] z-30 bg-background pb-3">
+        <div className="flex gap-2 overflow-hidden">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-9 w-24 shrink-0 animate-pulse rounded-full bg-muted"
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Grid skeleton */}
+      <div className="mt-6 grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div
+            key={i}
+            className="overflow-hidden rounded-xl border border-border"
+          >
+            <div className="aspect-[4/3] animate-pulse bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/20" />
+            <div className="space-y-2 p-4">
+              <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+              <div className="h-3 w-1/3 animate-pulse rounded bg-muted" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
   );
 }

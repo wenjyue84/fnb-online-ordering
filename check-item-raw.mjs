@@ -1,5 +1,5 @@
 // Check raw item data from the admin API to see exact field values
-const response = await fetch('http://localhost:3030/api/admin/menu');
+const response = await fetch('http://localhost:3031/api/admin/menu');
 const items = await response.json();
 
 // Print the first item with all fields

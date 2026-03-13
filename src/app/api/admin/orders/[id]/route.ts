@@ -1,6 +1,55 @@
 import { NextResponse, type NextRequest } from "next/server";
 import sql from "@/lib/db";
+import webpush from "web-push";
 import { OrderPatchSchema } from "@/lib/schemas/order";
+import { getSiteSettings } from "@/lib/site-settings";
+import { sendOrderWhatsAppNotification } from "@/lib/notifications";
+
+// Configure VAPID once (same pattern as src/app/api/orders/route.ts)
+const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+const vapidSubject = process.env.VAPID_SUBJECT || "mailto:admin@localhost";
+
+if (vapidPublicKey && vapidPrivateKey) {
+  webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+}
+
+async function sendCustomerPush(orderId: number) {
+  if (!vapidPublicKey || !vapidPrivateKey) return;
+  try {
+    const subs = await sql<{ endpoint: string; p256dh: string; auth: string }>`
+      SELECT endpoint, p256dh, auth
+      FROM order_push_subscriptions
+      WHERE order_id = ${String(orderId)}
+    `;
+    if (subs.length === 0) return;
+
+    const payload = JSON.stringify({
+      title: "Order Ready! 🍽️",
+      body: "Your order is ready for pickup at Makan Moments Cafe",
+      url: `/en/order/${orderId}`,
+    });
+
+    await Promise.allSettled(
+      subs.map((row) =>
+        webpush
+          .sendNotification(
+            { endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth } },
+            payload
+          )
+          .catch(async (err: { statusCode?: number }) => {
+            if (err?.statusCode === 410) {
+              // Expired subscription — remove it
+              await sql`DELETE FROM order_push_subscriptions WHERE endpoint = ${row.endpoint}`;
+            }
+          })
+      )
+    );
+  } catch (err) {
+    // Push is best-effort — log but don't fail the status update
+    console.warn("[push] sendCustomerPush failed:", err);
+  }
+}
 
 export const runtime = "nodejs";
 
@@ -44,19 +93,25 @@ export async function PATCH(
 
     // Approve order
     if (action === "approve") {
-      if (!estimatedReady) {
-        return NextResponse.json({ error: "estimatedReady is required to approve" }, { status: 400 });
-      }
-      const readyAt = new Date(estimatedReady);
-      if (isNaN(readyAt.getTime())) {
+      const settings = await getSiteSettings();
+      const newStatus = settings.depositRequired ? "approved" : "preparing";
+      const readyAt = estimatedReady ? new Date(estimatedReady) : null;
+      if (estimatedReady && readyAt && isNaN(readyAt.getTime())) {
         return NextResponse.json({ error: "estimatedReady is not a valid date" }, { status: 400 });
       }
-      const rows = await sql`
-        UPDATE tray_orders
-        SET status = 'approved', estimated_ready = ${readyAt.toISOString()}
-        WHERE id = ${orderId}
-        RETURNING id, status, estimated_ready
-      `;
+      const rows = readyAt
+        ? await sql`
+            UPDATE tray_orders
+            SET status = ${newStatus}, estimated_ready = ${readyAt.toISOString()}
+            WHERE id = ${orderId}
+            RETURNING id, status, estimated_ready
+          `
+        : await sql`
+            UPDATE tray_orders
+            SET status = ${newStatus}
+            WHERE id = ${orderId}
+            RETURNING id, status, estimated_ready
+          `;
       if (rows.length === 0) return NextResponse.json({ error: "Order not found" }, { status: 404 });
       return NextResponse.json(rows[0]);
     }
@@ -99,6 +154,18 @@ export async function PATCH(
       return NextResponse.json(rows[0]);
     }
 
+    // Mark feedme entered — staff confirmed order was entered into FeedMe POS
+    if (action === "feedme_entered") {
+      const rows = await sql`
+        UPDATE tray_orders
+        SET feedme_entered = TRUE
+        WHERE id = ${orderId}
+        RETURNING id, feedme_entered
+      `;
+      if (rows.length === 0) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      return NextResponse.json(rows[0]);
+    }
+
     // Mark order ready
     if (action === "mark_ready") {
       const rows = await sql`
@@ -108,11 +175,53 @@ export async function PATCH(
         RETURNING id, status
       `;
       if (rows.length === 0) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      // Fire-and-forget customer push notification
+      void sendCustomerPush(orderId);
       return NextResponse.json(rows[0]);
     }
 
+    // Resend WhatsApp notification for failed orders
+    if (action === "resend_notification") {
+      // Fetch full order data needed to build the message
+      const orderRows = await sql<{
+        items: string;
+        total: string;
+        contact_number: string | null;
+        estimated_arrival: string | null;
+        notification_status: string | null;
+      }>`
+        SELECT items, total, contact_number, estimated_arrival, notification_status
+        FROM tray_orders
+        WHERE id = ${orderId}
+      `;
+      if (orderRows.length === 0) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+
+      const orderRow = orderRows[0];
+      const items = (typeof orderRow.items === "string" ? JSON.parse(orderRow.items) : orderRow.items) as {
+        name: string;
+        quantity: number;
+        price: number;
+      }[];
+
+      // Reset notification_status to 'pending' before retrying
+      await sql`UPDATE tray_orders SET notification_status = 'pending' WHERE id = ${orderId}`;
+
+      const resendSettings = await getSiteSettings();
+
+      // Fire-and-forget resend — same pattern as initial send
+      void sendOrderWhatsAppNotification({
+        orderId,
+        items: items.map((item) => ({ name: item.name, quantity: item.quantity, price: item.price })),
+        total: parseFloat(orderRow.total),
+        contactNumber: orderRow.contact_number ?? "",
+        estimatedArrival: orderRow.estimated_arrival ?? new Date().toISOString(),
+      }, resendSettings.waiterEmail);
+
+      return NextResponse.json({ ok: true, notification_status: "pending" });
+    }
+
     return NextResponse.json(
-      { error: "action must be 'approve', 'reject', 'confirm_payment', 'reject_payment', or 'mark_ready'; or status must be 'seen'" },
+      { error: "action must be 'approve', 'reject', 'confirm_payment', 'reject_payment', 'mark_ready', 'feedme_entered', or 'resend_notification'; or status must be 'seen'" },
       { status: 400 }
     );
   } catch (err) {

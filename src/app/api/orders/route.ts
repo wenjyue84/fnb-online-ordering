@@ -3,6 +3,8 @@ import sql from "@/lib/db";
 import webpush from "web-push";
 import { createRateLimiter } from "@/lib/chat/rate-limit";
 import { OrderSubmitSchema } from "@/lib/schemas/order";
+import { getSiteSettings } from "@/lib/site-settings";
+import { sendOrderWhatsAppNotification } from "@/lib/notifications";
 
 // 5 orders per hour per IP
 const ordersRateLimiter = createRateLimiter({
@@ -14,7 +16,7 @@ const ordersRateLimiter = createRateLimiter({
 // Configure VAPID — only if keys are present (skipped in dev without .env.local)
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
-const vapidSubject = process.env.VAPID_SUBJECT || "mailto:admin@makanmoments.cafe";
+const vapidSubject = process.env.VAPID_SUBJECT || "mailto:admin@localhost";
 
 if (vapidPublicKey && vapidPrivateKey) {
   webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
@@ -24,8 +26,9 @@ async function sendPushToAllAdmins(itemCount: number, total: number) {
   if (!vapidPublicKey || !vapidPrivateKey) return;
   try {
     const subs = await sql<{ endpoint: string; p256dh: string; auth: string }>`SELECT endpoint, p256dh, auth FROM push_subscriptions`;
+    const { cafeName } = await getSiteSettings();
     const payload = JSON.stringify({
-      title: "🍽 New Order — Makan Moments",
+      title: `🍽 New Order — ${cafeName || "Cafe"}`,
       body: `${itemCount} item${itemCount !== 1 ? "s" : ""} — RM ${total.toFixed(2)}`,
       url: "/admin",
     });
@@ -61,8 +64,7 @@ export async function POST(request: NextRequest) {
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     "127.0.0.1";
-  // Bypass rate limiting for localhost to allow automated tests to run cleanly
-  const rateCheck = ip === "127.0.0.1" ? { allowed: true } : ordersRateLimiter(ip);
+  const rateCheck = await ordersRateLimiter(ip);
   if (!rateCheck.allowed) {
     return NextResponse.json(
       { error: "Too many orders. Please try again later." },
@@ -92,28 +94,55 @@ export async function POST(request: NextRequest) {
     const { items, total, contactNumber: normalizedPhone, estimatedArrival } = parsed.data;
     const arrivalTime = new Date(estimatedArrival);
 
-    // Ensure table exists with full schema (idempotent)
-    await sql`
-      CREATE TABLE IF NOT EXISTS tray_orders (
-        id                     SERIAL PRIMARY KEY,
-        items                  JSONB NOT NULL,
-        total                  NUMERIC(8,2) NOT NULL,
-        status                 TEXT NOT NULL DEFAULT 'pending_approval',
-        contact_number         TEXT,
-        estimated_arrival      TIMESTAMPTZ,
-        estimated_ready        TIMESTAMPTZ,
-        rejection_reason       TEXT,
-        payment_screenshot_url TEXT,
-        created_at             TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `;
+    // Slot capacity check: count orders in the same 30-minute window
+    const settings = await getSiteSettings();
 
-    // Add missing columns to pre-existing tables (idempotent migration)
-    await sql`ALTER TABLE tray_orders ADD COLUMN IF NOT EXISTS contact_number TEXT`;
-    await sql`ALTER TABLE tray_orders ADD COLUMN IF NOT EXISTS estimated_arrival TIMESTAMPTZ`;
-    await sql`ALTER TABLE tray_orders ADD COLUMN IF NOT EXISTS estimated_ready TIMESTAMPTZ`;
-    await sql`ALTER TABLE tray_orders ADD COLUMN IF NOT EXISTS rejection_reason TEXT`;
-    await sql`ALTER TABLE tray_orders ADD COLUMN IF NOT EXISTS payment_screenshot_url TEXT`;
+    // Configurable minimum advance time check
+    const minAdvanceMs = (settings.minAdvanceMinutes ?? 15) * 60 * 1000;
+    if (arrivalTime.getTime() - Date.now() < minAdvanceMs) {
+      return NextResponse.json(
+        { error: "arrival_too_soon", minAdvanceMinutes: settings.minAdvanceMinutes ?? 15 },
+        { status: 400 }
+      );
+    }
+    const maxPerSlot = settings.maxOrdersPerSlot ?? 5;
+
+    // Compute slot boundaries (floor to :00 or :30)
+    const slotStartMs = Math.floor(arrivalTime.getTime() / (30 * 60_000)) * (30 * 60_000);
+    const slotStart = new Date(slotStartMs);
+    const slotEnd = new Date(slotStartMs + 30 * 60_000);
+
+    const countRows = await sql<{ count: string }>`
+      SELECT COUNT(*) AS count
+      FROM tray_orders
+      WHERE estimated_arrival >= ${slotStart.toISOString()}
+        AND estimated_arrival < ${slotEnd.toISOString()}
+        AND status NOT IN ('rejected', 'expired')
+    `;
+    const slotCount = parseInt(countRows[0]?.count ?? "0", 10);
+
+    if (slotCount >= maxPerSlot) {
+      // Find the next available slot
+      let nextSlotStart = slotEnd;
+      let nextSlotEnd = new Date(nextSlotStart.getTime() + 30 * 60_000);
+      for (let i = 0; i < 24; i++) {
+        const checkRows = await sql<{ count: string }>`
+          SELECT COUNT(*) AS count
+          FROM tray_orders
+          WHERE estimated_arrival >= ${nextSlotStart.toISOString()}
+            AND estimated_arrival < ${nextSlotEnd.toISOString()}
+            AND status NOT IN ('rejected', 'expired')
+        `;
+        const checkCount = parseInt(checkRows[0]?.count ?? "0", 10);
+        if (checkCount < maxPerSlot) break;
+        nextSlotStart = nextSlotEnd;
+        nextSlotEnd = new Date(nextSlotStart.getTime() + 30 * 60_000);
+      }
+      return NextResponse.json(
+        { error: "slot_full", nextAvailableSlot: nextSlotStart.toISOString() },
+        { status: 409 }
+      );
+    }
 
     const rows = await sql`
       INSERT INTO tray_orders (items, total, status, contact_number, estimated_arrival)
@@ -127,10 +156,25 @@ export async function POST(request: NextRequest) {
       RETURNING id, created_at
     `;
 
+    const orderId = rows[0].id as number;
+
     // Fire-and-forget push notification to all subscribed admins
     void sendPushToAllAdmins(items.length, total);
 
-    return NextResponse.json({ ok: true, id: rows[0].id }, { status: 201 });
+    // Fire-and-forget WhatsApp notification with retry (updates notification_status in DB)
+    void sendOrderWhatsAppNotification({
+      orderId,
+      items: items.map((item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+      })),
+      total,
+      contactNumber: normalizedPhone,
+      estimatedArrival: arrivalTime.toISOString(),
+    }, settings.waiterEmail);
+
+    return NextResponse.json({ ok: true, id: orderId }, { status: 201 });
   } catch (err) {
     console.error("[POST /api/orders]", err);
     return NextResponse.json({ error: "Failed to save order" }, { status: 500 });

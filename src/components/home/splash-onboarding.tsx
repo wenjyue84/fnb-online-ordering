@@ -15,7 +15,7 @@ export function SplashOnboarding() {
       if (!localStorage.getItem(SPLASH_KEY)) {
         setVisible(true);
       }
-    }, 1500);
+    }, 2500);
     return () => clearTimeout(timer);
   }, []);
 
@@ -63,7 +63,7 @@ export function SplashOnboarding() {
         {/* Dismiss button */}
         <button
           onClick={dismiss}
-          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-stone-200 text-stone-600 transition hover:bg-stone-300"
+          className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-stone-200 text-stone-600 transition hover:bg-stone-300"
           aria-label="Close"
         >
           <X className="h-4 w-4" />

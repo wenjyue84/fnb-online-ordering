@@ -20,6 +20,8 @@ export interface AdminOrder {
   estimated_ready: string | null;
   rejection_reason: string | null;
   payment_screenshot_url: string | null;
+  notification_status: string | null;
+  feedme_entered: boolean | null;
   created_at: string;
 }
 
@@ -28,7 +30,7 @@ export type FilterTab = "All" | "Pending" | "Active" | "Done" | "Expired";
 export function filterOrders(orders: AdminOrder[], tab: FilterTab) {
   if (tab === "Pending") return orders.filter((o) => o.status === "pending_approval" || o.status === "pending");
   if (tab === "Active") return orders.filter((o) => ["approved", "payment_pending", "payment_uploaded", "preparing"].includes(o.status));
-  if (tab === "Done") return orders.filter((o) => o.status === "ready" || o.status === "rejected" || o.status === "seen");
+  if (tab === "Done") return orders.filter((o) => o.status === "ready" || o.status === "rejected" || o.status === "cancelled" || o.status === "seen");
   if (tab === "Expired") return orders.filter((o) => o.status === "expired");
   return orders;
 }
@@ -74,13 +76,30 @@ export function useAdminOrders() {
         const d = await res.json();
         return { ok: false, error: d.error ?? "Failed to approve" };
       }
-      const data = await res.json();
-      updateOrder(id, { status: "approved", estimated_ready: data.estimated_ready });
+      const data = await res.json() as { status: string; estimated_ready: string };
+      // Use the status returned by the server (respects depositRequired setting)
+      updateOrder(id, { status: data.status, estimated_ready: data.estimated_ready });
       return { ok: true };
     } catch (err) {
       return { ok: false, error: err instanceof Error && err.name === "AbortError" ? "Request timed out" : "Network error" };
     }
   }, [updateOrder]);
+
+  const bulkApprove = useCallback(async (): Promise<{ approved: number; failed: number } | null> => {
+    try {
+      const res = await fetchWithTimeout("/api/admin/orders/bulk-approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) return null;
+      const data = await res.json() as { approved: number; failed: number };
+      // Refresh orders list after bulk approve
+      await fetchOrders(true);
+      return data;
+    } catch {
+      return null;
+    }
+  }, [fetchOrders]);
 
   const rejectOrder = useCallback(async (id: number, reason: string): Promise<ActionResult> => {
     try {
@@ -153,6 +172,7 @@ export function useAdminOrders() {
     filtered,
     fetchOrders,
     approveOrder,
+    bulkApprove,
     rejectOrder,
     updateStatus,
   };

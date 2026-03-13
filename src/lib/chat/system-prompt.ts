@@ -1,14 +1,19 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 import { readChatSettings } from "./settings";
+import { getSiteSettings } from "@/lib/site-settings";
 import sql from "@/lib/db";
+import { getServingNowCategories } from "@/lib/time-slots";
 
 // Static file cache — cleared on invalidation only
 let staticKnowledgeCache: { cafeFacts: string; faq: string } | null = null;
 // Menu DB cache — auto-expires after 60 minutes
 let menuCache: { text: string; expiresAt: number } | null = null;
+// Rainbow AI KB cache — auto-expires after 5 minutes
+let rainbowKBCache: { systemPrompt: string; kbFiles: string[]; cachedAt: number; expiresAt: number } | null = null;
 
 const MENU_CACHE_TTL_MS = 60 * 60 * 1000; // 60 minutes
+const RAINBOW_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 function loadKnowledge(filename: string): string {
   try {
@@ -36,7 +41,6 @@ function formatMenuRow(row: MenuRow): string {
   const price = typeof row.price === "number" ? row.price.toFixed(2) : row.price;
   const dietary = Array.isArray(row.dietary) ? row.dietary.filter(Boolean).join(",") : (row.dietary ?? "");
   const tag = dietary ? ` [${dietary}]` : "";
-  // Compact format: saves ~70% tokens vs verbose format (364 items × 30 tokens → ~10 tokens each)
   return `${row.code} ${row.name_en} RM${price}${tag}`;
 }
 
@@ -79,8 +83,56 @@ async function fetchMenuFromDB(): Promise<string> {
   }
 }
 
+/**
+ * US-403: Fetch KB context from Rainbow AI if enabled.
+ * Returns the static knowledge portion (cafe-facts + faq) from Rainbow AI.
+ * Falls back to local files on failure.
+ */
+async function fetchRainbowKBContext(): Promise<{ cafeFacts: string; faq: string } | null> {
+  const rainbowEnabled = process.env.RAINBOW_AI_ENABLED === "true";
+  const rainbowUrl = process.env.RAINBOW_AI_URL;
+
+  if (!rainbowEnabled || !rainbowUrl) return null;
+
+  if (rainbowKBCache && Date.now() < rainbowKBCache.expiresAt) {
+    return { cafeFacts: rainbowKBCache.systemPrompt, faq: "" };
+  }
+
+  try {
+    const response = await fetch(
+      `${rainbowUrl}/api/chat/makan-moments/kb-context`,
+      { signal: AbortSignal.timeout(3000) }
+    );
+
+    if (!response.ok) {
+      console.warn(`[system-prompt] Rainbow AI returned ${response.status}, falling back to local KB`);
+      return null;
+    }
+
+    const data = await response.json() as { systemPrompt: string; kbFiles: string[]; cachedAt: number };
+    rainbowKBCache = { ...data, expiresAt: Date.now() + RAINBOW_CACHE_TTL_MS };
+
+    return { cafeFacts: data.systemPrompt, faq: "" };
+  } catch (err) {
+    console.warn("[system-prompt] Rainbow AI fetch failed, falling back to local KB:", err);
+    return null;
+  }
+}
+
 async function buildKnowledgeBlock(): Promise<string> {
-  // Static files cached until manually invalidated
+  // Try Rainbow AI first (US-403)
+  const rainbowKB = await fetchRainbowKBContext();
+
+  if (rainbowKB) {
+    const menuKnowledge = await fetchMenuFromDB();
+    return `## Cafe Knowledge (from Rainbow AI)
+${rainbowKB.cafeFacts}
+
+## Menu Knowledge (Live from Database)
+${menuKnowledge}`;
+  }
+
+  // Fallback: local files
   if (!staticKnowledgeCache) {
     staticKnowledgeCache = {
       cafeFacts: loadKnowledge("cafe-facts.md"),
@@ -88,7 +140,6 @@ async function buildKnowledgeBlock(): Promise<string> {
     };
   }
 
-  // Menu fetched from DB with 60-min TTL
   const menuKnowledge = await fetchMenuFromDB();
 
   return `## Cafe Facts
@@ -101,16 +152,47 @@ ${menuKnowledge}
 ${staticKnowledgeCache.faq}`;
 }
 
+/**
+ * US-404: Build time context section for the system prompt.
+ * Computed fresh on every call (not cached).
+ */
+async function buildTimeContext(): Promise<string> {
+  const now = new Date();
+  const timeStr = new Intl.DateTimeFormat("en-MY", {
+    timeZone: "Asia/Kuala_Lumpur",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(now);
+
+  const dayStr = new Intl.DateTimeFormat("en-MY", {
+    timeZone: "Asia/Kuala_Lumpur",
+    weekday: "long",
+  }).format(now);
+
+  const servingCategories = await getServingNowCategories();
+
+  return `## TIME CONTEXT
+Current time: ${timeStr} (${dayStr})
+Currently serving: ${servingCategories.join(", ")}
+When a customer asks what to eat or for recommendations, prioritize items from the currently serving categories.`;
+}
+
 export function invalidateSystemPromptCache(): void {
   staticKnowledgeCache = null;
   menuCache = null;
+  rainbowKBCache = null;
 }
 
 export async function getSystemPrompt(): Promise<string> {
-  const settings = readChatSettings();
-  const knowledge = await buildKnowledgeBlock();
+  const settings = await readChatSettings();
+  const { cafeName } = await getSiteSettings();
+  const [knowledge, timeContext] = await Promise.all([
+    buildKnowledgeBlock(),
+    buildTimeContext(),
+  ]);
 
-  const base = `You are the AI Waiter for Makan Moments Cafe (食光记忆 / Kafe Kenangan Makan), a Thai-Malaysian fusion cafe in Skudai, Johor, Malaysia.
+  const base = `You are the AI Waiter for ${cafeName || "this cafe"}, a Thai-Malaysian fusion cafe in Skudai, Johor, Malaysia.
 
 ## Your Role
 - Help customers with menu inquiries, recommendations, and cafe information
@@ -135,6 +217,8 @@ export async function getSystemPrompt(): Promise<string> {
 
 ORDER STATUS: If the customer mentions their order number or ID, extract the number and call \`checkOrderStatus(orderId)\`. If no number given, ask first. After you receive the tool result, IMMEDIATELY write your text reply to the customer — relay the "message" field from the tool. NEVER call checkOrderStatus more than once per turn. Do NOT call any tool after receiving the order status result.
 SUBMIT ORDER: Can submit pre-orders via chat. Collect items+qty, Malaysian phone, arrival time (min 15min from now). Show order summary+total, get confirmation, then call \`submitOrder\`. Share order ID on success.
+
+${timeContext}
 
 ${knowledge}`;
 

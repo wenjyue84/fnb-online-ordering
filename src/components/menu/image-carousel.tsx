@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ImageCarouselProps {
@@ -30,6 +30,23 @@ export function ImageCarousel({
   onLoad,
 }: ImageCarouselProps) {
   const [current, setCurrent] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(dx) < 30) return; // ignore small swipes
+    if (dx < 0) {
+      setCurrent((i) => (i + 1) % photos.length);
+    } else {
+      setCurrent((i) => (i - 1 + photos.length) % photos.length);
+    }
+  }, [photos.length]);
 
   const prev = useCallback(
     (e: React.MouseEvent) => {
@@ -53,7 +70,11 @@ export function ImageCarousel({
   const multiplePhotos = photos.length > 1;
 
   return (
-    <>
+    <div
+      onTouchStart={multiplePhotos ? handleTouchStart : undefined}
+      onTouchEnd={multiplePhotos ? handleTouchEnd : undefined}
+      className="absolute inset-0"
+    >
       <Image
         src={src}
         alt={alt}
@@ -73,7 +94,7 @@ export function ImageCarousel({
             type="button"
             onClick={prev}
             aria-label="Previous photo"
-            className="absolute left-1 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-7 h-7 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+            className="absolute left-1 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-9 h-9 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -81,7 +102,7 @@ export function ImageCarousel({
             type="button"
             onClick={next}
             aria-label="Next photo"
-            className="absolute right-1 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-7 h-7 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+            className="absolute right-1 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-9 h-9 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -105,6 +126,6 @@ export function ImageCarousel({
           </div>
         </>
       )}
-    </>
+    </div>
   );
 }
