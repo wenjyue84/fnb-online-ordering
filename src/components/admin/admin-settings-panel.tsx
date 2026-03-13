@@ -476,7 +476,7 @@ export function AdminSettingsPanel({ displayCategories }: AdminSettingsPanelProp
                 value={settings.waiterEmail ?? ""}
                 onChange={(e) => setField("waiterEmail", e.target.value || undefined)}
                 className="w-full max-w-sm rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
-                placeholder="e.g. owner@makanmoments.cafe"
+                placeholder="e.g. owner@gmail.com"
               />
               <p className="mt-1 text-xs text-gray-500">Leave blank to disable email fallback.</p>
             </div>

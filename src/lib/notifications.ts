@@ -175,7 +175,7 @@ async function sendEmailFallback(
     const { Resend } = await import("resend");
     const resend = new Resend(apiKey);
     const { error } = await resend.emails.send({
-      from: "Makan Moments <orders@makanmoments.cafe>",
+      from: "Makan Moments <orders@fnb-online-order.vercel.app>",
       to: [waiterEmail],
       subject,
       html,

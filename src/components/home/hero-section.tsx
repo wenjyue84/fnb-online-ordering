@@ -131,7 +131,6 @@ export async function HeroSection({ heroTitle, heroTagline, heroSubtitle, signat
               cafeName={settings.cafeName}
               className="aspect-[4/3] shadow-xl hover-lift"
               sizes="(max-width: 1024px) 50vw, 800px"
-              priority
               fallbackBlurDataURL={HERO_BLUR.heroMobile}
             />
           </div>
