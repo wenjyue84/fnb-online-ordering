@@ -1,0 +1,288 @@
+{
+  "productName": "fnb-online-ordering",
+  "branchName": "feature/iter-06",
+  "overview": "Iteration 6: Pre-Order Flow Enhancement — POS Integration, Customer UX, and Staff Alarm System. Build a simple built-in POS dashboard for staff, add POS mode toggle (built-in vs FeedMe manual entry), improve customer order submission feedback, implement 10-minute auto-escalation for unattended orders, upgrade staff notifications to persistent alarm sounds, and make the app installable as an Android PWA with alarm capabilities.",
+  "goals": [
+    "Build a simple built-in POS dashboard (/pos) so staff can manage orders without depending on FeedMe",
+    "Add POS mode toggle: when 'feedme_manual', prompt staff with checklist to manually enter into FeedMe; when 'builtin', orders flow through built-in POS",
+    "Improve customer order submission UX: animated success screen, prominent order ID, progress stepper, WhatsApp share",
+    "Implement 10-minute auto-escalation: notify both customer and staff when orders go unattended",
+    "Upgrade staff audio notifications to persistent alarm that repeats until acknowledged, with escalation levels",
+    "Make admin/KDS installable as Android PWA with background push alarm capabilities"
+  ],
+  "userStories": [
+    {
+      "id": "US-501",
+      "title": "Wire depositRequired into approve action",
+      "priority": 1,
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": true
+    },
+    {
+      "id": "US-502",
+      "title": "Kitchen PIN auth (/kds/login)",
+      "priority": 2,
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": true
+    },
+    {
+      "id": "US-503",
+      "title": "Kitchen Display System (KDS)",
+      "priority": 3,
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": true
+    },
+    {
+      "id": "US-504",
+      "title": "Admin SSE for real-time new order notifications",
+      "priority": 4,
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": true
+    },
+    {
+      "id": "US-505",
+      "title": "Bulk approve with smart estimated-ready time",
+      "priority": 5,
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": true
+    },
+    {
+      "id": "US-506",
+      "title": "Customer Web Push notification on order ready",
+      "priority": 6,
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": true
+    },
+    {
+      "id": "US-507",
+      "title": "Improved order status page UX",
+      "priority": 7,
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": true
+    },
+    {
+      "id": "US-609",
+      "title": "Halal-friendly badge prominence and servesCuisine structured data",
+      "priority": "high",
+      "description": "Makan Moments is a Halal-friendly cafe (no pork, no lard) in a Muslim-majority region of Johor. This is a core trust signal for the majority of the target audience. The Halal-friendly status should be prominently surfaced on the landing page, menu page, and in structured data. Currently it exists only in the AI waiter knowledge base, not in the customer-facing UI or structured data.",
+      "acceptanceCriteria": [
+        "A prominent 'Halal-Friendly / Mesra Halal / 清真友好' badge appears in the hero section and menu page header, using a green crescent icon or dedicated halal icon",
+        "The badge is accompanied by a tooltip or popover: 'No pork, no lard. Muslim-friendly ingredients.' in all 3 locales",
+        "The Restaurant JSON-LD includes: servesCuisine: ['Thai', 'Malaysian', 'Halal-friendly'], hasMenu, and amenityFeature with a HealthAspectEnumeration for halal",
+        "The info strip on the home page includes a halal indicator alongside location and hours",
+        "Menu items with dietaryRestriction information include hasMenuSection or suitableForDiet properties in their MenuItem structured data"
+      ],
+      "technicalNotes": [
+        "schema.org suitableForDiet: 'https://schema.org/HalalDiet' is the correct enumeration value",
+        "For the badge: a simple inline SVG crescent or use an emoji (🌙) fallback for simplicity",
+        "Add halal messaging to messages/{locale}.json: en: 'Halal-Friendly', ms: 'Mesra Halal', zh: '清真友好'",
+        "Reference: https://schema.org/suitableForDiet",
+        "The badge must be visible above the fold on mobile without scrolling"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-604",
+      "title": "10-Minute Auto-Escalation for Unattended Orders",
+      "priority": 4,
+      "description": "Implement an escalation system that detects orders stuck in pending_approval for more than 10 minutes. When triggered: (1) the admin bell and KDS play an escalating alarm sound that's louder and more urgent than the normal new-order chime, (2) push notification sent to all subscribed staff devices with urgent priority, (3) customer's /order/[id] page shows a 'Taking longer than expected' banner with WhatsApp fallback CTA, (4) the order card gets a red 'OVERDUE' badge. The escalation check runs client-side on admin/KDS (comparing order.created_at against current time) and server-side via the SSE stream.",
+      "acceptanceCriteria": [
+        "Orders pending_approval for > 10 minutes get an 'OVERDUE' red badge on admin order cards, KDS cards, and POS cards",
+        "SSE stream (/api/admin/orders/stream) emits a new 'escalation' event type for orders pending > 10 min (checked each 3s poll cycle)",
+        "On 'escalation' SSE event: AdminOrdersBell plays escalation alarm sound (different from normal chime) — louder, more urgent tone",
+        "KDS page: detects overdue orders client-side (created_at + 10min < now) and plays escalation alarm, shows red pulsing border on overdue cards",
+        "Escalation alarm: 3-second urgent beeping pattern, repeats every 30 seconds until the order is approved/rejected (uses US-605 alarm system)",
+        "Push notification for escalation: title 'Urgent: Order Overdue!', body 'Order #XYZ has been waiting 10+ minutes', tag 'escalation-{orderId}' (so it replaces, not stacks)",
+        "Customer /order/[id] page: when pending_approval and created_at + 10min < now, show yellow banner 'Your order is taking longer than usual to be confirmed. You can contact us directly:' + WhatsApp button",
+        "WhatsApp button: opens wa.me with pre-filled 'Hi, my order #ORDERID has been waiting for confirmation for over 10 minutes'",
+        "Escalation is per-order: once an order is approved/rejected, its escalation stops (alarm clears, badge removed)",
+        "New site setting: escalationMinutes (default: 10) — admin can configure the threshold in Settings > Pre-Order tab",
+        "All customer-facing escalation strings translated in 3 locales"
+      ],
+      "technicalNotes": [
+        "Edit: src/app/api/admin/orders/stream/route.ts — add escalation detection: for each pending_approval order, if created_at + escalationMinutes*60000 < Date.now(), emit 'escalation' event with { id, minutesOverdue }",
+        "Edit: src/components/admin/admin-orders-bell.tsx — handle 'escalation' event type from SSE, play escalation alarm sound (use AlarmManager from US-605)",
+        "Edit: src/components/admin/admin-order-card.tsx — add 'OVERDUE' badge when order is pending_approval and created_at + escalationMinutes*60000 < Date.now()",
+        "Edit: src/app/kds/page.tsx — add overdue detection and alarm trigger for overdue orders",
+        "Edit: src/app/pos/page.tsx — add OVERDUE badge on pending cards",
+        "Edit: src/app/[locale]/order/[id]/page.tsx — add escalation banner for customer when order is overdue",
+        "Push notification: in SSE route or separate cron-like endpoint, when escalation detected, query admin_push_subscriptions and send urgent push via webpush.sendNotification()",
+        "Edit: src/lib/site-settings-shared.ts — add escalationMinutes: number to SiteSettings (default: 10)",
+        "Edit: src/components/admin/admin-settings-panel.tsx — add 'Escalation Timeout (minutes)' input in Pre-Order tab",
+        "Client-side overdue check: const isOverdue = order.status === 'pending_approval' && (Date.now() - new Date(order.created_at).getTime()) > escalationMinutes * 60000",
+        "i18n: add escalation_banner, escalation_whatsapp_message keys to all 3 locale files"
+      ],
+      "dependencies": [
+        "US-605"
+      ],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-605",
+      "title": "Persistent Alarm Sound System for Staff",
+      "priority": 5,
+      "description": "Upgrade the existing KDS 3-note chime to a comprehensive alarm system with multiple urgency levels. Create a shared AlarmManager utility that both admin and KDS pages use. Normal new-order sound: pleasant 2-note chime (existing behavior, slightly enhanced). Escalation sound: urgent repeating beep pattern that plays every 30 seconds until staff acknowledges. Alarm sounds use Web Audio API for reliable playback without needing audio files. Include mute toggle, snooze (5 min), and volume control in admin/KDS header.",
+      "acceptanceCriteria": [
+        "New shared utility: AlarmManager class with methods play(level), stop(), snooze(minutes), setVolume(0-1), isMuted getter",
+        "Alarm levels: 'chime' (new order — pleasant 2-note tone, plays once), 'urgent' (escalation — 3-beep pattern, repeats every 30s until stopped)",
+        "Web Audio API synthesis: no audio files needed — generate tones programmatically (chime: 523Hz+659Hz, urgent: 880Hz rapid beeps)",
+        "AlarmManager is a singleton — same instance shared across components on the page",
+        "KDS page: replace existing 3-note chime with AlarmManager.play('chime') for new orders",
+        "KDS page: AlarmManager.play('urgent') triggered when overdue orders detected (from US-604)",
+        "Admin orders bell: AlarmManager.play('chime') on new_order SSE event (currently has no sound)",
+        "Admin orders bell: AlarmManager.play('urgent') on escalation SSE event",
+        "Alarm control bar in KDS header: mute/unmute toggle button, volume slider (0-100%), snooze button ('Snooze 5 min' — silences all alarms for 5 minutes)",
+        "Alarm control bar in admin header (near the bell): same mute/volume/snooze controls",
+        "Snooze: while active, show countdown 'Snoozed (4:32 remaining)' — after expiry, alarms resume",
+        "Mute state persisted in localStorage ('alarm_muted') so it survives page refresh",
+        "Volume state persisted in localStorage ('alarm_volume')",
+        "First interaction requirement: Web Audio API requires user gesture — show 'Enable Sound' button on first visit, after click, unlock audio context"
+      ],
+      "technicalNotes": [
+        "Create: src/lib/alarm-manager.ts — singleton class using Web Audio API (AudioContext, OscillatorNode, GainNode)",
+        "Chime tone: create two oscillators at 523Hz (C5) and 659Hz (E5), play for 200ms each with 100ms gap, sine wave, gain envelope fade-out",
+        "Urgent tone: 880Hz (A5) square wave, 100ms on / 100ms off pattern x3, then 30s silence, then repeat — use setInterval internally",
+        "Singleton pattern: let instance: AlarmManager | null = null; export function getAlarmManager(): AlarmManager",
+        "Create: src/components/shared/alarm-controls.tsx — reusable alarm control bar component (mute button, volume slider, snooze button with countdown)",
+        "Edit: src/app/kds/page.tsx — replace existing audio chime logic with AlarmManager, add AlarmControls to header",
+        "Edit: src/components/admin/admin-orders-bell.tsx — add AlarmManager.play('chime') on new_order, play('urgent') on escalation",
+        "Edit: src/components/admin/admin-tabs.tsx or admin header — add AlarmControls component",
+        "Audio context unlock: AlarmManager constructor creates AudioContext in 'suspended' state; unlock() method calls audioContext.resume() — must be called from user gesture",
+        "Show 'Enable Sound 🔔' floating button (fixed bottom-right) when audioContext.state === 'suspended'; hide after unlock",
+        "localStorage keys: 'alarm_muted' (boolean), 'alarm_volume' (number 0-1)",
+        "Snooze: internal timer — set this._snoozedUntil = Date.now() + minutes*60000; play() checks if Date.now() < _snoozedUntil and skips if true"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-606",
+      "title": "Staff Android PWA with Alarm Notifications",
+      "priority": 6,
+      "description": "Make the admin dashboard and KDS installable as a Progressive Web App on Android phones. Staff can 'Add to Home Screen' and the app runs in standalone mode with a proper app-like experience. Push notifications work in the background even when the app is minimized, triggering alarm-like notification sounds. Includes proper manifest, app icons, splash screen, and an install prompt banner. The service worker is enhanced to handle push events with custom notification sounds.",
+      "acceptanceCriteria": [
+        "Valid manifest.webmanifest at /manifest.webmanifest (fix existing .bak file): name, short_name, icons (192+512), start_url: '/admin', display: 'standalone', theme_color, background_color",
+        "App icons: generate from existing logo or create simple 'MM' text icons at 192x192 and 512x512 PNG sizes",
+        "<link rel='manifest'> tag in root layout head",
+        "Install prompt: 'Install Makan Moments Staff App' banner shown on /admin and /kds pages when beforeinstallprompt fires (not yet installed)",
+        "Install banner: app icon, 'Install' button, 'Not now' dismiss (dismissed state saved in localStorage for 7 days)",
+        "After install: banner disappears, app launches in standalone mode with no browser chrome",
+        "Service worker push handler: plays notification sound using notification.sound or vibration pattern [200,100,200,100,200] for urgent notifications",
+        "Push notification payload supports priority field: 'normal' (standard notification) or 'urgent' (adds vibration pattern + requireInteraction: true)",
+        "Background push: when app is minimized/closed, push notification still shows with vibration (Android native behavior via SW)",
+        "Notification click: opens the relevant page (/admin for admin notifications, /kds for kitchen notifications) based on notification.data.url",
+        "/admin and /kds pages detect standalone mode (window.matchMedia('(display-mode: standalone)')) and adjust UI: hide 'open in browser' links, show 'Staff App' badge in header",
+        "sw.js: service worker registration happens on /admin and /kds pages (already exists but verify it works in standalone mode)"
+      ],
+      "technicalNotes": [
+        "Rename/recreate: public/manifest.json.bak → public/manifest.webmanifest with proper PWA fields",
+        "Create: public/images/icons/icon-192.png and icon-512.png — can use a simple canvas-generated 'MM' icon or copy from existing assets",
+        "Edit: src/app/layout.tsx (root) — add <link rel='manifest' href='/manifest.webmanifest'> and <meta name='theme-color'>",
+        "Create: src/components/shared/install-prompt.tsx — component that listens to beforeinstallprompt event, shows install banner, calls prompt() on click",
+        "Edit: src/app/admin/page.tsx — add InstallPrompt component",
+        "Edit: src/app/kds/page.tsx — add InstallPrompt component",
+        "Edit: public/sw.js — enhance push event handler: parse notification.data.priority, if 'urgent' add vibrate pattern to notification options",
+        "Manifest start_url should be '/admin' for the staff app; KDS staff can pin /kds separately",
+        "Icons: if no logo exists, generate programmatically in a build script or use a simple SVG-to-PNG approach; alternatively use placeholder solid-color icons with text",
+        "beforeinstallprompt: window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); setDeferredPrompt(e); setShowBanner(true); })",
+        "Install: deferredPrompt.prompt(); const result = await deferredPrompt.userChoice; if (result.outcome === 'accepted') setShowBanner(false);",
+        "localStorage key for dismiss: 'install_prompt_dismissed_at' — if < 7 days ago, don't show banner",
+        "Standalone detection: const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true"
+      ],
+      "dependencies": [
+        "US-605"
+      ],
+      "estimatedComplexity": "medium",
+      "passes": false,
+      "filesTouch": [
+        "messages/en.json",
+        "messages/ms.json",
+        "messages/zh.json",
+        "prd.json",
+        "progress.txt",
+        "retry-counts.json",
+        "src/app/[locale]/order/[id]/page.tsx",
+        "src/app/api/admin/orders/[id]/route.ts",
+        "src/app/api/orders/[id]/push-subscribe/route.ts"
+      ]
+    },
+    {
+      "id": "US-614",
+      "title": "Blog post Article and BreadcrumbList JSON-LD structured data",
+      "priority": "medium",
+      "description": "Blog post pages lack per-post structured data. Google's Article rich results require an Article (or BlogPosting) schema with author, datePublished, dateModified, and image. Adding BreadcrumbList structured data to blog posts also enables breadcrumb display in Google Search results, increasing click-through rates for the cafe's content marketing.",
+      "acceptanceCriteria": [
+        "Each /[locale]/blog/[slug] page renders a BlogPosting JSON-LD with: headline, description, author (Organization with cafe name), datePublished, dateModified, image (if post has hero image), publisher, inLanguage (locale)",
+        "A BreadcrumbList JSON-LD is rendered on blog post and menu pages: Home > Blog > Post Title",
+        "Structured data validates in Google Rich Results Test without errors or warnings",
+        "datePublished uses ISO 8601 format (e.g. 2025-06-01T08:00:00+08:00) with Malaysia timezone offset",
+        "The JSON-LD is rendered as a server component — not injected client-side"
+      ],
+      "technicalNotes": [
+        "BlogPosting @type inherits from Article — use BlogPosting for blog content",
+        "BreadcrumbList item: { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://...' }",
+        "Reference: https://developers.google.com/search/docs/appearance/structured-data/article",
+        "Reference: https://developers.google.com/search/docs/appearance/structured-data/breadcrumb",
+        "Pass the slug and post metadata to a <BlogPostingJsonLd /> RSC in the blog/[slug]/page.tsx"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-618",
+      "title": "Multi-tab POS state sync via BroadcastChannel API",
+      "priority": "low",
+      "description": "When staff have the POS dashboard open in multiple browser tabs on the same device (e.g., kitchen tablet with two windows), order status updates from one tab are not reflected in the other. The BroadcastChannel API provides a zero-cost same-origin message channel to synchronise order state across tabs without a WebSocket server, which is ideal for a single-device kitchen setup.",
+      "acceptanceCriteria": [
+        "When an order's status changes in one POS tab (e.g., tapped 'Move to Preparing'), the other tabs update within 200ms",
+        "New order cards received via SSE in one tab are broadcast to all other POS tabs",
+        "Tab that originates the action does not re-process its own broadcast message (sender exclusion via a unique tab ID)",
+        "BroadcastChannel is set up in a useEffect hook and closed on component unmount",
+        "The feature degrades gracefully in browsers without BroadcastChannel support (Firefox < 38, older Safari) — no error thrown"
+      ],
+      "technicalNotes": [
+        "const channel = new BroadcastChannel('pos-orders'); channel.postMessage({ type: 'order_updated', order }); channel.onmessage = (e) => handleRemoteUpdate(e.data)",
+        "Generate a unique tabId with crypto.randomUUID() on mount; include it in all broadcast messages; ignore messages with own tabId",
+        "BroadcastChannel works across tabs within the same origin — does NOT work across devices (use WebSocket for multi-device)",
+        "Reference: https://developer.mozilla.org/en-US/docs/Web/API/BroadcastChannel",
+        "Check support: 'BroadcastChannel' in window before initialising"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    }
+  ]
+}

@@ -1,108 +1,46 @@
 {
   "productName": "fnb-online-ordering",
-  "branchName": "feature/iter-05",
-  "overview": "Iteration 5: Core Ordering Flow — Reduce Customer Wait Time. Wire the existing deposit-optional setting into the approve action so kitchen starts immediately, build a Kitchen Display System (KDS) tablet page so kitchen sees orders without waiting for FeedMe entry, add SSE for instant admin notifications, bulk-approve with smart ready-time suggestions, customer Web Push on order ready, and improved order status UX.",
+  "branchName": "feature/iter-06",
+  "overview": "Iteration 6: Pre-Order Flow Enhancement — POS Integration, Customer UX, and Staff Alarm System. Build a simple built-in POS dashboard for staff, add POS mode toggle (built-in vs FeedMe manual entry), improve customer order submission feedback, implement 10-minute auto-escalation for unattended orders, upgrade staff notifications to persistent alarm sounds, and make the app installable as an Android PWA with alarm capabilities.",
   "goals": [
-    "Wire depositRequired into approve action: when OFF, approval immediately sets status to 'preparing' so kitchen can start without waiting for T&G deposit",
-    "Build /kitchen KDS page — tablet-optimized, shows live preparing/approved orders with ETA countdown and color-coded urgency",
-    "Add kitchen PIN auth (/kitchen/login) separate from admin auth",
-    "Replace 30s admin polling with SSE for instant new-order notifications (Edge Runtime, <1s latency)",
-    "Add Bulk Approve with smart estimated-ready time suggestion (base 10 min + 2 min per item line)",
-    "Notify customers via Web Push when their order is ready (reuse existing VAPID infra)",
-    "Improve order status page: expiry countdown, clearer messaging per depositRequired state, WhatsApp fallback"
+    "Build a simple built-in POS dashboard (/pos) so staff can manage orders without depending on FeedMe",
+    "Add POS mode toggle: when 'feedme_manual', prompt staff with checklist to manually enter into FeedMe; when 'builtin', orders flow through built-in POS",
+    "Improve customer order submission UX: animated success screen, prominent order ID, progress stepper, WhatsApp share",
+    "Implement 10-minute auto-escalation: notify both customer and staff when orders go unattended",
+    "Upgrade staff audio notifications to persistent alarm that repeats until acknowledged, with escalation levels",
+    "Make admin/KDS installable as Android PWA with background push alarm capabilities"
   ],
   "userStories": [
     {
       "id": "US-501",
       "title": "Wire depositRequired into approve action",
       "priority": 1,
-      "description": "The depositRequired boolean already exists in SiteSettings (type, default: false, admin toggle in settings panel) but the approve action in /api/admin/orders/[id] always sets status='approved' regardless. Wire it: when depositRequired=false, approval sets status='preparing' directly. When depositRequired=true, keep existing approved→payment flow. Customer status page must show correct messaging for each branch.",
-      "acceptanceCriteria": [
-        "PATCH /api/admin/orders/[id]?action=approve: reads getSiteSettings().depositRequired",
-        "depositRequired=false: sets status='preparing' (not 'approved'); estimatedReady still saved if provided",
-        "depositRequired=true: existing behaviour unchanged (status='approved', customer must upload T&G)",
-        "GET /api/settings (public) includes depositRequired field so client pages can read it",
-        "Customer /order/[id] page: when depositRequired=false AND status is 'preparing', hides T&G payment section, shows 'Your order is confirmed — kitchen is preparing your food'",
-        "Customer /order/[id] page: when depositRequired=true, existing payment upload section shows as before",
-        "Admin order card still shows correct action buttons regardless of depositRequired value"
-      ],
-      "technicalNotes": [
-        "Edit: src/app/api/admin/orders/[id]/route.ts — in the 'approve' action block (line ~46), call getSiteSettings() and branch on depositRequired",
-        "Edit: src/app/api/settings/route.ts — add depositRequired to the public safe-fields response",
-        "Edit: src/app/[locale]/order/[id]/page.tsx — fetch GET /api/settings on mount (or inline with order fetch), use depositRequired to gate payment section visibility",
-        "getSiteSettings() is in src/lib/site-settings.ts — already returns depositRequired from data/site-settings.json",
-        "estimatedReady should still be accepted (and saved) on approve even when depositRequired=false — admin may set it",
-        "No schema change needed — status column already supports 'preparing'"
-      ],
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
       "dependencies": [],
       "estimatedComplexity": "small",
       "passes": true
     },
     {
       "id": "US-502",
-      "title": "Kitchen PIN auth (/kds/login — implemented at /kds)",
+      "title": "Kitchen PIN auth (/kds/login)",
       "priority": 2,
-      "description": "Add a simple PIN-based auth gate for the /kitchen route, separate from admin JWT. Kitchen staff enter a PIN on /kitchen/login; a kitchen_token JWT cookie is issued (role: kitchen, 12h expiry). Admin sets the PIN in the Settings tab. A verifyKitchenToken() helper is added to auth.ts for use by kitchen API routes.",
-      "acceptanceCriteria": [
-        "/kitchen/login page: numeric PIN input (4-6 digits), submit button, error message on wrong PIN",
-        "Correct PIN → POST /api/kitchen/auth → sets kitchen_token HttpOnly JWT cookie → redirect to /kitchen",
-        "Wrong PIN → 'Incorrect PIN' error shown inline (no redirect)",
-        "kitchen_token is a JWT signed with ADMIN_JWT_SECRET, payload { role: 'kitchen' }, expires 12h",
-        "verifyKitchenToken(request: Request) added to src/lib/auth.ts — reads kitchen_token cookie, returns payload or null",
-        "POST /api/kitchen/auth: reads kitchenPin from getSiteSettings(); 5 failed attempts per IP → 60s lockout (in-memory)",
-        "kitchenPin field added to SiteSettings type with default '1234'; DEFAULT_SETTINGS updated",
-        "Admin Settings panel: new 'Kitchen PIN' text input field (shows current PIN, allows change)",
-        "No i18n required for kitchen pages — English only",
-        "/kitchen page: if no valid kitchen_token cookie, redirects to /kitchen/login (client-side check on mount)"
-      ],
-      "technicalNotes": [
-        "Create: src/app/kitchen/login/page.tsx — client component, PIN form",
-        "Create: src/app/api/kitchen/auth/route.ts — POST endpoint",
-        "Edit: src/lib/auth.ts — add verifyKitchenToken(); reuse jose/JWT pattern from existing verifyAdminToken()",
-        "Edit: src/lib/site-settings-shared.ts — add kitchenPin: string to SiteSettings interface and DEFAULT_SETTINGS",
-        "Edit: src/components/admin/admin-settings-panel.tsx — add Kitchen PIN input field",
-        "Rate limiting: copy pattern from src/lib/chat/rate-limit.ts (in-memory Map keyed by IP)",
-        "Kitchen auth is SEPARATE from admin auth — kitchen_token cannot access /api/admin/ routes",
-        "Cookie name: 'kitchen_token' (different from admin COOKIE_NAME)",
-        "Kitchen login page should have a minimal bare layout (no site header/footer)"
-      ],
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
       "dependencies": [],
       "estimatedComplexity": "small",
       "passes": true
     },
     {
       "id": "US-503",
-      "title": "Kitchen Display System (KDS) — /kitchen page",
+      "title": "Kitchen Display System (KDS)",
       "priority": 3,
-      "description": "Build the /kitchen tablet page that shows live orders needing kitchen action. Orders sorted by customer ETA (soonest first). Color-coded urgency. One-tap 'Start Preparing' and 'Mark Ready' buttons. Auto-refreshes every 5 seconds via polling. Uses dedicated kitchen API routes authenticated with kitchen_token.",
-      "acceptanceCriteria": [
-        "GET /kitchen: redirects to /kitchen/login if no valid kitchen_token",
-        "Shows orders in 'preparing' status + 'approved' status (approved orders appear only when depositRequired=false)",
-        "Orders sorted by estimated_arrival ASC NULLS LAST (no ETA orders go to bottom)",
-        "Each order card shows: short order ID, item list with quantities, total (RM), customer ETA (formatted time), time elapsed since order created, deposit status badge",
-        "Deposit status badge: 'Paid' (payment_screenshot_url exists) | 'Not Required' (depositRequired=false) | 'Pending' (depositRequired=true, not yet paid)",
-        "ETA urgency colour: RED border/bg ≤5 min remaining, YELLOW 6-10 min, GREEN >10 min, GREY no ETA",
-        "Per-card buttons: 'Start Preparing' (approved→preparing, only shown if status=approved) | 'Mark Ready ✓' (preparing→ready, only shown if status=preparing)",
-        "Page header: 'Kitchen Display' title, auto-refresh indicator ('↻ Auto-refresh every 5s'), last-refreshed timestamp",
-        "Empty state: 'No active orders — kitchen is clear 🎉'",
-        "Layout: 1-column on mobile, 2-column on ≥768px (tablet landscape), large readable text, touch targets ≥56px",
-        "GET /api/kitchen/orders: returns preparing + approved orders (kitchen-auth-gated)",
-        "PATCH /api/kitchen/orders/[id]: accepts { action: 'start' | 'ready' }, updates status accordingly (kitchen-auth-gated)"
-      ],
-      "technicalNotes": [
-        "Create: src/app/kitchen/page.tsx — client component with 5s setInterval polling",
-        "Create: src/app/kitchen/layout.tsx — bare layout, no site header/footer, just a <main> wrapper",
-        "Create: src/app/api/kitchen/orders/route.ts — GET, verifyKitchenToken(), SELECT from tray_orders WHERE status IN ('approved','preparing')",
-        "Create: src/app/api/kitchen/orders/[id]/route.ts — PATCH, verifyKitchenToken(), action='start' sets preparing, action='ready' sets ready",
-        "Query for approved+preparing: SELECT id, items, total, contact_number, estimated_arrival, estimated_ready, status, payment_screenshot_url, created_at FROM tray_orders WHERE status IN ('approved','preparing') ORDER BY estimated_arrival ASC NULLS LAST",
-        "Color logic: compute Math.floor((new Date(estimated_arrival) - Date.now()) / 60000) minutes remaining",
-        "Items column is JSONB: [{id, nameEn, price, quantity}] — render as 'Qty x Name' lines",
-        "'Start' PATCH sets status='preparing'; 'Ready' PATCH sets status='ready'",
-        "No i18n — English only for kitchen staff interface",
-        "No admin JWT needed — use verifyKitchenToken() from US-502",
-        "Kitchen layout must NOT wrap with the main [locale]/layout.tsx — it is outside the [locale] directory, sitting at src/app/kitchen/"
-      ],
-      "dependencies": ["US-501", "US-502"],
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
       "estimatedComplexity": "medium",
       "passes": true
     },
@@ -110,31 +48,9 @@
       "id": "US-504",
       "title": "Admin SSE for real-time new order notifications",
       "priority": 4,
-      "description": "Replace the 30-second admin polling in AdminOrdersBell with a Server-Sent Events connection so the admin sees new orders within 3 seconds of submission. Uses Edge Runtime to avoid Vercel's 60s serverless timeout. Includes heartbeat, auto-reconnect, and graceful fallback to 30s polling if SSE is unsupported.",
-      "acceptanceCriteria": [
-        "GET /api/admin/orders/stream: Edge Runtime SSE endpoint, auth-gated (reads admin JWT cookie)",
-        "Server polls for new pending_approval orders every 3s and emits 'new_order' event with { id, total, itemCount, createdAt }",
-        "Emits 'heartbeat' comment (': ping') every 20s to keep connection alive",
-        "Response headers include: Content-Type: text/event-stream, Cache-Control: no-cache, X-Accel-Buffering: no",
-        "Client (AdminOrdersBell): on mount creates EventSource('/api/admin/orders/stream')",
-        "On 'new_order' event: increment unread badge count, trigger the existing bell animation/sound",
-        "On SSE disconnect/error: attempt reconnect after 5s, up to 3 attempts; after 3 failures fall back to 30s setInterval polling",
-        "Admin dashboard header shows a small status indicator: green dot 'Live' when SSE connected, grey 'Polling' when fallback active",
-        "On component unmount: close EventSource connection (prevent memory leak)",
-        "Existing 30s polling in useAdminOrders hook is kept as-is (for order list refresh) — SSE only replaces the bell notification polling"
-      ],
-      "technicalNotes": [
-        "Create: src/app/api/admin/orders/stream/route.ts",
-        "Use: export const runtime = 'edge' and export const dynamic = 'force-dynamic'",
-        "Edge Runtime + Neon: import { neon } from '@neondatabase/serverless' directly (NOT sql from @/lib/db which uses Pool — Pool is not edge-compatible)",
-        "Use: const sql = neon(process.env.DATABASE_URL!); then: await sql`SELECT id FROM tray_orders WHERE status='pending_approval' AND created_at > ${lastCheck}`",
-        "Auth in Edge: manually parse the admin JWT cookie from request.headers.get('cookie') — verifyAdminToken() from auth.ts uses Node.js APIs; instead use jose's jwtVerify() directly with the JWT secret",
-        "Track lastCheck as a local variable inside the ReadableStream start() function, initialized to new Date().toISOString()",
-        "SSE format: data: {json}\\n\\n for named events, : ping\\n\\n for heartbeat",
-        "Client: edit src/components/admin/admin-orders-bell.tsx — add useEffect with new EventSource, onmessage handler, onerror reconnect logic",
-        "Reconnect pattern: use a ref to track attempt count; setTimeout(reconnect, 5000) on error; after 3 attempts, clearEventSource and start setInterval fallback",
-        "The 'Live'/'Polling' indicator: a small state variable in AdminOrdersBell, render as a colored dot with text near the bell icon"
-      ],
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
       "dependencies": [],
       "estimatedComplexity": "medium",
       "passes": true
@@ -143,30 +59,10 @@
       "id": "US-505",
       "title": "Bulk approve with smart estimated-ready time",
       "priority": 5,
-      "description": "Add an 'Approve All Pending (N)' button to the admin Orders tab for approving multiple orders at once during lunch rush. Smart ready-time formula auto-calculates estimated_ready for each order. Single-order approve modal also pre-fills with the smart suggestion.",
-      "acceptanceCriteria": [
-        "'Approve All Pending (N)' button appears in the Pending Approval tab when N > 0",
-        "Clicking opens a confirmation modal: 'Approve all N pending orders? Ready times will be auto-calculated.'",
-        "POST /api/admin/orders/bulk-approve: approves all pending_approval orders, calculates estimated_ready per order using smart formula",
-        "Smart formula: estimatedReady = now + max(10, min(30, 10 + 2 * items.length)) minutes (unique line count, not total quantity)",
-        "Bulk approve respects depositRequired: if false → status='preparing'; if true → status='approved'",
-        "After bulk approve: order list refreshes, success toast 'N orders approved'",
-        "Partial failure: toast shows 'X approved, Y failed' without blocking",
-        "Single-order approve modal: 'Estimated Ready Time' datetime-local input pre-filled with smart suggestion (admin can override before confirming)",
-        "Both bulk and single approve use the same calculateSmartReadyTime(items) helper"
-      ],
-      "technicalNotes": [
-        "Create: src/app/api/admin/orders/bulk-approve/route.ts — POST, verifyAdminToken(), loops through pending orders",
-        "Create: src/lib/orders.ts — export function calculateSmartReadyTime(items: {id:string,quantity:number}[]): Date",
-        "Formula: const mins = Math.max(10, Math.min(30, 10 + 2 * items.length)); return new Date(Date.now() + mins * 60000)",
-        "Bulk approve query: SELECT id, items FROM tray_orders WHERE status='pending_approval'",
-        "For each order: UPDATE tray_orders SET status=${newStatus}, estimated_ready=${readyTime} WHERE id=${id}",
-        "Edit: src/components/admin/admin-orders-panel.tsx — add bulk approve button in Pending tab header",
-        "Edit the single-approve modal (wherever it lives) — import calculateSmartReadyTime, call it with order.items, use result as defaultValue for the datetime-local input",
-        "The bulk approve button should only be visible when the 'Pending Approval' tab is active and pending count > 0",
-        "Use Promise.allSettled() for the loop — don't abort if one fails"
-      ],
-      "dependencies": ["US-501"],
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
       "estimatedComplexity": "small",
       "passes": true
     },
@@ -174,31 +70,9 @@
       "id": "US-506",
       "title": "Customer Web Push notification on order ready",
       "priority": 6,
-      "description": "Let customers opt-in to a Web Push notification on the /order/[id] status page. When admin marks the order as ready, a push is sent to the customer's browser. Reuses existing VAPID keys and web-push package already installed. iOS without PWA install shows a WhatsApp fallback instead.",
-      "acceptanceCriteria": [
-        "/order/[id] shows 'Notify me when ready 🔔' button when order status is pending_approval, approved, or preparing",
-        "On iOS where push is unavailable without PWA (detected via userAgent + display-mode check): button is hidden, show 'We'll update your status here' text instead",
-        "Clicking 'Notify me': browser permission prompt → on grant, subscribe via pushManager.subscribe() → POST /api/orders/[id]/push-subscribe",
-        "POST /api/orders/[id]/push-subscribe: stores { order_id, endpoint, p256dh, auth } in new order_push_subscriptions table (CREATE TABLE IF NOT EXISTS in route)",
-        "After subscribing: button changes to '✓ Notifications on' and becomes disabled",
-        "When admin marks order ready (action=mark_ready in PATCH /api/admin/orders/[id]): queries order_push_subscriptions for that order_id, calls webpush.sendNotification()",
-        "Push payload: { title: 'Order Ready! 🍽️', body: 'Your order is ready for pickup at Makan Moments Cafe', url: '/order/{id}' }",
-        "410 Gone response from push service: delete that subscription row (already done for admin push — same pattern)",
-        "NEXT_PUBLIC_VAPID_PUBLIC_KEY already exists in .env.example — no new env var needed (reuse existing VAPID keys)",
-        "Service worker public/sw.js already handles 'push' events and 'notificationclick' — update notificationclick to open the order URL from notification.data.url (not hardcoded /admin)"
-      ],
-      "technicalNotes": [
-        "Create: src/app/api/orders/[id]/push-subscribe/route.ts — POST, no auth (order ID is the identity)",
-        "Table DDL (in route): CREATE TABLE IF NOT EXISTS order_push_subscriptions (id SERIAL PRIMARY KEY, order_id TEXT NOT NULL, endpoint TEXT NOT NULL UNIQUE, p256dh TEXT NOT NULL, auth TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW())",
-        "Edit: src/app/api/admin/orders/[id]/route.ts — in mark_ready action block, after updating status, query order_push_subscriptions and call webpush.sendNotification() — fire-and-forget, catch and console.warn only",
-        "webpush.setVapidDetails() is already configured in src/app/api/orders/route.ts — import the configured webpush instance or call setVapidDetails again in the admin orders route",
-        "iOS check (client): const isIOSWithoutPWA = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.matchMedia('(display-mode: standalone)').matches",
-        "NEXT_PUBLIC_VAPID_PUBLIC_KEY is already in .env.example — use it for pushManager.subscribe({ applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) })",
-        "urlBase64ToUint8Array helper: standard utility — copy the 10-line implementation inline in the component",
-        "Edit: public/sw.js notificationclick handler — change targetUrl to use event.notification.data?.url || '/admin' (already does this — just verify the data.url is passed correctly from the push payload)",
-        "Edit: src/app/[locale]/order/[id]/page.tsx — add push subscribe UI (button + state: idle | subscribed | unsupported)",
-        "No i18n needed for the subscribe button (English only is fine)"
-      ],
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
       "dependencies": [],
       "estimatedComplexity": "medium",
       "passes": true
@@ -207,32 +81,1098 @@
       "id": "US-507",
       "title": "Improved order status page UX",
       "priority": 7,
-      "description": "Improve /order/[id] with an expiry countdown, clearer per-stage messaging that accounts for depositRequired, WhatsApp fallback CTA on rejection/expiry, a 'last updated' indicator, and a confetti celebration when status becomes ready.",
-      "acceptanceCriteria": [
-        "When status='pending_approval': show expiry countdown 'Expires in X min Y sec' counting down from created_at + orderExpiryMinutes; turns red when < 5 min remaining",
-        "When order expires: message 'This order expired as it wasn't confirmed in time. Please WhatsApp us to re-order.' + WhatsApp CTA button",
-        "When status='rejected': rejection reason shown prominently, WhatsApp CTA 'Message us to re-order' with pre-filled text 'Hi, my order #ORDERID was rejected...'",
-        "When depositRequired=false AND status='preparing': hide T&G payment section, show 'Order confirmed — kitchen is preparing your food 🍳'",
-        "When depositRequired=true AND status='approved': show existing payment upload section unchanged",
-        "'Last updated X sec ago' text that increments every second; resets to 0 on each successful poll response",
-        "When status changes to 'ready' (detected on poll): show full-screen CSS confetti animation for 3 seconds (emoji-based, no JS library)",
-        "'Copy order ID' button on all terminal statuses (ready, rejected, expired): copies '#ORDERID' to clipboard, shows 'Copied!' tooltip",
-        "All new user-facing strings added to messages/en.json, messages/ms.json, messages/zh.json"
-      ],
-      "technicalNotes": [
-        "Edit: src/app/[locale]/order/[id]/page.tsx",
-        "Expiry countdown: expiryTime = new Date(order.created_at).getTime() + (orderExpiryMinutes * 60000); use setInterval every 1s to update remaining seconds display; fetch orderExpiryMinutes from GET /api/settings",
-        "depositRequired: fetch from GET /api/settings (already updated in US-501 to include this field)",
-        "WhatsApp link: https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER}?text=Hi%2C%20my%20order%20%23${orderId}%20...",
-        "Confetti: pure CSS @keyframes — add a <div> with position:fixed, pointer-events:none, z-index:9999 containing ~20 emoji spans animated with random translateY + rotate + opacity. Remove after 3s via setTimeout",
-        "'Last updated' counter: use a separate useEffect with setInterval(1000), reset via a state dependency on the last poll timestamp",
-        "Copy to clipboard: navigator.clipboard.writeText('#' + orderId).then(() => show tooltip 'Copied!')",
-        "orderExpiryMinutes is already in SiteSettings and returned by getSiteSettings() — add it to GET /api/settings public response",
-        "i18n: add keys for all new strings (expiry_countdown, order_expired_message, whatsapp_cta, order_preparing_no_deposit, last_updated, copy_order_id, copied) in all 3 locale files"
-      ],
-      "dependencies": ["US-501"],
+      "description": "Completed in iteration 5.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [],
       "estimatedComplexity": "medium",
       "passes": true
+    },
+    {
+      "id": "US-601",
+      "title": "Built-in Simple POS Dashboard",
+      "priority": 1,
+      "description": "Build a /pos page as a lightweight order management hub for staff. This is NOT a full FeedMe replacement — it's a consolidated view where staff can see the full order queue, transition order statuses with one tap, view order details with running totals, and generate simple printable receipts. The POS dashboard shows all active orders in a kanban-style layout (Pending → Preparing → Ready) with drag or tap to advance. Includes a daily sales summary footer (total orders, total revenue). Accessible from admin sidebar or direct URL. Uses existing admin JWT auth.",
+      "acceptanceCriteria": [
+        "/pos page: kanban-style 3-column layout — 'Pending' (pending_approval), 'Preparing' (preparing + approved), 'Ready' (ready) — with order cards in each column",
+        "Each order card shows: order ID (large), item list with quantities, total (RM), customer contact, ETA, elapsed time since creation",
+        "One-tap status transitions: tap card action button to advance (Pending→Preparing, Preparing→Ready)",
+        "Approve action on Pending cards: respects depositRequired setting (if false→preparing, if true→approved)",
+        "Reject button on Pending cards: opens inline reason input, PATCH to rejected",
+        "Order detail modal: tap card to expand full details — all items, customer notes, payment screenshot (if uploaded), timestamps",
+        "Simple receipt view: 'Print Receipt' button in detail modal opens a print-friendly layout with order ID, items, prices, total, cafe name, date/time",
+        "Daily summary footer: shows today's order count, total revenue (sum of completed orders), average order value",
+        "Auto-refresh every 10 seconds (polls /api/admin/orders with date filter for today)",
+        "Responsive: 3-column on tablet/desktop, stacked single-column with tab switcher on mobile",
+        "Auth: requires admin JWT (reuses verifyAdminToken), redirects to /admin/login if not authenticated",
+        "Navigation: link from admin dashboard sidebar/header to /pos, and back button from /pos to /admin"
+      ],
+      "technicalNotes": [
+        "Create: src/app/pos/page.tsx — client component, admin-auth-gated",
+        "Create: src/app/pos/layout.tsx — minimal layout without main site header/footer (like KDS layout)",
+        "Reuse: useAdminOrders() hook from src/hooks/use-admin-orders.ts for data fetching and status mutations",
+        "Kanban columns: filter orders by status groups — pending: ['pending_approval'], preparing: ['approved','preparing','payment_uploaded'], ready: ['ready']",
+        "Status transitions reuse existing PATCH /api/admin/orders/[id] endpoint — no new API routes needed",
+        "Receipt print: use window.print() with a print-specific CSS stylesheet (@media print) that hides everything except the receipt content",
+        "Daily summary: filter orders where created_at >= today midnight, sum totals for status in ['ready','preparing']",
+        "The /pos page is a simplified alternative to the admin Orders tab — both use the same backend",
+        "Mobile tab switcher: use shadcn Tabs component with 3 tabs matching the 3 columns",
+        "Add /pos link to admin header navigation (src/components/admin/admin-tabs.tsx or wherever admin nav lives)"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": true
+    },
+    {
+      "id": "US-602",
+      "title": "POS Mode Toggle — Built-in vs FeedMe Manual Entry",
+      "priority": 2,
+      "description": "Completed in iteration 6.",
+      "acceptanceCriteria": [],
+      "technicalNotes": [],
+      "dependencies": [
+        "US-601"
+      ],
+      "estimatedComplexity": "medium",
+      "passes": true
+    },
+    {
+      "id": "US-603",
+      "title": "Enhanced Customer Order Submission Success UX",
+      "priority": 3,
+      "description": "After a customer submits a pre-order, replace the current minimal confirmation with an animated success screen that makes the customer feel confident their order went through. Show a large animated checkmark, the order ID prominently, a visual progress stepper showing current stage, estimated timeline, and quick actions (WhatsApp share, copy order ID). The /order/[id] status page also gets a real-time progress stepper and clearer per-stage messaging.",
+      "acceptanceCriteria": [
+        "After successful POST /api/orders: show a full-screen success overlay with animated checkmark (CSS animation, no JS library)",
+        "Success screen shows: large order ID '#ABC123', 'Order Received!' heading, item summary (count + total), estimated timeline",
+        "Progress stepper on success screen: 4 steps — 'Order Received' (active) → 'Confirmed' → 'Preparing' → 'Ready' — with current step highlighted",
+        "'Share via WhatsApp' button: opens wa.me link with pre-filled text 'I just ordered from Makan Moments! Order #ABC123'",
+        "'Copy Order ID' button: copies to clipboard with 'Copied!' tooltip feedback",
+        "'Track My Order' button: navigates to /order/[id] status page",
+        "Success overlay auto-transitions to /order/[id] after 8 seconds (with countdown indicator)",
+        "/order/[id] page: add horizontal progress stepper at top showing all stages with current stage highlighted and completed stages checked",
+        "Progress stepper stages: Received → Confirmed → Preparing → Ready (maps to: pending_approval → approved/preparing → preparing → ready)",
+        "Each stage in stepper shows timestamp when that stage was reached (if available)",
+        "Below stepper: large status badge with icon and clear message per status (e.g. '🍳 Kitchen is preparing your food' for preparing)",
+        "All new user-facing strings translated in messages/en.json, messages/ms.json, messages/zh.json",
+        "Success overlay respects reduced-motion preference (skip animation, show static checkmark)"
+      ],
+      "technicalNotes": [
+        "Edit: src/lib/tray-context.tsx or wherever the order submission handler lives — after successful POST, set state to show success overlay",
+        "Create: src/components/order/order-success-overlay.tsx — full-screen overlay with animations",
+        "Create: src/components/order/order-progress-stepper.tsx — reusable horizontal stepper, accepts currentStatus prop",
+        "Checkmark animation: CSS @keyframes — circle draws in, then checkmark path draws in (stroke-dashoffset technique)",
+        "Auto-redirect: useEffect with setTimeout(8000) → router.push(`/${locale}/order/${orderId}`), show countdown circle",
+        "Edit: src/app/[locale]/order/[id]/page.tsx — add OrderProgressStepper component at top of page",
+        "WhatsApp share: `https://wa.me/?text=${encodeURIComponent('I just ordered from Makan Moments! Order #' + orderId)}`",
+        "Progress stepper CSS: flexbox row with circles connected by lines; completed = green fill, current = pulsing blue, future = gray",
+        "Status-to-step mapping: { pending_approval: 0, approved: 1, payment_uploaded: 1, preparing: 2, ready: 3, rejected: -1 }",
+        "i18n: add keys order_success_title, order_success_subtitle, share_whatsapp, copy_order_id, track_order, step_received, step_confirmed, step_preparing, step_ready to all 3 locale files",
+        "The success overlay should be a portal (createPortal) to ensure it renders above all other content"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false,
+      "filesTouch": [
+        "messages/en.json",
+        "messages/ms.json",
+        "messages/zh.json",
+        "prd.json",
+        "progress.txt",
+        "retry-counts.json",
+        "src/app/[locale]/order/[id]/page.tsx",
+        "src/app/api/admin/orders/[id]/route.ts",
+        "src/app/api/orders/[id]/push-subscribe/route.ts"
+      ]
+    },
+    {
+      "id": "US-604",
+      "title": "10-Minute Auto-Escalation for Unattended Orders",
+      "priority": 4,
+      "description": "Implement an escalation system that detects orders stuck in pending_approval for more than 10 minutes. When triggered: (1) the admin bell and KDS play an escalating alarm sound that's louder and more urgent than the normal new-order chime, (2) push notification sent to all subscribed staff devices with urgent priority, (3) customer's /order/[id] page shows a 'Taking longer than expected' banner with WhatsApp fallback CTA, (4) the order card gets a red 'OVERDUE' badge. The escalation check runs client-side on admin/KDS (comparing order.created_at against current time) and server-side via the SSE stream.",
+      "acceptanceCriteria": [
+        "Orders pending_approval for > 10 minutes get an 'OVERDUE' red badge on admin order cards, KDS cards, and POS cards",
+        "SSE stream (/api/admin/orders/stream) emits a new 'escalation' event type for orders pending > 10 min (checked each 3s poll cycle)",
+        "On 'escalation' SSE event: AdminOrdersBell plays escalation alarm sound (different from normal chime) — louder, more urgent tone",
+        "KDS page: detects overdue orders client-side (created_at + 10min < now) and plays escalation alarm, shows red pulsing border on overdue cards",
+        "Escalation alarm: 3-second urgent beeping pattern, repeats every 30 seconds until the order is approved/rejected (uses US-605 alarm system)",
+        "Push notification for escalation: title 'Urgent: Order Overdue!', body 'Order #XYZ has been waiting 10+ minutes', tag 'escalation-{orderId}' (so it replaces, not stacks)",
+        "Customer /order/[id] page: when pending_approval and created_at + 10min < now, show yellow banner 'Your order is taking longer than usual to be confirmed. You can contact us directly:' + WhatsApp button",
+        "WhatsApp button: opens wa.me with pre-filled 'Hi, my order #ORDERID has been waiting for confirmation for over 10 minutes'",
+        "Escalation is per-order: once an order is approved/rejected, its escalation stops (alarm clears, badge removed)",
+        "New site setting: escalationMinutes (default: 10) — admin can configure the threshold in Settings > Pre-Order tab",
+        "All customer-facing escalation strings translated in 3 locales"
+      ],
+      "technicalNotes": [
+        "Edit: src/app/api/admin/orders/stream/route.ts — add escalation detection: for each pending_approval order, if created_at + escalationMinutes*60000 < Date.now(), emit 'escalation' event with { id, minutesOverdue }",
+        "Edit: src/components/admin/admin-orders-bell.tsx — handle 'escalation' event type from SSE, play escalation alarm sound (use AlarmManager from US-605)",
+        "Edit: src/components/admin/admin-order-card.tsx — add 'OVERDUE' badge when order is pending_approval and created_at + escalationMinutes*60000 < Date.now()",
+        "Edit: src/app/kds/page.tsx — add overdue detection and alarm trigger for overdue orders",
+        "Edit: src/app/pos/page.tsx — add OVERDUE badge on pending cards",
+        "Edit: src/app/[locale]/order/[id]/page.tsx — add escalation banner for customer when order is overdue",
+        "Push notification: in SSE route or separate cron-like endpoint, when escalation detected, query admin_push_subscriptions and send urgent push via webpush.sendNotification()",
+        "Edit: src/lib/site-settings-shared.ts — add escalationMinutes: number to SiteSettings (default: 10)",
+        "Edit: src/components/admin/admin-settings-panel.tsx — add 'Escalation Timeout (minutes)' input in Pre-Order tab",
+        "Client-side overdue check: const isOverdue = order.status === 'pending_approval' && (Date.now() - new Date(order.created_at).getTime()) > escalationMinutes * 60000",
+        "i18n: add escalation_banner, escalation_whatsapp_message keys to all 3 locale files"
+      ],
+      "dependencies": [
+        "US-605"
+      ],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-605",
+      "title": "Persistent Alarm Sound System for Staff",
+      "priority": 5,
+      "description": "Upgrade the existing KDS 3-note chime to a comprehensive alarm system with multiple urgency levels. Create a shared AlarmManager utility that both admin and KDS pages use. Normal new-order sound: pleasant 2-note chime (existing behavior, slightly enhanced). Escalation sound: urgent repeating beep pattern that plays every 30 seconds until staff acknowledges. Alarm sounds use Web Audio API for reliable playback without needing audio files. Include mute toggle, snooze (5 min), and volume control in admin/KDS header.",
+      "acceptanceCriteria": [
+        "New shared utility: AlarmManager class with methods play(level), stop(), snooze(minutes), setVolume(0-1), isMuted getter",
+        "Alarm levels: 'chime' (new order — pleasant 2-note tone, plays once), 'urgent' (escalation — 3-beep pattern, repeats every 30s until stopped)",
+        "Web Audio API synthesis: no audio files needed — generate tones programmatically (chime: 523Hz+659Hz, urgent: 880Hz rapid beeps)",
+        "AlarmManager is a singleton — same instance shared across components on the page",
+        "KDS page: replace existing 3-note chime with AlarmManager.play('chime') for new orders",
+        "KDS page: AlarmManager.play('urgent') triggered when overdue orders detected (from US-604)",
+        "Admin orders bell: AlarmManager.play('chime') on new_order SSE event (currently has no sound)",
+        "Admin orders bell: AlarmManager.play('urgent') on escalation SSE event",
+        "Alarm control bar in KDS header: mute/unmute toggle button, volume slider (0-100%), snooze button ('Snooze 5 min' — silences all alarms for 5 minutes)",
+        "Alarm control bar in admin header (near the bell): same mute/volume/snooze controls",
+        "Snooze: while active, show countdown 'Snoozed (4:32 remaining)' — after expiry, alarms resume",
+        "Mute state persisted in localStorage ('alarm_muted') so it survives page refresh",
+        "Volume state persisted in localStorage ('alarm_volume')",
+        "First interaction requirement: Web Audio API requires user gesture — show 'Enable Sound' button on first visit, after click, unlock audio context"
+      ],
+      "technicalNotes": [
+        "Create: src/lib/alarm-manager.ts — singleton class using Web Audio API (AudioContext, OscillatorNode, GainNode)",
+        "Chime tone: create two oscillators at 523Hz (C5) and 659Hz (E5), play for 200ms each with 100ms gap, sine wave, gain envelope fade-out",
+        "Urgent tone: 880Hz (A5) square wave, 100ms on / 100ms off pattern x3, then 30s silence, then repeat — use setInterval internally",
+        "Singleton pattern: let instance: AlarmManager | null = null; export function getAlarmManager(): AlarmManager",
+        "Create: src/components/shared/alarm-controls.tsx — reusable alarm control bar component (mute button, volume slider, snooze button with countdown)",
+        "Edit: src/app/kds/page.tsx — replace existing audio chime logic with AlarmManager, add AlarmControls to header",
+        "Edit: src/components/admin/admin-orders-bell.tsx — add AlarmManager.play('chime') on new_order, play('urgent') on escalation",
+        "Edit: src/components/admin/admin-tabs.tsx or admin header — add AlarmControls component",
+        "Audio context unlock: AlarmManager constructor creates AudioContext in 'suspended' state; unlock() method calls audioContext.resume() — must be called from user gesture",
+        "Show 'Enable Sound 🔔' floating button (fixed bottom-right) when audioContext.state === 'suspended'; hide after unlock",
+        "localStorage keys: 'alarm_muted' (boolean), 'alarm_volume' (number 0-1)",
+        "Snooze: internal timer — set this._snoozedUntil = Date.now() + minutes*60000; play() checks if Date.now() < _snoozedUntil and skips if true"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-606",
+      "title": "Staff Android PWA with Alarm Notifications",
+      "priority": 6,
+      "description": "Make the admin dashboard and KDS installable as a Progressive Web App on Android phones. Staff can 'Add to Home Screen' and the app runs in standalone mode with a proper app-like experience. Push notifications work in the background even when the app is minimized, triggering alarm-like notification sounds. Includes proper manifest, app icons, splash screen, and an install prompt banner. The service worker is enhanced to handle push events with custom notification sounds.",
+      "acceptanceCriteria": [
+        "Valid manifest.webmanifest at /manifest.webmanifest (fix existing .bak file): name, short_name, icons (192+512), start_url: '/admin', display: 'standalone', theme_color, background_color",
+        "App icons: generate from existing logo or create simple 'MM' text icons at 192x192 and 512x512 PNG sizes",
+        "<link rel='manifest'> tag in root layout head",
+        "Install prompt: 'Install Makan Moments Staff App' banner shown on /admin and /kds pages when beforeinstallprompt fires (not yet installed)",
+        "Install banner: app icon, 'Install' button, 'Not now' dismiss (dismissed state saved in localStorage for 7 days)",
+        "After install: banner disappears, app launches in standalone mode with no browser chrome",
+        "Service worker push handler: plays notification sound using notification.sound or vibration pattern [200,100,200,100,200] for urgent notifications",
+        "Push notification payload supports priority field: 'normal' (standard notification) or 'urgent' (adds vibration pattern + requireInteraction: true)",
+        "Background push: when app is minimized/closed, push notification still shows with vibration (Android native behavior via SW)",
+        "Notification click: opens the relevant page (/admin for admin notifications, /kds for kitchen notifications) based on notification.data.url",
+        "/admin and /kds pages detect standalone mode (window.matchMedia('(display-mode: standalone)')) and adjust UI: hide 'open in browser' links, show 'Staff App' badge in header",
+        "sw.js: service worker registration happens on /admin and /kds pages (already exists but verify it works in standalone mode)"
+      ],
+      "technicalNotes": [
+        "Rename/recreate: public/manifest.json.bak → public/manifest.webmanifest with proper PWA fields",
+        "Create: public/images/icons/icon-192.png and icon-512.png — can use a simple canvas-generated 'MM' icon or copy from existing assets",
+        "Edit: src/app/layout.tsx (root) — add <link rel='manifest' href='/manifest.webmanifest'> and <meta name='theme-color'>",
+        "Create: src/components/shared/install-prompt.tsx — component that listens to beforeinstallprompt event, shows install banner, calls prompt() on click",
+        "Edit: src/app/admin/page.tsx — add InstallPrompt component",
+        "Edit: src/app/kds/page.tsx — add InstallPrompt component",
+        "Edit: public/sw.js — enhance push event handler: parse notification.data.priority, if 'urgent' add vibrate pattern to notification options",
+        "Manifest start_url should be '/admin' for the staff app; KDS staff can pin /kds separately",
+        "Icons: if no logo exists, generate programmatically in a build script or use a simple SVG-to-PNG approach; alternatively use placeholder solid-color icons with text",
+        "beforeinstallprompt: window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); setDeferredPrompt(e); setShowBanner(true); })",
+        "Install: deferredPrompt.prompt(); const result = await deferredPrompt.userChoice; if (result.outcome === 'accepted') setShowBanner(false);",
+        "localStorage key for dismiss: 'install_prompt_dismissed_at' — if < 7 days ago, don't show banner",
+        "Standalone detection: const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true"
+      ],
+      "dependencies": [
+        "US-605"
+      ],
+      "estimatedComplexity": "medium",
+      "passes": false,
+      "filesTouch": [
+        "messages/en.json",
+        "messages/ms.json",
+        "messages/zh.json",
+        "prd.json",
+        "progress.txt",
+        "retry-counts.json",
+        "src/app/[locale]/order/[id]/page.tsx",
+        "src/app/api/admin/orders/[id]/route.ts",
+        "src/app/api/orders/[id]/push-subscribe/route.ts"
+      ]
+    },
+    {
+      "id": "US-607",
+      "title": "WhatsApp order notification delivery retry with exponential backoff",
+      "priority": "high",
+      "description": "WhatsApp API calls (Periskope or Baileys) can fail transiently due to rate limits, network timeouts, or session expiry. Currently, a failed send silently drops the notification, leaving the waiter unaware of a new order. A retry queue with exponential backoff ensures critical order notifications are delivered even under transient failures.",
+      "acceptanceCriteria": [
+        "The POST /api/orders route wraps the WhatsApp send call in a try/catch; on failure it stores the pending notification in a whatsapp_queue table or in-process retry array",
+        "Up to 3 retry attempts are made with delays of 10s, 30s, 90s (exponential backoff)",
+        "After 3 failed attempts, the order status gains a notification_failed flag and the admin dashboard shows a visual indicator (bell icon with warning)",
+        "A 'Resend Notification' button in the admin Orders panel triggers an immediate retry for notification-failed orders",
+        "Successful delivery clears the failed flag",
+        "All retry attempts and outcomes are logged to the server console with order ID and attempt number"
+      ],
+      "technicalNotes": [
+        "Simplest implementation: use setTimeout chains in the API route handler for 3 retries (works within Vercel function timeout if total < 30s)",
+        "For production: use a Vercel Cron Job or background job pattern — store failed notifications in a Neon table (whatsapp_queue) with next_attempt_at TIMESTAMPTZ",
+        "The cron route /api/cron/retry-notifications polls whatsapp_queue WHERE next_attempt_at <= NOW() AND attempt_count < 3",
+        "Reference: https://vercel.com/docs/cron-jobs",
+        "Add notification_status TEXT and notification_attempts INT columns to the orders table"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false,
+      "filesTouch": [
+        "messages/en.json",
+        "messages/ms.json",
+        "messages/zh.json",
+        "prd.json",
+        "progress.txt",
+        "retry-counts.json",
+        "src/app/[locale]/order/[id]/page.tsx",
+        "src/app/api/admin/orders/[id]/route.ts",
+        "src/app/api/orders/[id]/push-subscribe/route.ts"
+      ]
+    },
+    {
+      "id": "US-608",
+      "title": "Pre-order slot capacity limits to prevent kitchen overload",
+      "priority": "high",
+      "description": "Without slot capacity controls, a surge of pre-orders for the same arrival window can overwhelm kitchen staff. Industry best practice for F&B pre-ordering is to cap the number of concurrent orders per time window. The system should reject new orders gracefully when a slot is full and suggest the next available slot.",
+      "acceptanceCriteria": [
+        "Admin can configure a max_orders_per_slot value in site settings (default: 5 orders per 30-minute window)",
+        "POST /api/orders counts existing non-rejected orders with estimated_arrival within the same 30-minute window before accepting",
+        "If the slot is at capacity, the API returns 409 with a JSON body: { error: 'slot_full', nextAvailableSlot: ISO8601 }",
+        "The order submission modal displays a user-friendly message: 'This arrival time is fully booked. Next available: [time]' in all 3 locales",
+        "The customer can select the suggested next available slot with one tap",
+        "Slot capacity check is atomic (uses a Postgres transaction or SELECT ... FOR UPDATE to prevent race conditions)"
+      ],
+      "technicalNotes": [
+        "Query: SELECT COUNT(*) FROM orders WHERE estimated_arrival BETWEEN $slotStart AND $slotEnd AND status NOT IN ('rejected', 'expired')",
+        "Use a 30-minute window: slot boundaries at :00 and :30 of each hour",
+        "Add max_orders_per_slot to data/site-settings.json and expose via GET /api/admin/settings",
+        "The nextAvailableSlot calculation iterates 30-minute windows until finding one below capacity",
+        "Reference: https://stripe.com/docs/api (pattern for capacity enforcement in payment APIs)"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false,
+      "filesTouch": [
+        "messages/en.json",
+        "messages/ms.json",
+        "messages/zh.json",
+        "prd.json",
+        "progress.txt",
+        "retry-counts.json",
+        "src/app/[locale]/order/[id]/page.tsx",
+        "src/app/api/admin/orders/[id]/route.ts",
+        "src/app/api/orders/[id]/push-subscribe/route.ts"
+      ]
+    },
+    {
+      "id": "US-609",
+      "title": "Halal-friendly badge prominence and servesCuisine structured data",
+      "priority": "high",
+      "description": "Makan Moments is a Halal-friendly cafe (no pork, no lard) in a Muslim-majority region of Johor. This is a core trust signal for the majority of the target audience. The Halal-friendly status should be prominently surfaced on the landing page, menu page, and in structured data. Currently it exists only in the AI waiter knowledge base, not in the customer-facing UI or structured data.",
+      "acceptanceCriteria": [
+        "A prominent 'Halal-Friendly / Mesra Halal / 清真友好' badge appears in the hero section and menu page header, using a green crescent icon or dedicated halal icon",
+        "The badge is accompanied by a tooltip or popover: 'No pork, no lard. Muslim-friendly ingredients.' in all 3 locales",
+        "The Restaurant JSON-LD includes: servesCuisine: ['Thai', 'Malaysian', 'Halal-friendly'], hasMenu, and amenityFeature with a HealthAspectEnumeration for halal",
+        "The info strip on the home page includes a halal indicator alongside location and hours",
+        "Menu items with dietaryRestriction information include hasMenuSection or suitableForDiet properties in their MenuItem structured data"
+      ],
+      "technicalNotes": [
+        "schema.org suitableForDiet: 'https://schema.org/HalalDiet' is the correct enumeration value",
+        "For the badge: a simple inline SVG crescent or use an emoji (🌙) fallback for simplicity",
+        "Add halal messaging to messages/{locale}.json: en: 'Halal-Friendly', ms: 'Mesra Halal', zh: '清真友好'",
+        "Reference: https://schema.org/suitableForDiet",
+        "The badge must be visible above the fold on mobile without scrolling"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-610",
+      "title": "Customer PWA Add-to-Home-Screen install prompt",
+      "priority": "medium",
+      "description": "The customer-facing site has a manifest.json and service worker but never prompts customers to install it as a PWA. Using the beforeinstallprompt API to stash the install event and surface a custom 'Install App' banner improves return visit rates for repeat customers on Android. The native browser mini-infobar should be suppressed in favour of a branded prompt.",
+      "acceptanceCriteria": [
+        "A beforeinstallprompt event listener is registered in the customer layout on first mount",
+        "The browser mini-infobar is suppressed via e.preventDefault() when the event fires",
+        "A dismissible 'Install App' banner (not a modal) appears at the bottom of the screen on mobile after 2 page interactions",
+        "Clicking 'Install' calls prompt() on the stashed event and resolves the userChoice promise",
+        "The banner is hidden permanently after the user dismisses it or accepts/rejects (stored in localStorage)",
+        "The banner does not appear in admin or KDS routes",
+        "Install state is tracked: appinstalled event hides the banner if PWA is already installed"
+      ],
+      "technicalNotes": [
+        "Store the stashed BeforeInstallPromptEvent in a React context or Zustand store, NOT in useState (rerenders reset it)",
+        "Check navigator.standalone (iOS) and window.matchMedia('(display-mode: standalone)') to detect already-installed state",
+        "Reference: https://web.dev/articles/customize-install",
+        "The banner component should be a Client Component added to [locale]/layout.tsx",
+        "Do NOT show on iOS Safari — A2HS on iOS requires Share → Add to Home Screen; beforeinstallprompt is Android/Chrome only"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-611",
+      "title": "Service worker update lifecycle: prompt user to refresh on new deployment",
+      "priority": "medium",
+      "description": "When a new version of the app is deployed to Vercel, the existing service worker continues serving the stale cached version to users who have the PWA open. Without a skipWaiting and clients.claim flow plus a UI prompt, users may run outdated JavaScript for hours or days. This is especially risky after order-flow or admin changes.",
+      "acceptanceCriteria": [
+        "The new service worker calls skipWaiting() inside its install event when a SKIP_WAITING message is received",
+        "The service worker registration in the app detects the 'waiting' state (new SW available)",
+        "A non-intrusive toast/banner appears at the top of the page: 'Update available — tap to refresh'",
+        "Clicking the refresh button sends the SKIP_WAITING message to the waiting SW, then calls window.location.reload()",
+        "The update check is performed on every page focus event (visibilitychange) in addition to the initial registration",
+        "Admin and KDS routes show the update banner with higher priority (immediate, not dismissible without refreshing)"
+      ],
+      "technicalNotes": [
+        "Pattern: registration.waiting.postMessage({ type: 'SKIP_WAITING' }) in the client; self.addEventListener('message', e => { if (e.data.type === 'SKIP_WAITING') self.skipWaiting(); }) in sw.js",
+        "Use navigator.serviceWorker.addEventListener('controllerchange', ...) to detect when the new SW has taken control, then reload",
+        "Reference: https://developer.chrome.com/docs/workbox/handling-service-worker-updates/",
+        "Next.js Turbopack builds change the SW file hash on each deploy — the browser detects the changed sw.js and triggers the update flow automatically"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-612",
+      "title": "Client-side menu keyword search with instant results",
+      "priority": "medium",
+      "description": "Customers browsing a long menu benefit from a search bar that instantly filters items by name, description, or price range. Since menu data is already fetched server-side and passed to the client, fuzzy search can run entirely client-side with no additional API calls, providing sub-10ms response times even on low-end devices.",
+      "acceptanceCriteria": [
+        "A search input bar appears above the filter pills on /[locale]/menu, labelled in all 3 locales (Search menu / Cari menu / 搜索菜单)",
+        "Typing filters menu items in real time (< 100ms debounce) matching against item name (EN/MS/ZH) and description",
+        "Matching is case-insensitive and accent-insensitive",
+        "Search results show the matched text highlighted (e.g. bold the matching substring)",
+        "Clearing the search input restores the previous active category filter",
+        "Search and category filter can be combined: if both are active, apply both",
+        "Empty state: a 'No items match your search' message with a Clear Search button",
+        "Search input is clearable with a single tap (X icon in the input)"
+      ],
+      "technicalNotes": [
+        "No external library needed — filter client-side using Array.filter() + String.includes() or a simple Levenshtein distance check",
+        "For CJK search, use String.normalize('NFC') before comparison",
+        "Use useTransition to mark the filter update as non-urgent to keep the input responsive",
+        "The search state lives in a URL query param (?q=) for shareability and back-button support — use nuqs or Next.js useSearchParams",
+        "Reference: https://tanstack.com/query/latest/docs/framework/react/guides/filters (client filtering pattern)"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-613",
+      "title": "Tray state persistence via sessionStorage to survive page refresh",
+      "priority": "medium",
+      "description": "The tray (cart) currently lives in React context and is lost on page refresh. Customers who accidentally reload the page or navigate away and return lose all their selections. sessionStorage persistence restores the tray on mount and keeps it in sync on every change, without requiring a backend call or user account.",
+      "acceptanceCriteria": [
+        "On tray context mount, read any saved tray state from sessionStorage key 'mm_tray'",
+        "On every tray mutation (addItem, removeItem, clearTray), write the updated state to sessionStorage",
+        "Restoring from sessionStorage is synchronous on mount — no loading flash",
+        "clearTray() also removes the sessionStorage entry",
+        "If localStorage already stores a completed order (mm_order_history), the persisted tray for that session is cleared to avoid confusion",
+        "Tray does not persist across browser sessions (sessionStorage, not localStorage — by design)"
+      ],
+      "technicalNotes": [
+        "Pattern: useEffect(() => { const saved = sessionStorage.getItem('mm_tray'); if (saved) setItems(JSON.parse(saved)); }, [])",
+        "Write on every state change: useEffect(() => { sessionStorage.setItem('mm_tray', JSON.stringify(items)); }, [items])",
+        "Wrap JSON.parse in try/catch to handle corrupted storage gracefully",
+        "sessionStorage is per-tab and per-origin — multiple tabs have independent trays (correct behaviour)"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-614",
+      "title": "Blog post Article and BreadcrumbList JSON-LD structured data",
+      "priority": "medium",
+      "description": "Blog post pages lack per-post structured data. Google's Article rich results require an Article (or BlogPosting) schema with author, datePublished, dateModified, and image. Adding BreadcrumbList structured data to blog posts also enables breadcrumb display in Google Search results, increasing click-through rates for the cafe's content marketing.",
+      "acceptanceCriteria": [
+        "Each /[locale]/blog/[slug] page renders a BlogPosting JSON-LD with: headline, description, author (Organization with cafe name), datePublished, dateModified, image (if post has hero image), publisher, inLanguage (locale)",
+        "A BreadcrumbList JSON-LD is rendered on blog post and menu pages: Home > Blog > Post Title",
+        "Structured data validates in Google Rich Results Test without errors or warnings",
+        "datePublished uses ISO 8601 format (e.g. 2025-06-01T08:00:00+08:00) with Malaysia timezone offset",
+        "The JSON-LD is rendered as a server component — not injected client-side"
+      ],
+      "technicalNotes": [
+        "BlogPosting @type inherits from Article — use BlogPosting for blog content",
+        "BreadcrumbList item: { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://...' }",
+        "Reference: https://developers.google.com/search/docs/appearance/structured-data/article",
+        "Reference: https://developers.google.com/search/docs/appearance/structured-data/breadcrumb",
+        "Pass the slug and post metadata to a <BlogPostingJsonLd /> RSC in the blog/[slug]/page.tsx"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-615",
+      "title": "Email notification fallback when WhatsApp delivery fails",
+      "priority": "medium",
+      "description": "WhatsApp is the primary order notification channel, but it can fail due to session expiry, number bans, or API downtime. Without a fallback, orders are silently missed. An email fallback (using Resend or Nodemailer) ensures the waiter still receives a notification with full order details. Email is secondary and only triggers after WhatsApp failure.",
+      "acceptanceCriteria": [
+        "An admin email address is configurable in site settings (waiter_email field)",
+        "When the WhatsApp notification fails after all retries, the system sends a fallback email with full order details (items, quantities, total, customer contact, ETA)",
+        "The email subject line: '[URGENT] New Pre-Order — [Order ID] — WhatsApp failed'",
+        "Email sends are logged with order ID, timestamp, and success/failure status",
+        "The admin Orders panel shows a 'Notified via email' badge when the fallback was used",
+        "Email fallback does not send when WhatsApp succeeds"
+      ],
+      "technicalNotes": [
+        "Recommended library: Resend (resend.com) — simplest Node.js email API, free tier 100 emails/day",
+        "Alternative: Nodemailer + Gmail SMTP with app password",
+        "npm install resend — API key stored in RESEND_API_KEY env var",
+        "Reference: https://resend.com/docs/send-with-nextjs",
+        "Order details HTML template should be a simple inline-styled table for email client compatibility"
+      ],
+      "dependencies": [
+        "WhatsApp order notification delivery retry with exponential backoff"
+      ],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-616",
+      "title": "Payment screenshot client-side validation: size, format, and dimension check",
+      "priority": "medium",
+      "description": "The payment screenshot upload currently accepts any file type and size, which risks storing invalid files (e.g., a 20MB RAW photo, a non-image document) in the database or CDN. Client-side validation before upload improves UX with immediate feedback and reduces unnecessary uploads, while server-side validation enforces security limits.",
+      "acceptanceCriteria": [
+        "Client-side validation rejects files > 5MB with message: 'File too large. Max 5MB.'",
+        "Client-side validation rejects non-image MIME types (only image/jpeg, image/png, image/webp, image/heic accepted)",
+        "Client side shows a thumbnail preview of the selected image before upload",
+        "Server-side /api/orders/[id]/payment validates file size (< 5MB) and MIME type before processing",
+        "Server returns 413 with a JSON error body if the file is too large",
+        "HEIC files from iPhone are accepted (common for Malaysian iPhone users); the server or client converts to JPEG if needed"
+      ],
+      "technicalNotes": [
+        "Client-side: check file.size and file.type in the onChange handler before allowing the upload to proceed",
+        "HEIC detection: file.type may be 'image/heic' or 'image/heif' — check both",
+        "For HEIC conversion: use the heic2any npm package client-side (no server dependency needed)",
+        "Server-side: check Content-Length header and file.mimetype (if using formidable or similar)",
+        "Reference: https://developer.mozilla.org/en-US/docs/Web/API/File/size"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-617",
+      "title": "Admin order export to CSV for daily reporting",
+      "priority": "medium",
+      "description": "The admin panel has no data export capability. Owners need to reconcile pre-orders with FeedMe POS daily, which currently requires manually reading the screen. A CSV export of orders (by date range or status) enables offline reporting, WhatsApp forwarding of daily summaries, and import into Google Sheets for financial tracking.",
+      "acceptanceCriteria": [
+        "A 'Export CSV' button appears in the admin Orders tab, adjacent to the status filter",
+        "Clicking Export downloads a CSV file named orders-YYYY-MM-DD.csv with columns: Order ID, Status, Customer Contact, Items (JSON), Total (RM), ETA, Created At",
+        "The export respects the currently active status filter (e.g. exporting 'preparing' orders only exports those)",
+        "A date range filter (From / To) allows exporting a specific day or week",
+        "The CSV is generated client-side from the already-fetched orders data — no separate API call for basic export",
+        "Numbers are formatted consistently for spreadsheet import (decimal points, not commas, for RM amounts)"
+      ],
+      "technicalNotes": [
+        "Use the papaparse library (npm i papaparse) for CSV generation or hand-roll a simple join with commas",
+        "Trigger download: const blob = new Blob([csv], { type: 'text/csv' }); const url = URL.createObjectURL(blob); a.click()",
+        "Encode items as a JSON string column wrapped in double-quotes with escaped internal quotes",
+        "Reference: https://csv.spec.whatwg.org/",
+        "For large exports (> 1000 orders), add a /api/admin/orders/export route that streams the CSV from Postgres with a COPY TO STDOUT command"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false,
+      "filesTouch": [
+        "messages/en.json",
+        "messages/ms.json",
+        "messages/zh.json",
+        "prd.json",
+        "progress.txt",
+        "retry-counts.json",
+        "src/app/[locale]/order/[id]/page.tsx",
+        "src/app/api/admin/orders/[id]/route.ts",
+        "src/app/api/orders/[id]/push-subscribe/route.ts"
+      ]
+    },
+    {
+      "id": "US-618",
+      "title": "Multi-tab POS state sync via BroadcastChannel API",
+      "priority": "low",
+      "description": "When staff have the POS dashboard open in multiple browser tabs on the same device (e.g., kitchen tablet with two windows), order status updates from one tab are not reflected in the other. The BroadcastChannel API provides a zero-cost same-origin message channel to synchronise order state across tabs without a WebSocket server, which is ideal for a single-device kitchen setup.",
+      "acceptanceCriteria": [
+        "When an order's status changes in one POS tab (e.g., tapped 'Move to Preparing'), the other tabs update within 200ms",
+        "New order cards received via SSE in one tab are broadcast to all other POS tabs",
+        "Tab that originates the action does not re-process its own broadcast message (sender exclusion via a unique tab ID)",
+        "BroadcastChannel is set up in a useEffect hook and closed on component unmount",
+        "The feature degrades gracefully in browsers without BroadcastChannel support (Firefox < 38, older Safari) — no error thrown"
+      ],
+      "technicalNotes": [
+        "const channel = new BroadcastChannel('pos-orders'); channel.postMessage({ type: 'order_updated', order }); channel.onmessage = (e) => handleRemoteUpdate(e.data)",
+        "Generate a unique tabId with crypto.randomUUID() on mount; include it in all broadcast messages; ignore messages with own tabId",
+        "BroadcastChannel works across tabs within the same origin — does NOT work across devices (use WebSocket for multi-device)",
+        "Reference: https://developer.mozilla.org/en-US/docs/Web/API/BroadcastChannel",
+        "Check support: 'BroadcastChannel' in window before initialising"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-619",
+      "title": "Admin-configurable pre-order minimum advance time",
+      "priority": "low",
+      "description": "The 15-minute minimum arrival time before now is currently hardcoded in the order submission modal. During peak hours, the kitchen may need 30 or 45 minutes lead time. Making this configurable in admin site settings allows the owner to adjust the minimum without a code deployment.",
+      "acceptanceCriteria": [
+        "A min_advance_minutes field (integer, 1–120) is added to site settings, defaulting to 15",
+        "The admin Settings tab has a number input for 'Minimum Pre-order Advance Time (minutes)'",
+        "The order submission modal fetches this setting from GET /api/settings and enforces it for ETA selection",
+        "The ETA picker's minimum time is dynamically calculated as now() + min_advance_minutes",
+        "The error message for too-early ETA references the configured value: 'Earliest arrival is [calculated time] (minimum [N] minutes notice)'",
+        "The setting persists to data/site-settings.json via POST /api/admin/settings"
+      ],
+      "technicalNotes": [
+        "Add min_advance_minutes: number to the SiteSettings type in src/lib/site-settings.ts",
+        "Expose via GET /api/settings (public, already consumed by the order form)",
+        "Default value 15 should be backwards-compatible — do not break existing JSON files without the new field",
+        "Validate on server: estimated_arrival > new Date(Date.now() + minAdvanceMinutes * 60000)"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false,
+      "filesTouch": [
+        "messages/en.json",
+        "messages/ms.json",
+        "messages/zh.json",
+        "prd.json",
+        "progress.txt",
+        "retry-counts.json",
+        "src/app/[locale]/order/[id]/page.tsx",
+        "src/app/api/admin/orders/[id]/route.ts",
+        "src/app/api/orders/[id]/push-subscribe/route.ts"
+      ]
+    },
+    {
+      "id": "US-620",
+      "title": "Customer order history page at /account/orders",
+      "priority": "low",
+      "description": "The system already saves completed orders to localStorage (mm_order_history) and displays a last-order CTA on the success screen, but there is no dedicated page for customers to review all their past orders. A simple order history page read from localStorage improves repeat customer confidence and allows quick reordering.",
+      "acceptanceCriteria": [
+        "A /[locale]/orders page reads mm_order_history from localStorage and displays past orders in reverse chronological order",
+        "Each order card shows: order ID, date, status, items list, total",
+        "Tapping an order card navigates to /order/[id] for the live status view",
+        "If localStorage is empty, an empty state shows: 'No past orders. Browse the menu to get started.' with a link to /menu",
+        "The page is accessible without login (localStorage is client-only — no auth needed)",
+        "A link to /orders appears in the mobile footer navigation for discoverability",
+        "The page is a Client Component (reads localStorage) with a server-rendered shell for SEO"
+      ],
+      "technicalNotes": [
+        "Read localStorage only inside a useEffect to avoid SSR hydration mismatches",
+        "mm_order_history format is already defined — parse and display the existing schema",
+        "Add noindex metadata to /[locale]/orders to prevent search engines indexing personal data pages",
+        "Consider capping displayed history to last 20 orders to keep the page performant"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false,
+      "filesTouch": [
+        "messages/en.json",
+        "messages/ms.json",
+        "messages/zh.json",
+        "prd.json",
+        "progress.txt",
+        "retry-counts.json",
+        "src/app/[locale]/order/[id]/page.tsx",
+        "src/app/api/admin/orders/[id]/route.ts",
+        "src/app/api/orders/[id]/push-subscribe/route.ts"
+      ]
+    },
+    {
+      "id": "US-621",
+      "title": "Google Maps Place integration: hasMap property and static map on Contact page",
+      "priority": "low",
+      "description": "The contact and about pages link to the cafe's location but do not embed a visual map or provide the hasMap property in structured data. A static Google Maps embed (no JS, no API key required) and the hasMap schema property improve local SEO and directly serve the primary use case for visiting customers: finding the cafe.",
+      "acceptanceCriteria": [
+        "The contact/about page includes a responsive static Google Maps embed iframe (no API key required) showing the cafe pin",
+        "The iframe is lazy-loaded (loading='lazy') to avoid blocking page render",
+        "The Restaurant JSON-LD includes hasMap pointing to the Google Maps URL for the cafe",
+        "A 'Get Directions' CTA button below the map opens Google Maps deep link (maps.google.com/?q=) with the cafe address",
+        "The map embed is hidden on print stylesheets (not wasted in print receipts)",
+        "The iframe has a descriptive title attribute for screen readers: 'Map showing Makan Moments Cafe location'"
+      ],
+      "technicalNotes": [
+        "Static embed URL format: https://maps.google.com/maps?q=[encoded address]&output=embed — no API key needed",
+        "Alternative: use the Place ID for a stable embed that doesn't break if the address changes",
+        "schema.org hasMap: 'https://maps.google.com/?cid=[Place CID]' (get CID from Google Maps share link)",
+        "Reference: https://developers.google.com/maps/documentation/embed/get-started",
+        "Do NOT use the JavaScript Maps API (requires billing) — the iframe embed is free and sufficient"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-622",
+      "title": "Admin sold-out quick toggle per menu item",
+      "priority": "high",
+      "description": "When a dish sells out mid-service, admin currently must open the full item edit modal to update availability. A dedicated sold-out toggle (one tap) in the admin menu table and POS dashboard lets kitchen staff instantly hide a sold-out item from the customer-facing menu without navigating through the full edit flow. This is a core operational need in any busy F&B operation.",
+      "acceptanceCriteria": [
+        "Each row in the admin Menu tab has a toggle switch labelled 'Available' / 'Sold Out'",
+        "Toggling sends a PATCH /api/admin/menu/[id] with { available: false } and optimistically updates the UI",
+        "Sold-out items are immediately hidden from /[locale]/menu for all customers (no cache lag — revalidateTag or revalidatePath called server-side)",
+        "Sold-out items display a greyed-out 'Sold Out' badge in the admin menu table so staff can track what's out",
+        "A 'Restore All' button in the menu tab bulk-sets all sold-out items back to available (e.g. at start of next day)",
+        "The toggle is also accessible from the POS dashboard order card as a quick inline action",
+        "Changes persist to the database (menu_items.available column)"
+      ],
+      "technicalNotes": [
+        "Add available BOOLEAN DEFAULT TRUE to menu_items if not already present",
+        "Use Next.js revalidatePath('/[locale]/menu') or revalidateTag('menu') in the API route after update",
+        "The toggle should be a shadcn/ui Switch component for accessibility",
+        "Reference: https://nextjs.org/docs/app/api-reference/functions/revalidatePath",
+        "Debounce rapid toggling: 300ms delay before sending PATCH to prevent double-fire on fast taps"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-623",
+      "title": "Security response headers via Next.js middleware",
+      "priority": "high",
+      "description": "The site currently sets no security headers, making it vulnerable to clickjacking (no X-Frame-Options), MIME sniffing (no X-Content-Type-Options), and information leakage (no Referrer-Policy). OWASP recommends these headers as baseline hardening for any public-facing web app. Next.js middleware or next.config.ts headers can apply them globally with minimal code.",
+      "acceptanceCriteria": [
+        "The following headers are set on all responses: X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin, Permissions-Policy: camera=(), microphone=(), geolocation=()",
+        "A Content-Security-Policy header is set that allows: self, the Neon/Vercel domains, Google Fonts, and the WhatsApp/Groq API origins. Does NOT use 'unsafe-inline' for scripts.",
+        "Strict-Transport-Security (HSTS) header is set with max-age=31536000 on production (not localhost)",
+        "Headers are verified via https://securityheaders.com/ — minimum grade B",
+        "The X-Powered-By: Next.js header is removed from responses",
+        "The image domain whitelist in next.config.ts is reviewed and tightened (no wildcard * hostnames)"
+      ],
+      "technicalNotes": [
+        "Implement in next.config.ts under the headers() async function (applies to all routes)",
+        "Remove X-Powered-By: add poweredByHeader: false to next.config.ts",
+        "CSP nonce approach needed if inline scripts are used — otherwise use hash-based CSP",
+        "Reference: https://nextjs.org/docs/app/api-reference/config/next-config-js/headers",
+        "Reference: https://owasp.org/www-project-secure-headers/",
+        "Test locally: curl -I http://localhost:3031/en and inspect response headers"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-624",
+      "title": "API rate limiting on customer-facing order submission endpoint",
+      "priority": "high",
+      "description": "POST /api/orders has no rate limiting, making it vulnerable to automated spam submissions that would fill the admin dashboard with fake orders and overflow the Neon database. The AI chat endpoint already has per-IP rate limiting (src/lib/chat/rate-limit.ts) — this same pattern must be applied to the order submission and payment upload endpoints.",
+      "acceptanceCriteria": [
+        "POST /api/orders is rate-limited to a maximum of 3 requests per IP per 10-minute window",
+        "POST /api/orders/[id]/payment is rate-limited to 5 requests per IP per 10-minute window",
+        "Requests exceeding the limit receive HTTP 429 with JSON: { error: 'rate_limit_exceeded', retryAfter: seconds }",
+        "The Retry-After header is set on 429 responses",
+        "The rate limiter uses an in-process Map (same pattern as src/lib/chat/rate-limit.ts) — no Redis dependency required for this traffic level",
+        "The IP is extracted from x-forwarded-for header (Vercel proxies all requests) with fallback to request.ip"
+      ],
+      "technicalNotes": [
+        "Reuse and extend src/lib/chat/rate-limit.ts — extract a generic createRateLimiter(maxRequests, windowMs) factory",
+        "Vercel provides the client IP via the x-forwarded-for header: request.headers.get('x-forwarded-for')?.split(',')[0]",
+        "In-process Map resets on cold starts — acceptable for the traffic volume of a small cafe",
+        "Reference: https://vercel.com/docs/security/vercel-firewall (for platform-level rate limiting if needed)",
+        "Reference: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Retry-After"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-625",
+      "title": "Thermal receipt printer via Web Serial API from POS dashboard",
+      "priority": "medium",
+      "description": "The built-in POS dashboard has no printing capability, requiring staff to hand-write or verbally relay orders to the kitchen. Web Serial API (Chrome 89+) allows direct browser-to-USB/serial connection to standard thermal printers (Epson TM series, Star Micronics), eliminating the need for a native app or print driver install on the kitchen tablet.",
+      "acceptanceCriteria": [
+        "A 'Print Ticket' button appears on each order card in the POS dashboard",
+        "Clicking Print Ticket triggers a Web Serial connection request the first time (browser permission prompt)",
+        "The printer connection is cached in-session so subsequent prints do not re-prompt",
+        "A thermal-formatted ticket is printed with: Order ID, items x quantity, total RM, ETA, customer contact (last 4 digits masked)",
+        "If Web Serial is not supported (non-Chrome browser), the button falls back to window.print() with a print-optimised CSS layout",
+        "A 'Printer not connected' toast is shown if the serial port is unavailable",
+        "The feature is only rendered in the admin/POS route (not customer-facing)"
+      ],
+      "technicalNotes": [
+        "Web Serial API: navigator.serial.requestPort() — requires HTTPS and user gesture",
+        "Epson thermal printers use ESC/POS command set. Send raw bytes: ESC @  (init), ESC a 1 (center align), then text, then GS V 0 (cut)",
+        "Library: escpos-buffer (npm) simplifies ESC/POS command generation",
+        "Feature detection: if (!('serial' in navigator)) { fallback to window.print() }",
+        "Reference: https://developer.chrome.com/docs/capabilities/serial",
+        "Star Micronics printers support StarPRNT protocol — check printer model before choosing command set"
+      ],
+      "dependencies": [
+        "Built-in Simple POS Dashboard"
+      ],
+      "estimatedComplexity": "large",
+      "passes": false
+    },
+    {
+      "id": "US-626",
+      "title": "Allergen icon badges for common food allergens",
+      "priority": "medium",
+      "description": "Beyond Halal-friendly status, customers with food allergies (nuts, shellfish, dairy, eggs, gluten) have no way to identify safe menu items from the website. Malaysian F&B businesses increasingly display allergen information following CODEX STAN 1-1985 standards. Adding per-item allergen badge icons improves food safety and signals professionalism to health-conscious diners.",
+      "acceptanceCriteria": [
+        "Admin can tag menu items with one or more allergens from a predefined list: Nuts, Shellfish, Dairy, Eggs, Gluten, Soy",
+        "Allergen tags are stored as a JSONB array in the menu_items table (allergens column)",
+        "Each allergen renders as a small icon badge on the menu card with tooltip on hover / tap for the full allergen name",
+        "Icons use a consistent visual language (colour-coded): red for Nuts, orange for Shellfish, yellow for Dairy, etc.",
+        "A 'Filter by allergen-free' option appears in the menu filter to hide items containing a chosen allergen",
+        "Allergen labels are translated in all 3 locales (en/ms/zh)",
+        "Allergen information is included in the MenuItem schema.org structured data as suitableForDiet or additionalProperty"
+      ],
+      "technicalNotes": [
+        "ALTER TABLE menu_items ADD COLUMN allergens JSONB DEFAULT '[]'::jsonb",
+        "Predefined list: ['nuts', 'shellfish', 'dairy', 'eggs', 'gluten', 'soy'] — stored as lowercase slugs",
+        "Icon library: Lucide does not have allergen icons; use custom SVG icon set or emoji fallbacks",
+        "Reference: https://www.fda.gov/food/food-labeling-nutrition/food-allergies (labelling standards)",
+        "Malaysia CODEX reference: https://www.moh.gov.my/index.php/pages/view/44",
+        "The filter should use URL query params (?allergenFree=nuts) for shareability"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-627",
+      "title": "Customer pre-order cancellation within 2-minute grace period",
+      "priority": "medium",
+      "description": "Customers who submit an order by mistake have no self-service way to cancel — they must contact the cafe directly. A 2-minute grace period cancellation window (industry standard for online food ordering, e.g. Grab Food) reduces waiter interruptions and improves customer trust. After 2 minutes or after admin approval, the cancel button disappears.",
+      "acceptanceCriteria": [
+        "The order status page /order/[id] shows a 'Cancel Order' button for the first 120 seconds after order creation",
+        "The cancel button displays a countdown timer: 'Cancel (1:43 remaining)'",
+        "Clicking Cancel shows a confirmation prompt, then sends DELETE /api/orders/[id]/cancel",
+        "The cancellation endpoint verifies: order is in pending_approval status AND created_at is within 120 seconds of now",
+        "On successful cancellation, status is set to 'cancelled' and the customer sees a confirmation with a 'Back to Menu' CTA",
+        "The admin Orders panel shows cancelled orders in a distinct colour with a 'Cancelled by customer' label",
+        "After 120 seconds OR after admin approval, the Cancel button is hidden and the endpoint returns 403"
+      ],
+      "technicalNotes": [
+        "Add 'cancelled' as a valid status value to the orders table check constraint (or just the application layer)",
+        "Client-side: use a useEffect setInterval countdown; on expiry, hide the button",
+        "Server-side: check created_at + INTERVAL '120 seconds' > NOW() in the cancellation handler",
+        "No auth required for the cancellation endpoint — the order ID (nanoid) is the implicit token",
+        "Reference: https://developers.google.com/maps/documentation/routes/reference/rest (pattern for time-limited resources)",
+        "Notify admin via SSE event when a customer cancels so the bell count updates"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-628",
+      "title": "Admin internal notes field per order",
+      "priority": "medium",
+      "description": "Admin staff need a place to record operational notes on individual orders that are invisible to customers: special prep instructions, allergy confirmations, partial substitutions agreed over the phone, or payment discrepancies. An internal-only notes field enables this without polluting the customer-facing order status page.",
+      "acceptanceCriteria": [
+        "An 'Internal Notes' textarea appears in the admin order detail view (expandable, not shown by default to save space)",
+        "Notes are saved via PATCH /api/admin/orders/[id] with { adminNotes: string } to a new admin_notes TEXT column",
+        "Notes are autosaved after 1 second of typing inactivity (debounced) with a subtle 'Saved' indicator",
+        "Admin notes are NEVER returned by GET /api/orders/[id] (customer-facing endpoint) or GET /api/settings",
+        "Notes persist across page reloads and appear pre-populated when the order detail is reopened",
+        "A note icon badge appears on the order card list row to indicate 'this order has notes'"
+      ],
+      "technicalNotes": [
+        "ALTER TABLE orders ADD COLUMN admin_notes TEXT",
+        "Ensure GET /api/orders/[id] SELECT list does NOT include admin_notes — explicitly list columns",
+        "Use debounce(saveFn, 1000) from lodash-es or a custom hook",
+        "Reference: https://www.postgresql.org/docs/current/sql-altertable.html",
+        "Character limit: 500 chars maximum (enforce on client and server)"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-629",
+      "title": "Admin dashboard daily sales summary widget",
+      "priority": "medium",
+      "description": "The admin panel shows orders but has no aggregate view of daily performance. A simple stats bar showing today's order count, total revenue (RM), and average order value gives the owner a quick snapshot without exporting to a spreadsheet. This is the most commonly requested addition to F&B admin dashboards.",
+      "acceptanceCriteria": [
+        "A stats bar at the top of the admin Orders tab shows: Orders Today (count), Revenue Today (RM), Avg Order Value (RM), Pending Approval (count)",
+        "Stats are computed from the database via GET /api/admin/orders/stats?date=YYYY-MM-DD",
+        "Stats exclude cancelled and rejected orders from revenue totals",
+        "The date defaults to today (Malaysia timezone UTC+8) but can be changed with a date picker",
+        "Stats refresh every 60 seconds automatically while the admin panel is open",
+        "Stats are shown in a horizontal card strip on desktop; stacked 2x2 grid on mobile"
+      ],
+      "technicalNotes": [
+        "Query: SELECT COUNT(*), SUM(total), AVG(total) FROM orders WHERE DATE(created_at AT TIME ZONE 'Asia/Kuala_Lumpur') = $date AND status NOT IN ('cancelled', 'rejected')",
+        "New route: GET /api/admin/orders/stats — requires verifyAdminToken()",
+        "Use Intl.NumberFormat('ms-MY', { style: 'currency', currency: 'MYR' }) for RM formatting",
+        "Reference: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat",
+        "Malaysia timezone: 'Asia/Kuala_Lumpur' (UTC+8, no DST)"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-630",
+      "title": "PDPA-compliant privacy notice for customer data collection",
+      "priority": "medium",
+      "description": "Malaysia's Personal Data Protection Act 2010 (PDPA) requires businesses to notify individuals when collecting personal data, state the purpose of collection, and disclose third-party sharing. The pre-order form collects contact numbers and the system forwards them to WhatsApp. A brief, plain-language privacy notice on the order submission modal satisfies this legal obligation.",
+      "acceptanceCriteria": [
+        "A privacy notice paragraph appears at the bottom of the order submission modal before the Submit button",
+        "The notice states in all 3 locales: the data collected (contact number, order details), the purpose (order notification and fulfilment), and that data is not sold to third parties",
+        "A link to a full /[locale]/privacy-policy page is included in the notice",
+        "The privacy policy page exists at /[locale]/privacy-policy and contains sections: Data Collected, Purpose, Retention Period, Third Parties, Contact (cafe email), Rights under PDPA",
+        "The footer links to /privacy-policy in all locale routes",
+        "The policy states data retention period (e.g., 'Order data is retained for 90 days')"
+      ],
+      "technicalNotes": [
+        "PDPA 2010 (Malaysia): Section 6 requires a privacy notice before or at the time of data collection",
+        "Reference: https://www.pdp.gov.my/jpdpv2/assets/2019/09/Personal_Data_Protection_Act_2010.pdf",
+        "The privacy policy page can be a static MDX file under content/ or a hardcoded RSC page",
+        "No cookie consent banner required unless using tracking cookies — the pre-order form doesn't use cookies",
+        "The notice text should be concise (2-3 sentences) with a 'Learn more' link — do not show the full policy inline"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-631",
+      "title": "Full Restaurant and MenuItem schema.org structured data on home and menu pages",
+      "priority": "medium",
+      "description": "The site currently lacks Restaurant-level structured data on the home page and per-item MenuItem structured data on the menu page. Complete schema.org markup enables Google's restaurant rich results (showing hours, price range, cuisine in search), improves local SEO authority for 'Thai food Skudai' searches, and prepares the site for voice search (Google Assistant queries menu data directly from structured markup).",
+      "acceptanceCriteria": [
+        "The home page RSC includes a Restaurant JSON-LD with: name, description, url, telephone, address (PostalAddress), geo (GeoCoordinates), openingHoursSpecification, servesCuisine, priceRange, image, hasMap",
+        "The menu page includes a Menu JSON-LD containing hasMenuSection (one per display category) each with hasMenuItem entries",
+        "Each MenuItem includes: name (in locale language), description, offers (Offer with price and priceCurrency 'MYR'), suitableForDiet where applicable",
+        "Structured data passes Google Rich Results Test without errors",
+        "JSON-LD is rendered server-side as a <script type='application/ld+json'> tag in RSC — not injected client-side",
+        "openingHoursSpecification uses ISO 8601 day-of-week format (Mo, Tu, We, Th, Fr, Sa, Su)"
+      ],
+      "technicalNotes": [
+        "Restaurant schema: https://schema.org/Restaurant — extends FoodEstablishment extends LocalBusiness",
+        "MenuItem schema: https://schema.org/MenuItem — note: 'nutrition' property exists but optional",
+        "GeoCoordinates: get lat/lng from Google Maps for Taman Impian Emas, Skudai",
+        "priceRange: use '$' to '$$$$' convention — for this cafe use '$$' (mid-range)",
+        "Reference: https://developers.google.com/search/docs/appearance/structured-data/local-business",
+        "Cafe facts (address, hours, phone) must come from src/lib/constants.ts — do not hardcode in JSON-LD components"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-632",
+      "title": "Offline connectivity banner for customers and staff",
+      "priority": "medium",
+      "description": "In a restaurant environment with spotty WiFi, customers may lose internet connectivity while browsing the menu or submitting an order. Without feedback, users assume the app is broken. A non-intrusive offline banner (using the Navigator.onLine API and 'offline'/'online' events) clearly communicates connectivity status and prevents confusion.",
+      "acceptanceCriteria": [
+        "A yellow banner appears at the top of the page when the device goes offline: 'You're offline. Some features may be unavailable.' (in all 3 locales)",
+        "The banner disappears automatically when connectivity is restored (online event fires)",
+        "The banner is dismissible via an X button",
+        "When offline, the order submission button is disabled with tooltip 'Internet required to place orders'",
+        "When offline, the menu data is still visible if it was cached by the service worker",
+        "The banner uses prefers-reduced-motion to disable its slide-in animation if the user has reduced motion enabled"
+      ],
+      "technicalNotes": [
+        "Listen for: window.addEventListener('offline', handler) and window.addEventListener('online', handler)",
+        "Initial state: navigator.onLine — note this can be unreliable; treat as a hint, not ground truth",
+        "Implement as a Client Component registered once in [locale]/layout.tsx",
+        "Reference: https://developer.mozilla.org/en-US/docs/Web/API/Navigator/onLine",
+        "For accurate offline detection, use a periodic fetch to a lightweight ping endpoint (e.g. /api/ping returning 204) every 30 seconds"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-633",
+      "title": "Custom Next.js 404 and app-level error pages",
+      "priority": "medium",
+      "description": "The site currently uses Next.js default error pages, which are unstyled and off-brand. Custom 404 and error pages maintain the Makan Moments brand experience, offer helpful navigation back to key pages, and prevent users from feeling stranded. F&B sites lose customers who hit a 404 without a clear 'Browse Menu' fallback CTA.",
+      "acceptanceCriteria": [
+        "A custom /src/app/[locale]/not-found.tsx renders a branded 404 page with: a food-themed illustration or emoji, the message 'Page not found' in all 3 locales, and CTA buttons to /menu and /",
+        "A custom /src/app/[locale]/error.tsx renders a branded error boundary page with a 'Try Again' button that calls reset()",
+        "A custom /src/app/[locale]/global-error.tsx handles root layout errors",
+        "The 404 page preserves the site header and footer",
+        "The 404 page has correct HTTP 404 status code (not 200) — verified via curl -I",
+        "Both pages are localized (use getTranslations or hardcoded translations for the 3 locales)"
+      ],
+      "technicalNotes": [
+        "Next.js App Router: not-found.tsx is the file convention for 404 pages (works with notFound() thrown in any RSC)",
+        "error.tsx must be a Client Component ('use client') and receives { error, reset } props",
+        "Reference: https://nextjs.org/docs/app/api-reference/file-conventions/not-found",
+        "Reference: https://nextjs.org/docs/app/api-reference/file-conventions/error",
+        "The [locale] segment means each locale gets its own not-found.tsx — place one under src/app/[locale]/not-found.tsx"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-634",
+      "title": "Rich PWA manifest with screenshots for Android enhanced install UI",
+      "priority": "medium",
+      "description": "The current manifest.json triggers only the minimal Android install banner. Adding a screenshots array to the manifest activates Chrome's 'Enhanced Install Dialog', which shows app screenshots and a description before the user installs — significantly increasing install conversion. This complements the existing customer install prompt story (which handles the JS deferral logic) but focuses on the manifest content.",
+      "acceptanceCriteria": [
+        "public/manifest.json includes a screenshots array with at least 2 screenshots: one showing the menu page and one showing the order tracking page",
+        "Each screenshot entry includes: src (path), sizes (e.g. '1080x1920'), type ('image/png'), form_factor ('narrow'), and a descriptive label",
+        "The manifest includes a description field (max 200 chars) summarising the app purpose in English",
+        "The manifest includes a categories array: ['food', 'shopping']",
+        "Screenshot images are real app screenshots at 1080x1920 resolution (portrait, mobile)",
+        "The enhanced install dialog is verified working on Android Chrome by inspecting DevTools > Application > Manifest"
+      ],
+      "technicalNotes": [
+        "screenshots[].form_factor: 'narrow' for mobile, 'wide' for desktop — use 'narrow' as primary",
+        "Chrome requires at least 1 screenshot to trigger the rich install UI on Android",
+        "Capture screenshots at 1080x1920 using Chrome DevTools device emulation (iPhone 14 Pro resolution)",
+        "Reference: https://web.dev/articles/add-manifest#screenshots",
+        "The manifest.json is already referenced in src/app/layout.tsx or next.config.ts — just update the file"
+      ],
+      "dependencies": [
+        "Customer PWA Add-to-Home-Screen install prompt"
+      ],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-635",
+      "title": "Admin printable order ticket with kitchen-optimised layout",
+      "priority": "medium",
+      "description": "Staff sometimes need a physical copy of an order to hand to the kitchen chef, especially during rush periods when verbal communication is unreliable. A print-optimised order ticket using CSS @media print removes navigation and renders a clean, large-font kitchen chit. This requires no hardware integration — just window.print() with a purpose-built print stylesheet.",
+      "acceptanceCriteria": [
+        "A 'Print Ticket' button appears in the admin order detail view",
+        "Clicking Print opens the browser print dialog with a pre-rendered kitchen ticket layout",
+        "The print layout shows: order ID (large, bold), arrival ETA, items with quantities (font-size ≥ 14pt), total, and any customer notes",
+        "Navigation header, footer, sidebar, and action buttons are hidden in print via CSS (@media print { display: none })",
+        "The ticket fits on a single A5 page in portrait orientation",
+        "The admin notes field is NOT included in the printed ticket (internal only)"
+      ],
+      "technicalNotes": [
+        "Use @media print CSS in a <style> tag or globals.css to show only the ticket component",
+        "Add a print-specific class (e.g. .kitchen-ticket) to the ticket component; everything else gets @media print { display: none }",
+        "Call window.print() from a button onClick handler",
+        "Reference: https://developer.mozilla.org/en-US/docs/Web/Guide/Printing",
+        "For thermal label printers (80mm roll), set @page { size: 80mm auto; margin: 5mm } in the print stylesheet"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-636",
+      "title": "Progressive image loading with LQIP blur-up for menu item photos",
+      "priority": "medium",
+      "description": "Menu item photos are the primary visual content of the site, but they load as a blank space until fully downloaded on slow connections. Low-Quality Image Placeholders (LQIP) — tiny blurred base64 thumbnails shown while the full image loads — dramatically improve perceived load time and prevent layout shift. Next.js Image supports this natively via the placeholder='blur' prop.",
+      "acceptanceCriteria": [
+        "All menu card images use Next.js <Image> with placeholder='blur' and a blurDataURL",
+        "The blurDataURL is a 4x4 pixel base64 JPEG placeholder generated at build time or on first load",
+        "The blur effect transitions smoothly to the sharp image when loading completes (CSS transition: filter 0.3s ease)",
+        "LCP (Largest Contentful Paint) metric for the menu page does not regress — LCP hero image uses priority={true} and does NOT use blur placeholder (priority images load immediately)",
+        "The implementation works for both statically hosted images (public/images/menu/) and externally hosted images (if admin uploads to a CDN)",
+        "CLS (Cumulative Layout Shift) score for the menu page is 0 — images have explicit width and height attributes"
+      ],
+      "technicalNotes": [
+        "Next.js Image blur placeholder: https://nextjs.org/docs/app/api-reference/components/image#placeholder",
+        "Generate blurDataURL with: npx plaiceholder generate --input public/images/menu/*.jpg (or use the plaiceholder npm package)",
+        "Store blurDataURL per menu item in the database or as a computed field in the menu data",
+        "Alternative: use a CSS background-color placeholder matching the dominant colour (simpler, no blur)",
+        "Reference: https://web.dev/articles/lcp (LCP optimisation)",
+        "Do NOT apply blur to the hero image — it must load immediately (priority={true})"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
+    },
+    {
+      "id": "US-637",
+      "title": "iOS Safari PWA meta tags for standalone mode and status bar styling",
+      "priority": "medium",
+      "description": "iOS Safari requires Apple-specific meta tags for a proper standalone PWA experience. Without these, the PWA added to the iPhone home screen displays the browser address bar (breaking the app illusion), uses incorrect status bar colours, and shows a generic Safari icon instead of the app icon. These are distinct from the W3C manifest and must be added separately.",
+      "acceptanceCriteria": [
+        "The root layout includes: <meta name='apple-mobile-web-app-capable' content='yes'> to enable standalone mode on iOS",
+        "The root layout includes: <meta name='apple-mobile-web-app-status-bar-style' content='default'> (or 'black-translucent' to extend into status bar area)",
+        "The root layout includes: <meta name='apple-mobile-web-app-title' content='Makan Moments'> for the home screen label",
+        "Apple touch icons are provided at public/apple-touch-icon.png (180x180px) and linked via <link rel='apple-touch-icon'>",
+        "When the PWA is launched from the iOS home screen, no browser address bar is visible",
+        "The splash screen background colour matches the site's warm cream theme (#faf7f2 or equivalent)"
+      ],
+      "technicalNotes": [
+        "Add meta tags to src/app/layout.tsx or via Next.js metadata API: metadata.appleWebApp",
+        "Next.js supports apple-touch-icon via metadata: appleWebApp: { capable: true, title: '...', statusBarStyle: 'default' }",
+        "Reference: https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariWebContent/ConfiguringWebApplications/ConfiguringWebApplications.html",
+        "Apple touch icon must be exactly 180x180px PNG with no transparency for iOS home screen",
+        "Splash screens for different iOS device sizes can be added via apple-touch-startup-image meta tags (optional but recommended)"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-638",
+      "title": "Re-order shortcut from customer order history",
+      "priority": "low",
+      "description": "Repeat customers who visit the cafe regularly have the same orders (e.g., their usual nasi lemak and teh tarik). A 'Re-order' button on the order history page that pre-populates the tray with items from a past order reduces friction for loyal customers and increases order conversion speed. This builds on the pending order history page story.",
+      "acceptanceCriteria": [
+        "Each past order card on /[locale]/orders has a 'Re-order' button",
+        "Clicking Re-order populates the TrayContext with all items from that past order (respecting current quantities from localStorage order history)",
+        "If a past order item no longer exists in the current menu (by item ID), it is silently skipped and a toast shows: 'Some items are no longer available and were removed'",
+        "After Re-order, the user is navigated to /[locale]/menu with the tray widget open",
+        "The tray shows the pre-populated items and a summary of total RM",
+        "Re-ordering does not immediately submit an order — it just fills the tray for the customer to review"
+      ],
+      "technicalNotes": [
+        "Compare past order item IDs against the current menu data fetched client-side",
+        "Use TrayContext.addItem() for each valid past order item",
+        "Trigger tray open state via a context method or URL param: /en/menu?trayOpen=1",
+        "Reference: https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage",
+        "Past order items schema: [{id, nameEn, price, quantity}] — already stored in mm_order_history"
+      ],
+      "dependencies": [
+        "Customer order history page at /account/orders"
+      ],
+      "estimatedComplexity": "small",
+      "passes": false
+    },
+    {
+      "id": "US-639",
+      "title": "Order status change outbound webhook for third-party integrations",
+      "priority": "low",
+      "description": "Business owners using tools like n8n, Zapier, or Make (formerly Integromat) need to automate downstream workflows triggered by order status changes (e.g., send a WhatsApp group message when an order is ready, log to Google Sheets, trigger a loyalty reward). An outbound webhook on status change enables this without custom backend code.",
+      "acceptanceCriteria": [
+        "Admin can configure a webhook URL in site settings (webhook_url field, optional)",
+        "When any order status changes (via PATCH /api/admin/orders/[id]), the system fires a POST to the configured webhook URL with a JSON payload: { event: 'order.status_changed', orderId, newStatus, oldStatus, timestamp, total, contactNumber }",
+        "The webhook is sent asynchronously and does NOT block the admin response",
+        "If the webhook URL returns a non-2xx status, the failure is logged but the order update still succeeds",
+        "The webhook payload includes an HMAC-SHA256 signature header (X-Webhook-Signature) using a configurable webhook secret, so the receiver can verify authenticity",
+        "The admin Settings tab has a 'Test Webhook' button that sends a sample payload to the configured URL"
+      ],
+      "technicalNotes": [
+        "Use fetch() with a 5-second timeout in a non-blocking fire-and-forget pattern: void sendWebhook(payload)",
+        "HMAC signature: crypto.createHmac('sha256', secret).update(JSON.stringify(payload)).digest('hex')",
+        "Store webhook_url and webhook_secret in data/site-settings.json (never expose secret via public GET /api/settings)",
+        "Reference: https://webhooks.fyi/ (webhook best practices)",
+        "Reference: https://docs.github.com/en/webhooks/webhook-events-and-payloads (signature pattern)",
+        "n8n has a built-in Webhook trigger node that can receive this payload directly"
+      ],
+      "dependencies": [],
+      "estimatedComplexity": "medium",
+      "passes": false
     }
   ]
 }

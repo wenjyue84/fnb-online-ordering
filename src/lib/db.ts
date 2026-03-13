@@ -1,9 +1,5 @@
-import { neon, neonConfig } from "@neondatabase/serverless";
+import { neon } from "@neondatabase/serverless";
 import { env } from "./env";
-
-// Reuse the underlying HTTP fetch connection across multiple queries
-// in the same serverless invocation — reduces round-trip overhead.
-neonConfig.fetchConnectionCache = true;
 
 // ── Pooled (runtime) connection ─────────────────────────────────────────────
 // DATABASE_URL should point to the Neon pooled endpoint (-pooler.neon.tech).

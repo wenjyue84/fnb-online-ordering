@@ -153,6 +153,18 @@ export async function PATCH(
       return NextResponse.json(rows[0]);
     }
 
+    // Mark feedme entered — staff confirmed order was entered into FeedMe POS
+    if (action === "feedme_entered") {
+      const rows = await sql`
+        UPDATE tray_orders
+        SET feedme_entered = TRUE
+        WHERE id = ${orderId}
+        RETURNING id, feedme_entered
+      `;
+      if (rows.length === 0) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      return NextResponse.json(rows[0]);
+    }
+
     // Mark order ready
     if (action === "mark_ready") {
       const rows = await sql`
@@ -168,7 +180,7 @@ export async function PATCH(
     }
 
     return NextResponse.json(
-      { error: "action must be 'approve', 'reject', 'confirm_payment', 'reject_payment', or 'mark_ready'; or status must be 'seen'" },
+      { error: "action must be 'approve', 'reject', 'confirm_payment', 'reject_payment', 'mark_ready', or 'feedme_entered'; or status must be 'seen'" },
       { status: 400 }
     );
   } catch (err) {

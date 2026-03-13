@@ -17,6 +17,12 @@ export async function GET() {
         AND created_at < NOW() - MAKE_INTERVAL(mins => ${orderExpiryMinutes})
     `;
 
+    // Ensure feedme_entered column exists (idempotent migration)
+    await sql`
+      ALTER TABLE tray_orders
+      ADD COLUMN IF NOT EXISTS feedme_entered BOOLEAN DEFAULT FALSE
+    `;
+
     const rows = await sql`
       SELECT
         id,
@@ -29,6 +35,7 @@ export async function GET() {
         rejection_reason,
         payment_screenshot_url,
         notification_status,
+        feedme_entered,
         created_at
       FROM tray_orders
       ORDER BY created_at DESC

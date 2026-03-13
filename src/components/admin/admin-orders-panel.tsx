@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { RefreshCw, CheckCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminOrders, type FilterTab } from "@/hooks/useAdminOrders";
@@ -26,6 +26,16 @@ export function AdminOrdersPanel() {
   const [bulkConfirm, setBulkConfirm] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkToast, setBulkToast] = useState<string | null>(null);
+  const [posMode, setPosMode] = useState<"builtin" | "feedme_manual">("feedme_manual");
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d: { posMode?: "builtin" | "feedme_manual" } | null) => {
+        if (d?.posMode) setPosMode(d.posMode);
+      })
+      .catch(() => {});
+  }, []);
 
   const expiredCount = orders.filter((o) => o.status === "expired").length;
 
@@ -161,6 +171,7 @@ export function AdminOrdersPanel() {
             <AdminOrderCard
               key={order.id}
               order={order}
+              posMode={posMode}
               onApprove={approveOrder}
               onReject={rejectOrder}
               onStatusUpdate={updateStatus}

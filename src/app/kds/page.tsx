@@ -18,6 +18,7 @@ interface KdsOrder {
   estimated_arrival: string | null;
   estimated_ready: string | null;
   payment_screenshot_url: string | null;
+  feedme_entered: boolean | null;
   created_at: string;
 }
 
@@ -141,6 +142,7 @@ interface OrderCardProps {
   isActing: boolean;
   isNew: boolean;
   onAcknowledge: () => void;
+  posMode: "builtin" | "feedme_manual";
 }
 
 function OrderCard({
@@ -151,6 +153,7 @@ function OrderCard({
   isActing,
   isNew,
   onAcknowledge,
+  posMode,
 }: OrderCardProps) {
   const [elapsed, setElapsed] = useState(elapsedMinutes(order.created_at));
 
@@ -161,12 +164,33 @@ function OrderCard({
     return () => clearInterval(interval);
   }, [order.created_at]);
 
+  const [feedmeEntered, setFeedmeEntered] = useState<boolean>(order.feedme_entered ?? false);
+  const [feedmeLoading, setFeedmeLoading] = useState(false);
+
   const isPreparing = order.status === "preparing";
   const isApproved = order.status === "approved";
   const allItemsDone =
     isPreparing &&
     order.items.length > 0 &&
     order.items.every((_, i) => completedItems.has(i));
+  const needsFeedmeCheck = posMode === "feedme_manual" && isPreparing && !feedmeEntered;
+
+  async function handleFeedmeEntered(checked: boolean) {
+    if (!checked) return;
+    setFeedmeLoading(true);
+    try {
+      await fetch(`/api/kds/orders/${order.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "feedme_entered" }),
+      });
+      setFeedmeEntered(true);
+    } catch {
+      // best-effort
+    } finally {
+      setFeedmeLoading(false);
+    }
+  }
 
   const { border, bg } = isNew
     ? { border: "border-yellow-400 animate-pulse", bg: "bg-yellow-950/40" }
@@ -312,11 +336,30 @@ function OrderCard({
         </button>
       )}
 
+      {isPreparing && posMode === "feedme_manual" && (
+        <div className="mt-4 rounded-xl bg-yellow-900/40 border border-yellow-600 px-4 py-3">
+          <p className="text-xs font-semibold text-yellow-300 mb-2">Enter this order into FeedMe POS</p>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={feedmeEntered}
+              onChange={(e) => void handleFeedmeEntered(e.target.checked)}
+              disabled={feedmeLoading || feedmeEntered}
+              className="h-5 w-5 rounded border-gray-500 text-orange-500 focus:ring-orange-400"
+            />
+            <span className="text-sm text-yellow-200">
+              {feedmeEntered ? "✓ Entered into FeedMe" : feedmeLoading ? "Saving…" : "Entered into FeedMe POS"}
+            </span>
+          </label>
+        </div>
+      )}
+
       {isPreparing && allItemsDone && (
         <button
           onClick={() => onAction("ready")}
-          disabled={isActing}
-          className="mt-4 w-full min-h-[56px] rounded-xl bg-green-500 py-3 text-lg font-bold text-white transition-colors hover:bg-green-400 disabled:opacity-60"
+          disabled={isActing || needsFeedmeCheck}
+          title={needsFeedmeCheck ? "Please enter into FeedMe POS first" : undefined}
+          className="mt-4 w-full min-h-[56px] rounded-xl bg-green-500 py-3 text-lg font-bold text-white transition-colors hover:bg-green-400 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {isActing ? "Marking Ready…" : "✅ Mark as Ready"}
         </button>
@@ -334,6 +377,7 @@ export default function KdsPage() {
   const [actingOn, setActingOn] = useState<Set<number>>(new Set());
   const [newOrderIds, setNewOrderIds] = useState<Set<number>>(new Set());
   const [muted, setMuted] = useState(false);
+  const [posMode, setPosMode] = useState<"builtin" | "feedme_manual">("feedme_manual");
 
   const prevOrderIdsRef = useRef<Set<number> | null>(null);
   const dismissTimersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
@@ -403,6 +447,15 @@ export default function KdsPage() {
       setLoading(false);
     }
   }, [muted]);
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d: { posMode?: "builtin" | "feedme_manual" } | null) => {
+        if (d?.posMode) setPosMode(d.posMode);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     void fetchOrders();
@@ -554,6 +607,7 @@ export default function KdsPage() {
               isActing={actingOn.has(order.id)}
               isNew={newOrderIds.has(order.id)}
               onAcknowledge={() => acknowledgeOrder(order.id)}
+              posMode={posMode}
             />
           ))}
         </div>

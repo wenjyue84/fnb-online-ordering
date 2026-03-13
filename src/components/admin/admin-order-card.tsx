@@ -264,25 +264,46 @@ function PaymentModal({ orderId, screenshotUrl, onClose, onStatusUpdate }: Payme
 // ---------------------------------------------------------------------------
 export interface AdminOrderCardProps {
   order: AdminOrder;
+  posMode?: "builtin" | "feedme_manual";
   onApprove: (id: number, estimatedReady: string) => Promise<ActionResult>;
   onReject: (id: number, reason: string) => Promise<ActionResult>;
   onStatusUpdate: (id: number, action: "confirm_payment" | "mark_ready" | "reject_payment", extra?: { reason?: string }) => Promise<ActionResult>;
 }
 
-export function AdminOrderCard({ order, onApprove, onReject, onStatusUpdate }: AdminOrderCardProps) {
+export function AdminOrderCard({ order, posMode = "feedme_manual", onApprove, onReject, onStatusUpdate }: AdminOrderCardProps) {
   const [showApprove, setShowApprove] = useState(false);
   const [showReject, setShowReject] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [markingReady, setMarkingReady] = useState(false);
+  const [feedmeEntered, setFeedmeEntered] = useState<boolean>(order.feedme_entered ?? false);
+  const [feedmeLoading, setFeedmeLoading] = useState(false);
 
   const isPending = order.status === "pending_approval" || order.status === "pending";
   const hasPaymentUploaded = order.status === "payment_uploaded";
   const isPreparing = order.status === "preparing";
+  const needsFeedmeCheck = posMode === "feedme_manual" && isPreparing && !feedmeEntered;
 
   async function handleMarkReady() {
     setMarkingReady(true);
     await onStatusUpdate(order.id, "mark_ready");
     setMarkingReady(false);
+  }
+
+  async function handleFeedmeEntered(checked: boolean) {
+    if (!checked) return;
+    setFeedmeLoading(true);
+    try {
+      await fetch(`/api/admin/orders/${order.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "feedme_entered" }),
+      });
+      setFeedmeEntered(true);
+    } catch {
+      // best-effort
+    } finally {
+      setFeedmeLoading(false);
+    }
   }
 
   return (
@@ -379,11 +400,29 @@ export function AdminOrderCard({ order, onApprove, onReject, onStatusUpdate }: A
         )}
 
         {isPreparing && (
-          <div className="flex gap-2 pt-1">
+          <div className="flex flex-col gap-2 pt-1">
+            {posMode === "feedme_manual" && (
+              <div className="rounded-lg bg-yellow-50 border border-yellow-300 px-3 py-2">
+                <p className="text-xs font-semibold text-yellow-800 mb-1.5">Enter this order into FeedMe POS</p>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={feedmeEntered}
+                    onChange={(e) => void handleFeedmeEntered(e.target.checked)}
+                    disabled={feedmeLoading || feedmeEntered}
+                    className="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400"
+                  />
+                  <span className="text-xs text-yellow-900">
+                    {feedmeEntered ? "✓ Entered into FeedMe" : feedmeLoading ? "Saving…" : "Entered into FeedMe POS"}
+                  </span>
+                </label>
+              </div>
+            )}
             <button
               onClick={() => void handleMarkReady()}
-              disabled={markingReady}
-              className="flex-1 min-h-[40px] rounded-lg bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
+              disabled={markingReady || needsFeedmeCheck}
+              title={needsFeedmeCheck ? "Please enter into FeedMe POS first" : undefined}
+              className="flex-1 min-h-[40px] rounded-lg bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
             >
               <Check className="h-4 w-4" />
               {markingReady ? "Saving…" : "Mark Ready 🎉"}

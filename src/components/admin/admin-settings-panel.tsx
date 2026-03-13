@@ -290,6 +290,40 @@ export function AdminSettingsPanel({ displayCategories }: AdminSettingsPanelProp
               </label>
 
               <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">POS Mode</label>
+                <div className="space-y-2">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="posMode"
+                      value="feedme_manual"
+                      checked={(settings.posMode ?? "feedme_manual") === "feedme_manual"}
+                      onChange={() => setField("posMode", "feedme_manual")}
+                      className="mt-0.5 h-4 w-4 border-gray-300 text-orange-500 focus:ring-orange-400"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-gray-700">FeedMe Manual Entry</span>
+                      <p className="text-xs text-gray-500">Staff must enter orders into FeedMe POS manually. A reminder banner is shown on order cards.</p>
+                    </div>
+                  </label>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="posMode"
+                      value="builtin"
+                      checked={(settings.posMode ?? "feedme_manual") === "builtin"}
+                      onChange={() => setField("posMode", "builtin")}
+                      className="mt-0.5 h-4 w-4 border-gray-300 text-orange-500 focus:ring-orange-400"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-gray-700">Built-in POS</span>
+                      <p className="text-xs text-gray-500">Orders are managed entirely in this system. No FeedMe reminders shown.</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">Kitchen Display PIN</label>
                 <input
                   type="text"

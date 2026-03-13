@@ -88,6 +88,46 @@ data: {json}
 
 ---
 
+## Iteration 6: Pre-Order Flow Enhancement — Progress Log
+
+### Context
+- POS dashboard, POS mode toggle, customer UX enhancements, alarm system, PWA install
+- US-601 through US-507 from iter 5 already done; iter 6 adds US-601-US-612
+
+### Completed Stories
+
+**US-601** — Built-in Simple POS Dashboard (/pos)
+- /pos page: kanban 3-column layout (Pending/Preparing/Ready) with order cards
+- PosCard shows: order ID (large), items (max 3 + overflow), total, contact, ETA, elapsed time
+- One-tap approve/reject/mark-ready/confirm-payment on cards
+- Order detail modal with full info, payment screenshot, print receipt (window.print + @media print)
+- Daily summary footer: today's order count, revenue, avg order value
+- Auto-refresh every 10 seconds
+- Responsive: 3-column desktop, stacked tabs on mobile
+- Admin JWT auth — redirects to /admin/login on 401
+- Admin sidebar has POS tab linking to /pos (opens new tab)
+- Back button from /pos → /admin/orders
+
+**US-602** — POS Mode Toggle — Built-in vs FeedMe Manual Entry
+- posMode: 'builtin' | 'feedme_manual' in SiteSettings (default: feedme_manual)
+- Admin Settings > Pre-Order tab: radio group for POS Mode
+- GET /api/settings exposes posMode publicly
+- Admin order card: yellow FeedMe banner + checkbox on preparing cards when posMode=feedme_manual
+- KDS page: FeedMe banner + checkbox on preparing cards, gates Mark Ready button
+- POS page: FeedMe banner + checkbox on preparing cards, gates Mark Ready button
+- PATCH /api/admin/orders/[id] action=feedme_entered: sets feedme_entered=TRUE
+- PATCH /api/kds/orders/[id] action=feedme_entered: sets feedme_entered=TRUE (kitchen-auth-gated)
+- GET /api/kds/orders now returns feedme_entered column
+- feedme_entered column: BOOLEAN DEFAULT FALSE on tray_orders (migration in admin orders GET route)
+
+### Key patterns from Iteration 6
+
+- POS page uses direct fetch() instead of useAdminOrders() hook for more control over auth redirect
+- FeedMe entered checkbox handles its own API call inline (not through parent action handlers)
+- posMode fetched once from /api/settings on mount, not re-fetched on refresh
+
+---
+
 ## Iteration 4: AI Waiter Enhancement — Progress Log
 
 ### Context
@@ -666,4 +706,79 @@ Incomplete: Admin SSE for real-time new order notifications (ID: US-504) — att
 
 ## Iteration 2 - Fri, Mar 13, 2026  1:17:36 AM
 Completed: Admin SSE for real-time new order notifications (ID: US-504) in 15m
+
+
+## Pre-analysis for US-601 (Gemini 2.5 Pro)
+Here is a technical brief for implementing the POS Dashboard in a Frappe/Python environment.
+
+**Project:** lhdn_payroll_integration
+**User Story:** US-601 - Simple POS Dashboard
+
+### Technical Implementation Brief
+
+**1. Python Files to Modify:**
+- **`lhdn_payroll_integration/api.py`**: Create new `@frappe.whitelist()` functions here.
+    - `get_pos_orders()`: Fetches all orders with statuses `pending_approval`, `preparing`, `approved`, `ready`. Returns JSON for the frontend.
+    - `update_order_status(order_name, new_status, reason=None)`: Handles status transitions, including the conditional logic for `depositRequired` and processing rejections.
+    - `get_daily_summary()`: Calculates and returns today's total orders and revenue.
+- **`lhdn_payroll_integration/hooks.py`**: Add an entry to the `workspace` hook to create a sidebar link on the Desk pointing to the new "POS Dashboard" page.
+
+**2. Frappe DocTypes & Configuration:**
+- **New `Page`**: Create a new Page named "POS Dashboard". This will generate the `/app/pos` route and the corresponding `pos.js` and `pos.html` files in the `public` directory.
+- **Existing `Order` DocType**: This will be the primary data source. The API functions will query this DocType.
+- **New `Print Format`**: Create a server-side Print Format for the `Order` DocType, named "POS Receipt". This will be a simple, clean layout for printing.
+
+**3. Recommended Implementation Approach:**
+- The `pos.html` will contain the basic structure for three columns (e.g., `<div id="pending-col">`).
+- The main logic will reside in **`lhdn_payroll_integration/public/js/pos.js`**.
+- On page load, use `frappe.call` to fetch data from `get_pos_orders()` and `get_daily_summary()`.
+- Dynamically render order cards into the appropriate columns using JavaScript.
+- Attach click handlers to card buttons that trigger `frappe.call` to `update_order_status()`.
+- Use `setInterval` to poll the backend APIs every 10 seconds for auto-refresh.
+- The "Print Receipt" button should open the new Print Format view (`/app/print/Order/{order_id}?format=POS-Receipt`).
+
+**4. Edge Cases & Gotchas:**
+- **Permissions**: Ensure the "POS Dashboard" page and whitelisted APIs are restricted to appropriate roles (e.g., "System Manager", "Staff").
+- **Status Mapping**: Be precise when querying orders to match the Kanban columns: 'Pending' (`pending_approval`), 'Preparing' (`approved`, `preparing`), 'Ready' (`ready`).
+- **Data Volume**: The `get_pos_orders` query should be optimized, possibly filtering by creation date (`today`) to avoid performance degradation over time.
+- **UI State**: After a status update, ensure the UI is refreshed with the new state from the server to prevent race conditions between users.
+
+## Iteration 1 - Fri, Mar 13, 2026  9:28:21 AM
+Incomplete: Built-in Simple POS Dashboard (ID: US-601) — attempt 1/3
+
+
+## Pre-analysis for US-601 (Gemini 2.5 Pro)
+Here is a technical brief for implementing the user story in a Frappe/Python environment.
+
+***
+
+**To:** Claude Code Agent
+**From:** Gemini
+**Subject:** Technical Brief for US-601: Simple POS Dashboard (Frappe Implementation)
+
+This brief translates the provided Next.js user story into a plan for a Frappe/Python application.
+
+**1. Python Files to Modify:**
+*   `[app_name]/public/js/pos_dashboard.js`: Client-side logic for the dashboard page, including data polling and rendering the sales summary.
+*   `[app_name]/api.py`: A new or existing file for whitelisted server-side functions (`@frappe.whitelist()`). This will handle fetching aggregated daily sales data and processing order rejections.
+*   `[app_name]/config/desktop.py`: To add the new POS Dashboard page to the Frappe Desk for admin access.
+
+**2. Frappe DocTypes & Hooks:**
+*   **Primary DocType:** `Order`. This will be the core data model. Its List View should be configured to use the Kanban layout, grouped by the `status` field.
+*   **Workflow:** A new `Workflow` for the `Order` DocType is required to manage status transitions (e.g., Pending -> Preparing -> Ready).
+*   **Page:** Create a new custom `Page` named "POS Dashboard". This will serve as the main hub and contain the Kanban view and daily summary widgets.
+*   **Print Format:** A new server-side `Print Format` for the `Order` DocType to create the simple, printable receipt.
+
+**3. Recommended Implementation Approach:**
+1.  Configure the `Order` DocType's List View to use the built-in Kanban board, mapping columns to the `status` field.
+2.  Implement the daily summary by creating a whitelisted Python function that runs a SQL query to aggregate today's orders.
+3.  Fetch and display this summary on the "POS Dashboard" `Page` using JS (`frappe.call`). Set it to poll every 10-15 seconds.
+4.  Use Frappe's standard `Workflow` system to handle the one-tap status transitions directly from the Kanban view.
+5.  Create a "Receipt" `Print Format` and add a custom button to the `Order` form to trigger it.
+
+**4. Gotchas & Edge Cases:**
+*   **Permissions:** Double-check that the target user Role has permissions for the `Order` DocType, the `Page`, and the required `Workflow` transitions.
+*   **Kanban State Mapping:** The story requires grouping multiple statuses (`approved`, `preparing`) into a single 'Preparing' column. This may require customizing the Kanban board's generation logic.
+*   **Performance:** The daily summary query on the `Order` table must be efficient. Ensure `creation` and `status` fields are indexed.
+*   **Authentication:** Frappe's standard session management for Pages and DocTypes will handle authentication automatically. No custom JWT logic is needed.
 

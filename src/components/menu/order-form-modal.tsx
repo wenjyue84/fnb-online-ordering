@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { X, AlertCircle } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
+import { OrderSuccessOverlay } from "@/components/order/order-success-overlay";
 
 interface OrderItem {
   id: string;
@@ -285,29 +286,14 @@ export function OrderFormModal({ items, total, onSuccess, onClose }: OrderFormMo
               {submitting ? t("submitting") : t("submit")}
             </button>
           </form>
-        ) : (
-          <div className="p-5 space-y-5 text-center">
-            <div className="text-5xl">🎉</div>
-            <div>
-              <p className="font-bold text-xl">
-                {t("orderNumber", { id: orderId ?? "" })}
-              </p>
-              <p className="text-muted-foreground text-sm mt-1">
-                {t("awaitingConfirmation")}
-              </p>
-            </div>
-            <div className="rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 p-4 text-sm text-amber-800 dark:text-amber-200 text-left">
-              <p className="font-semibold">{t("whatNext")}</p>
-              <p className="mt-1">{t("whatNextDesc")}</p>
-            </div>
-            <button
-              onClick={onClose}
-              className="w-full rounded-full bg-primary py-4 text-primary-foreground font-bold text-base hover:bg-primary/90 transition-colors active:scale-[0.98]"
-            >
-              {t("done")}
-            </button>
-          </div>
-        )}
+        ) : orderId !== null ? (
+          <OrderSuccessOverlay
+            orderId={orderId}
+            itemCount={items.reduce((sum, i) => sum + i.quantity, 0)}
+            total={total}
+            onClose={onClose}
+          />
+        ) : null}
       </div>
     </>
   );

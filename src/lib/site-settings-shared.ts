@@ -44,6 +44,7 @@ export interface SiteSettings {
   menuDescription: string;
   orderExpiryMinutes: number;
   kitchenPin: string;
+  posMode: "builtin" | "feedme_manual";
   ratingValue?: number;
   ratingCount?: number;
   ratingProvider?: string;
@@ -97,4 +98,5 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   menuDescription: "Thai-Malaysian fusion dishes — rice, noodles, soups, beverages and more",
   orderExpiryMinutes: 240,
   kitchenPin: "1234",
+  posMode: "feedme_manual",
 };

@@ -11,5 +11,7 @@ export async function GET() {
     tngQrUrl: settings.tng_qr_url ?? "",
     depositRequired: settings.depositRequired ?? false,
     orderExpiryMinutes: settings.orderExpiryMinutes ?? 240,
+    posMode: settings.posMode ?? "feedme_manual",
+    cafeName: settings.cafeName ?? "Makan Moments",
   });
 }

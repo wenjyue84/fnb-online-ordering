@@ -52,8 +52,21 @@ export async function PATCH(
       return NextResponse.json(rows[0]);
     }
 
+    if (action === "feedme_entered") {
+      const rows = await sql`
+        UPDATE tray_orders
+        SET feedme_entered = TRUE
+        WHERE id = ${orderId}
+        RETURNING id, feedme_entered
+      `;
+      if (rows.length === 0) {
+        return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      }
+      return NextResponse.json(rows[0]);
+    }
+
     return NextResponse.json(
-      { error: "action must be 'start' or 'ready'" },
+      { error: "action must be 'start', 'ready', or 'feedme_entered'" },
       { status: 400 }
     );
   } catch (err) {

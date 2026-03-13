@@ -16,6 +16,7 @@ export async function GET() {
         estimated_arrival,
         estimated_ready,
         payment_screenshot_url,
+        feedme_entered,
         created_at
       FROM tray_orders
       WHERE status IN ('approved', 'preparing')

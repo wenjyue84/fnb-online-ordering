@@ -2,7 +2,7 @@
 // Handles: push notifications + basic shell caching
 
 const CACHE_NAME = "makan-moments-v2";
-const SHELL_URLS = ["/en", "/ms", "/zh", "/manifest.json", "/offline.html"];
+const SHELL_URLS = ["/en", "/ms", "/zh", "/manifest.webmanifest", "/offline.html"];
 
 // Install: pre-cache shell URLs
 self.addEventListener("install", (event) => {

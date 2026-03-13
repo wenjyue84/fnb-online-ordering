@@ -42,10 +42,12 @@ function buildPhotosCache(): { primary: Record<string, string>; secondary: Recor
         continue;
       }
 
-      // Primary descriptive: {POS-code}-{name-starting-with-non-digit}.ext
+      // Primary descriptive: {POS-code}-{slug}.ext
       // POS codes are short uppercase + digits (e.g. TM03, AC01, LL13) — strict match
-      // prevents misidentifying codes with hyphens (e.g. Thai-styled_green_cu.jpg)
-      const descMatch = file.match(/^([A-Z]{1,4}\d{1,3})-([^0-9].+)\.(jpe?g|png|webp)$/i);
+      // prevents misidentifying codes with hyphens (e.g. Thai-styled_green_cu.jpg).
+      // Slug can start with digits (e.g. C325-100-plus, JP03-2in1-cheese) — the secondary
+      // regex already handled pure-digit suffixes, so anything remaining is descriptive.
+      const descMatch = file.match(/^([A-Z]{1,4}\d{1,3})-(.+)\.(jpe?g|png|webp)$/i);
       if (descMatch) {
         const code = descMatch[1].toUpperCase();
         const ext = file.split(".").pop()!.toLowerCase();

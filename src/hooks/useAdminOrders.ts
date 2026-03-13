@@ -21,6 +21,7 @@ export interface AdminOrder {
   rejection_reason: string | null;
   payment_screenshot_url: string | null;
   notification_status: string | null;
+  feedme_entered: boolean | null;
   created_at: string;
 }
 

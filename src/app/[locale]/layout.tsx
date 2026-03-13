@@ -95,7 +95,7 @@ export async function generateMetadata({
       images: [{ url: "/images/og-image.jpg", width: 1200, height: 630 }],
     },
     robots: { index: true, follow: true },
-    manifest: "/manifest.json",
+    manifest: "/manifest.webmanifest",
     icons: {
       icon: "/favicon.ico",
       apple: "/apple-touch-icon.png",

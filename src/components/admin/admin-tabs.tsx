@@ -18,6 +18,7 @@ import {
   Bot,
   BarChart3,
   Eye,
+  LayoutDashboard,
 } from "lucide-react";
 
 const KDS_URL = process.env.NEXT_PUBLIC_KDS_URL ?? "/kds";
@@ -83,6 +84,7 @@ interface AdminTabsProps {
 
 const TABS = [
   "Orders",
+  "POS",
   "Menu",
   "Preview",
   "Categories",
@@ -98,6 +100,7 @@ type Tab = (typeof TABS)[number];
 
 const TAB_ICONS: Record<Tab, React.ReactNode> = {
   Orders: <ShoppingBag className="h-4 w-4 shrink-0" />,
+  POS: <LayoutDashboard className="h-4 w-4 shrink-0" />,
   "AI Waiter": <Bot className="h-4 w-4 shrink-0" />,
   Menu: <UtensilsCrossed className="h-4 w-4 shrink-0" />,
   Preview: <Eye className="h-4 w-4 shrink-0" />,
@@ -112,6 +115,7 @@ const TAB_ICONS: Record<Tab, React.ReactNode> = {
 
 const TAB_SLUGS: Record<Tab, string> = {
   Orders: "orders",
+  POS: "pos",
   "AI Waiter": "ai-waiter",
   Menu: "menu",
   Preview: "preview",
@@ -158,6 +162,11 @@ export function AdminTabs({ items, displayCategories, posts }: AdminTabsProps) {
     }
     if (tab === "KDS") {
       window.open(KDS_URL, "_blank");
+      setSidebarOpen(false);
+      return;
+    }
+    if (tab === "POS") {
+      window.open("/pos", "_blank");
       setSidebarOpen(false);
       return;
     }
