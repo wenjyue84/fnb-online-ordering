@@ -141,11 +141,11 @@ export async function POST(
       );
     }
 
-    // Validate size
+    // Validate size — 413 Payload Too Large
     if (file.size > MAX_SIZE) {
       return NextResponse.json(
         { error: "File must be smaller than 5MB" },
-        { status: 400 }
+        { status: 413 }
       );
     }
 

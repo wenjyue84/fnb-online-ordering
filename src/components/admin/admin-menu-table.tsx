@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useState, useEffect } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
 import { useMenuTableEdit, type EditableItem } from "@/hooks/useMenuTableEdit";
 import { AdminMenuTableRow } from "./admin-menu-table-row";
 import { ImagePickerModal } from "./image-picker-modal";
@@ -80,6 +80,8 @@ export function AdminMenuTable({
     toggleDay,
     toggleDietary,
     suggestTranslation,
+    toggleAvailable,
+    restoreAll,
   } = useMenuTableEdit(initialItems);
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -127,6 +129,19 @@ export function AdminMenuTable({
 
   const groupedItems = groupByDisplayCategory(searchedItems, displayCategories);
 
+  const soldOutCount = items.filter((i) => !i.available).length;
+  const [restoring, setRestoring] = useState(false);
+  const [restoreToast, setRestoreToast] = useState<string | null>(null);
+
+  async function handleRestoreAll() {
+    if (!confirm(`Restore all ${soldOutCount} sold-out items to available?`)) return;
+    setRestoring(true);
+    const count = await restoreAll();
+    setRestoring(false);
+    setRestoreToast(`${count} item${count !== 1 ? "s" : ""} restored`);
+    setTimeout(() => setRestoreToast(null), 3000);
+  }
+
   const rowProps = {
     imgVersion,
     highlightedCode,
@@ -139,6 +154,7 @@ export function AdminMenuTable({
     onToggleDay: toggleDay,
     onToggleDietary: toggleDietary,
     onSuggestTranslation: suggestTranslation,
+    onToggleAvailable: toggleAvailable,
   };
 
   const desktopThead = (
@@ -195,6 +211,12 @@ export function AdminMenuTable({
 
       {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
+      {restoreToast && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 rounded-xl bg-green-700 px-4 py-2.5 text-sm font-medium text-white shadow-lg">
+          {restoreToast}
+        </div>
+      )}
+
       <input
         type="search"
         value={search}
@@ -245,6 +267,16 @@ export function AdminMenuTable({
             ? `${activeCategory} (${filteredItems.length} item${filteredItems.length !== 1 ? "s" : ""})`
             : `Menu Items (${items.length})`}
         </h2>
+        {soldOutCount > 0 && (
+          <button
+            onClick={() => void handleRestoreAll()}
+            disabled={restoring}
+            className="flex items-center gap-1.5 rounded-lg border border-green-300 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-100 disabled:opacity-50 transition-colors"
+          >
+            <RotateCcw className={`h-3.5 w-3.5 ${restoring ? "animate-spin" : ""}`} />
+            Restore All ({soldOutCount})
+          </button>
+        )}
         <button
           onClick={addNewRow}
           className="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-600"

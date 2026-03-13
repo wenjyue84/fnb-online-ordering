@@ -4,7 +4,8 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { Upload, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { Upload, CheckCircle2, AlertCircle, Loader2, X } from "lucide-react";
+import heic2any from "heic2any";
 
 interface OrderData {
   id: number;
@@ -30,10 +31,13 @@ export default function PaymentPage() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [converting, setConverting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 
   const fetchData = useCallback(async () => {
     try {
@@ -63,7 +67,7 @@ export default function PaymentPage() {
     void fetchData();
   }, [fetchData]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
 
@@ -71,14 +75,36 @@ export default function PaymentPage() {
       setError(t("fileSizeError"));
       return;
     }
-    if (!["image/jpeg", "image/png", "image/webp"].includes(f.type)) {
+    if (!ALLOWED_TYPES.includes(f.type)) {
       setError(t("fileTypeError"));
       return;
     }
 
     setError(null);
-    setFile(f);
 
+    // Convert HEIC/HEIF to JPEG client-side (common on iPhones)
+    if (f.type === "image/heic" || f.type === "image/heif") {
+      setConverting(true);
+      try {
+        const blob = await heic2any({ blob: f, toType: "image/jpeg", quality: 0.85 });
+        const converted = new File(
+          [Array.isArray(blob) ? blob[0] : blob],
+          f.name.replace(/\.hei[cf]$/i, ".jpg"),
+          { type: "image/jpeg" }
+        );
+        setFile(converted);
+        const reader = new FileReader();
+        reader.onload = (ev) => setPreview(ev.target?.result as string);
+        reader.readAsDataURL(converted);
+      } catch {
+        setError(t("heicConvertError"));
+      } finally {
+        setConverting(false);
+      }
+      return;
+    }
+
+    setFile(f);
     const reader = new FileReader();
     reader.onload = (ev) => setPreview(ev.target?.result as string);
     reader.readAsDataURL(f);
@@ -239,15 +265,32 @@ export default function PaymentPage() {
         <input
           ref={fileRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
           className="hidden"
-          onChange={handleFileChange}
+          onChange={(e) => void handleFileChange(e)}
         />
 
-        {file && (
-          <p className="mt-2 text-xs text-stone-500">
-            {file.name} ({(file.size / 1024 / 1024).toFixed(1)}MB)
-          </p>
+        {converting && (
+          <div className="mt-3 flex items-center gap-2 text-sm text-amber-700">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            {t("convertingHeic")}
+          </div>
+        )}
+
+        {file && !converting && (
+          <div className="mt-2 flex items-center gap-2">
+            <p className="text-xs text-stone-500">
+              {file.name} ({(file.size / 1024 / 1024).toFixed(1)}MB)
+            </p>
+            <button
+              type="button"
+              onClick={() => { setFile(null); setPreview(null); if (fileRef.current) fileRef.current.value = ""; }}
+              className="inline-flex items-center rounded-full p-0.5 text-stone-400 hover:bg-stone-100 hover:text-stone-600"
+              title={t("clearFile")}
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
         )}
 
         {/* Progress bar */}
@@ -268,7 +311,7 @@ export default function PaymentPage() {
         <button
           type="button"
           onClick={() => void handleUpload()}
-          disabled={!file || uploading}
+          disabled={!file || uploading || converting}
           className="mt-4 min-h-[44px] w-full rounded-xl bg-amber-600 py-3 font-semibold text-white transition-colors hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {uploading ? t("uploading") : t("submitBtn")}

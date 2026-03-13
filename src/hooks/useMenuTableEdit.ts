@@ -26,6 +26,8 @@ export interface UseMenuTableEditResult {
   toggleDietary: (item: EditableItem, d: string) => void;
   toggleCategory: (item: EditableItem, cat: string) => void;
   suggestTranslation: (item: EditableItem, lang: "ms" | "zh") => Promise<void>;
+  toggleAvailable: (id: string) => Promise<void>;
+  restoreAll: () => Promise<number>;
 }
 
 export function useMenuTableEdit(initialItems: MenuItemWithRules[]): UseMenuTableEditResult {
@@ -184,6 +186,46 @@ export function useMenuTableEdit(initialItems: MenuItemWithRules[]): UseMenuTabl
     }
   }
 
+  /** Instant toggle: optimistically flip available, PATCH server, rollback on failure */
+  async function toggleAvailable(id: string) {
+    const item = items.find((i) => i.id === id);
+    if (!item || item._new) return;
+    const newAvailable = !item.available;
+    // Optimistic update (don't set _dirty — this auto-saves)
+    setItems((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, available: newAvailable } : i))
+    );
+    try {
+      const res = await fetch(`/api/admin/menu/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ available: newAvailable }),
+      });
+      if (!res.ok) throw new Error("Failed");
+    } catch {
+      // Rollback on failure
+      setItems((prev) =>
+        prev.map((i) => (i.id === id ? { ...i, available: !newAvailable } : i))
+      );
+      setError("Failed to update availability");
+    }
+  }
+
+  /** Restore all sold-out items to available */
+  async function restoreAll(): Promise<number> {
+    try {
+      const res = await fetch("/api/admin/menu/restore-all", { method: "POST" });
+      if (!res.ok) throw new Error("Failed");
+      const data = await res.json() as { restored: number };
+      // Update local state
+      setItems((prev) => prev.map((i) => ({ ...i, available: true })));
+      return data.restored;
+    } catch {
+      setError("Failed to restore items");
+      return 0;
+    }
+  }
+
   function handleImageChange() {
     setImgVersion((v) => v + 1);
   }
@@ -217,5 +259,7 @@ export function useMenuTableEdit(initialItems: MenuItemWithRules[]): UseMenuTabl
     toggleDietary,
     toggleCategory,
     suggestTranslation,
+    toggleAvailable,
+    restoreAll,
   };
 }

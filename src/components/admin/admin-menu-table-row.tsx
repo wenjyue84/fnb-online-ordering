@@ -20,6 +20,7 @@ interface AdminMenuTableRowProps {
   onToggleDay: (item: EditableItem, day: string) => void;
   onToggleDietary: (item: EditableItem, d: string) => void;
   onSuggestTranslation: (item: EditableItem, lang: "ms" | "zh") => void;
+  onToggleAvailable: (id: string) => void;
   variant: "desktop" | "mobile";
 }
 
@@ -35,6 +36,7 @@ export function AdminMenuTableRow({
   onDelete,
   onToggleDay,
   onToggleDietary,
+  onToggleAvailable,
   onSuggestTranslation,
   variant,
 }: AdminMenuTableRowProps) {
@@ -82,23 +84,30 @@ export function AdminMenuTableRow({
   );
 
   const availableToggle = (size: "sm" | "lg") => (
-    <button
-      onClick={() => onUpdate(item.id, { available: !item.available })}
-      className={cn(
-        "rounded-full transition-colors",
-        size === "sm" ? "h-6 w-10" : "h-7 w-12",
-        item.available ? "bg-green-500" : "bg-gray-300"
-      )}
-      aria-label={item.available ? "Available" : "Unavailable"}
-    >
-      <span
+    <div className="flex flex-col items-center gap-0.5">
+      <button
+        onClick={() => item._new ? onUpdate(item.id, { available: !item.available }) : onToggleAvailable(item.id)}
         className={cn(
-          "block rounded-full bg-white shadow transition-transform",
-          size === "sm" ? "h-5 w-5 translate-x-0.5" : "h-5 w-5 translate-x-1",
-          item.available && (size === "sm" ? "translate-x-4" : "translate-x-6")
+          "rounded-full transition-colors",
+          size === "sm" ? "h-6 w-10" : "h-7 w-12",
+          item.available ? "bg-green-500" : "bg-gray-300"
         )}
-      />
-    </button>
+        aria-label={item.available ? "Mark as sold out" : "Mark as available"}
+      >
+        <span
+          className={cn(
+            "block rounded-full bg-white shadow transition-transform",
+            size === "sm" ? "h-5 w-5 translate-x-0.5" : "h-5 w-5 translate-x-1",
+            item.available && (size === "sm" ? "translate-x-4" : "translate-x-6")
+          )}
+        />
+      </button>
+      {!item.available && (
+        <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700 whitespace-nowrap">
+          Sold Out
+        </span>
+      )}
+    </div>
   );
 
   const actionsButtons = (fullWidth: boolean) => (

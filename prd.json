@@ -515,7 +515,7 @@
         "WhatsApp order notification delivery retry with exponential backoff"
       ],
       "estimatedComplexity": "medium",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-616",
@@ -539,7 +539,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-617",
@@ -563,18 +563,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "small",
-      "passes": false,
-      "filesTouch": [
-        "messages/en.json",
-        "messages/ms.json",
-        "messages/zh.json",
-        "prd.json",
-        "progress.txt",
-        "retry-counts.json",
-        "src/app/[locale]/order/[id]/page.tsx",
-        "src/app/api/admin/orders/[id]/route.ts",
-        "src/app/api/orders/[id]/push-subscribe/route.ts"
-      ]
+      "passes": true
     },
     {
       "id": "US-618",
@@ -597,7 +586,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-619",
@@ -715,7 +704,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "small",
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-623",

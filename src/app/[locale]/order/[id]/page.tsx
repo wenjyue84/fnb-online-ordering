@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { CheckCircle2, Circle, Clock, XCircle, PhoneCall, Upload } from "lucide-react";
+import { CheckCircle2, Circle, Clock, XCircle, PhoneCall, Upload, Loader2 } from "lucide-react";
+import heic2any from "heic2any";
 import Link from "next/link";
 import { fetchWithTimeout } from "@/lib/utils";
 import { formatDateTime } from "@/lib/date-utils";
@@ -134,22 +135,46 @@ function PaymentSection({
   t: ReturnType<typeof useTranslations>;
   onSuccess: () => void;
 }) {
+  const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif"];
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [uploadState, setUploadState] = useState<UploadState>("idle");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [converting, setConverting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
     setErrorMsg(null);
     if (!file) { setSelectedFile(null); setPreview(null); return; }
-    if (!["image/jpeg", "image/jpg", "image/png"].includes(file.type)) {
+    if (!ALLOWED_TYPES.includes(file.type)) {
       setErrorMsg(t("invalidFileType")); setSelectedFile(null); setPreview(null); return;
     }
     if (file.size > 5 * 1024 * 1024) {
       setErrorMsg(t("fileTooLarge")); setSelectedFile(null); setPreview(null); return;
+    }
+    // Convert HEIC/HEIF to JPEG client-side (common on iPhones)
+    if (file.type === "image/heic" || file.type === "image/heif") {
+      setConverting(true);
+      try {
+        const blob = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.85 });
+        const converted = new File(
+          [Array.isArray(blob) ? blob[0] : blob],
+          file.name.replace(/\.hei[cf]$/i, ".jpg"),
+          { type: "image/jpeg" }
+        );
+        setSelectedFile(converted);
+        const reader = new FileReader();
+        reader.onload = (ev) => setPreview(ev.target?.result as string);
+        reader.readAsDataURL(converted);
+      } catch {
+        setErrorMsg(t("heicConvertError"));
+        setSelectedFile(null); setPreview(null);
+      } finally {
+        setConverting(false);
+      }
+      return;
     }
     setSelectedFile(file);
     const reader = new FileReader();
@@ -222,15 +247,15 @@ function PaymentSection({
         <p className="mb-1 text-sm font-medium text-stone-700">{t("uploadLabel")}</p>
         <p className="mb-3 text-xs text-stone-500">{t("uploadHint")}</p>
 
-        <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png" onChange={handleFileChange} className="hidden" />
+        <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif" onChange={(e) => void handleFileChange(e)} className="hidden" />
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          disabled={uploadState === "uploading" || uploadState === "success"}
+          disabled={uploadState === "uploading" || uploadState === "success" || converting}
           className="flex min-h-[44px] items-center gap-2 rounded-xl border-2 border-dashed border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-700 hover:border-amber-500 hover:bg-amber-50 disabled:opacity-50"
         >
-          <Upload className="h-4 w-4" />
-          {selectedFile ? selectedFile.name : t("uploadBtn")}
+          {converting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+          {converting ? t("convertingHeic") : selectedFile ? selectedFile.name : t("uploadBtn")}
         </button>
 
         {preview && (

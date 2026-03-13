@@ -686,6 +686,31 @@ export default function PosPage() {
     return () => clearInterval(t);
   }, [fetchOrders]);
 
+  // ── BroadcastChannel: sync order state across tabs ──────────────────────────
+  const tabIdRef = useRef(typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36));
+  const channelRef = useRef<BroadcastChannel | null>(null);
+
+  useEffect(() => {
+    if (typeof BroadcastChannel === "undefined") return;
+    const ch = new BroadcastChannel("pos-orders");
+    channelRef.current = ch;
+    ch.onmessage = (e: MessageEvent<{ tabId: string; type: string; order?: Partial<AdminOrder> & { id: number }; orders?: AdminOrder[] }>) => {
+      if (e.data.tabId === tabIdRef.current) return; // ignore own messages
+      if (e.data.type === "order_updated" && e.data.order) {
+        const { id, ...changes } = e.data.order;
+        setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, ...changes } : o)));
+      } else if (e.data.type === "orders_refreshed" && e.data.orders) {
+        setOrders(e.data.orders);
+      }
+    };
+    return () => ch.close();
+  }, []);
+
+  /** Broadcast an order update to other tabs */
+  const broadcastUpdate = useCallback((order: Partial<AdminOrder> & { id: number }) => {
+    channelRef.current?.postMessage({ tabId: tabIdRef.current, type: "order_updated", order });
+  }, []);
+
   // ── API actions ──────────────────────────────────────────────────────────────
 
   const approveOrder = useCallback(async (id: number, estimatedReady: string): Promise<ActionResult> => {
@@ -701,13 +726,14 @@ export default function PosPage() {
       }
       const data = await res.json() as { status: string; estimated_ready: string };
       updateOrder(id, { status: data.status, estimated_ready: data.estimated_ready });
+      broadcastUpdate({ id, status: data.status, estimated_ready: data.estimated_ready });
       // Update selected order if open
       setSelectedOrder((prev) => prev?.id === id ? { ...prev, status: data.status, estimated_ready: data.estimated_ready } : prev);
       return { ok: true };
     } catch {
       return { ok: false, error: "Network error" };
     }
-  }, [updateOrder]);
+  }, [updateOrder, broadcastUpdate]);
 
   const rejectOrder = useCallback(async (id: number, reason: string): Promise<ActionResult> => {
     try {
@@ -721,12 +747,13 @@ export default function PosPage() {
         return { ok: false, error: d.error ?? "Failed to reject" };
       }
       updateOrder(id, { status: "rejected", rejection_reason: reason });
+      broadcastUpdate({ id, status: "rejected", rejection_reason: reason });
       setSelectedOrder((prev) => prev?.id === id ? { ...prev, status: "rejected", rejection_reason: reason } : prev);
       return { ok: true };
     } catch {
       return { ok: false, error: "Network error" };
     }
-  }, [updateOrder]);
+  }, [updateOrder, broadcastUpdate]);
 
   const markReady = useCallback(async (id: number): Promise<ActionResult> => {
     try {
@@ -740,12 +767,13 @@ export default function PosPage() {
         return { ok: false, error: d.error ?? "Failed" };
       }
       updateOrder(id, { status: "ready" });
+      broadcastUpdate({ id, status: "ready" });
       setSelectedOrder((prev) => prev?.id === id ? { ...prev, status: "ready" } : prev);
       return { ok: true };
     } catch {
       return { ok: false, error: "Network error" };
     }
-  }, [updateOrder]);
+  }, [updateOrder, broadcastUpdate]);
 
   const confirmPayment = useCallback(async (id: number): Promise<ActionResult> => {
     try {
@@ -759,12 +787,13 @@ export default function PosPage() {
         return { ok: false, error: d.error ?? "Failed" };
       }
       updateOrder(id, { status: "preparing" });
+      broadcastUpdate({ id, status: "preparing" });
       setSelectedOrder((prev) => prev?.id === id ? { ...prev, status: "preparing" } : prev);
       return { ok: true };
     } catch {
       return { ok: false, error: "Network error" };
     }
-  }, [updateOrder]);
+  }, [updateOrder, broadcastUpdate]);
 
   // ── Derived data ─────────────────────────────────────────────────────────────
 

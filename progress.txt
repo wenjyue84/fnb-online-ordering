@@ -175,6 +175,34 @@ data: {json}
 - sessionStorage is per-tab and per-session by design — tray does not persist across browser sessions or tabs
 - clearTray() triggers emitChange() which removes sessionStorage entry, preventing stale items after order submission
 
+**US-617** — Admin order export to CSV for daily reporting
+- CSV export already existed (Export CSV button + handleExportCsv in admin-orders-panel.tsx)
+- Added date range filter (From/To date inputs) with a toggleable filter bar
+- filterByDateRange() converts order created_at to Malaysia timezone date string for comparison
+- Date filter composes with status tab filter — both apply simultaneously
+- Export CSV uses dateFiltered (status + date filtered) and names file with date range suffix
+- Empty state message distinguishes "no orders in category" vs "no orders match date range"
+- CalendarDays icon toggle highlights when date filter is active (orange border)
+- BOM prefix (\uFEFF) in CSV for Excel UTF-8 compatibility
+
+**US-618** — Multi-tab POS state sync via BroadcastChannel API
+- Added BroadcastChannel('pos-orders') in useEffect on POS page with cleanup on unmount
+- Unique tabId via crypto.randomUUID() stored in useRef — sender exclusion on all messages
+- On order_updated message from another tab: optimistically merges changes into local orders state
+- Each action (approve, reject, markReady, confirmPayment) calls broadcastUpdate() after successful API response
+- Graceful degradation: typeof BroadcastChannel === "undefined" check — no error on unsupported browsers
+- Within 200ms cross-tab sync (BroadcastChannel is synchronous same-origin)
+
+**US-622** — Admin sold-out quick toggle per menu item
+- Added toggleAvailable(id) to useMenuTableEdit hook: optimistic flip + immediate PATCH /api/admin/menu/{id} + rollback on error
+- Added restoreAll() to hook: calls POST /api/admin/menu/restore-all, updates all items to available
+- Created POST /api/admin/menu/restore-all: UPDATE menu_items SET available=true WHERE available=false + revalidateMenuCache
+- AdminMenuTableRow: available toggle now calls onToggleAvailable (instant save) instead of onUpdate (requires manual Save)
+- "Sold Out" red badge renders below toggle when available=false
+- AdminMenuTable: "Restore All (N)" button with green border shown when soldOutCount > 0, with confirmation prompt
+- Success toast on restore ("N items restored")
+- PATCH /api/admin/menu/[id] already calls revalidateMenuCache() — sold-out changes are reflected immediately on /menu
+
 ### Key patterns from Iteration 6
 
 - POS page uses direct fetch() instead of useAdminOrders() hook for more control over auth redirect
@@ -922,4 +950,11 @@ Incomplete: Halal-friendly badge prominence and servesCuisine structured data (I
 ## Iteration 1 - Fri, Mar 13, 2026 11:46:42 AM
 Incomplete: Halal-friendly badge prominence and servesCuisine structured data (ID: US-609) — attempt 2/3
 
+
+
+## Iteration 8 - Fri, Mar 13, 2026  1:59:53 PM
+Incomplete: Admin sold-out quick toggle per menu item (ID: US-622) — attempt 1/3
+
+## Iteration 9 - Fri, Mar 13, 2026  2:12:55 PM
+Incomplete: Admin sold-out quick toggle per menu item (ID: US-622) — attempt 2/3
 
