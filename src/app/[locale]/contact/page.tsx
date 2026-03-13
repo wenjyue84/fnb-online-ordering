@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { buildAlternates } from "@/lib/seo";
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
@@ -54,6 +55,10 @@ export async function generateMetadata({
   return {
     title: t("title"),
     description: t("subtitle"),
+    alternates: {
+      canonical: `/${locale}/contact`,
+      ...buildAlternates("/contact"),
+    },
   };
 }
 

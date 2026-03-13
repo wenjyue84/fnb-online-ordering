@@ -31,6 +31,7 @@ export async function PATCH(
     imagePosition,
     isSignature,
     archived,
+    allergens,
   } = body;
 
   // Only one item can be the signature dish — clear others before setting this one
@@ -58,6 +59,7 @@ export async function PATCH(
       image_position = COALESCE(${imagePosition ?? null}, image_position),
       is_signature = COALESCE(${isSignature ?? null}, is_signature),
       archived = COALESCE(${archived ?? null}, archived),
+      allergens = COALESCE(${allergens ?? null}, allergens),
       updated_at = now()
     WHERE id = ${id}
     RETURNING *

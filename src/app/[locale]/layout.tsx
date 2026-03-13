@@ -14,6 +14,7 @@ import { TrayWidget } from "@/components/menu/tray-widget";
 import { RestaurantJsonLd } from "@/components/seo/json-ld";
 import { OperatingHoursAlert } from "@/components/menu/operating-hours-alert";
 import { COOKIE_NAME, verifyAdminToken } from "@/lib/auth";
+import { buildAlternates } from "@/lib/seo";
 import { getOperatingStatus } from "@/lib/availability";
 import dynamic from "next/dynamic";
 const AdminFloatingToolbar = dynamic(() => import("@/components/admin/admin-floating-toolbar").then(m => m.AdminFloatingToolbar));
@@ -81,12 +82,7 @@ export async function generateMetadata({
     metadataBase: new URL(siteUrl),
     alternates: {
       canonical: `/${locale}`,
-      languages: {
-        "x-default": "/en",
-        en: "/en",
-        ms: "/ms",
-        zh: "/zh",
-      },
+      ...buildAlternates(""),
     },
     openGraph: {
       type: "website",

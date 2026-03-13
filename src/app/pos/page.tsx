@@ -8,11 +8,11 @@ import {
   Check,
   X,
   Clock,
-  Printer,
   Eye,
   ChevronDown,
   AlertTriangle,
 } from "lucide-react";
+import { PrintTicketButton } from "@/components/pos/print-ticket-button";
 import { cn } from "@/lib/utils";
 import { formatDateTimeCompact, formatTime } from "@/lib/date-utils";
 import { calculateSmartReadyTime, toDatetimeLocal } from "@/lib/orders";
@@ -191,10 +191,6 @@ function DetailModal({
   const isPreparing = order.status === "preparing";
   const isPaymentUploaded = order.status === "payment_uploaded";
 
-  function handlePrint() {
-    window.print();
-  }
-
   async function handleMarkReady() {
     setActing(true);
     setErr("");
@@ -322,14 +318,17 @@ function DetailModal({
 
           {/* Footer actions */}
           <div className="border-t px-5 py-4 space-y-2">
-            {/* Print receipt */}
-            <button
-              onClick={handlePrint}
-              className="flex w-full items-center justify-center gap-2 min-h-[44px] rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50"
-            >
-              <Printer className="h-4 w-4" />
-              Print Receipt
-            </button>
+            {/* Print ticket */}
+            <PrintTicketButton
+              order={{
+                id: order.id,
+                items: order.items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
+                total: order.total,
+                contact_number: order.contact_number ?? undefined,
+                estimated_arrival: order.estimated_arrival ?? undefined,
+              }}
+              cafeName={cafeName}
+            />
 
             {isPending && (
               <div className="flex gap-2">
@@ -411,9 +410,10 @@ interface PosCardProps {
   onConfirmPayment: (id: number) => Promise<ActionResult>;
   posMode: "builtin" | "feedme_manual";
   escalationMinutes?: number;
+  cafeName: string;
 }
 
-function PosCard({ order, onTap, onApprove, onReject, onMarkReady, onConfirmPayment, posMode, escalationMinutes = 10 }: PosCardProps) {
+function PosCard({ order, onTap, onApprove, onReject, onMarkReady, onConfirmPayment, posMode, escalationMinutes = 10, cafeName }: PosCardProps) {
   const [elapsed, setElapsed] = useState(elapsedMinutes(order.created_at));
   const [showApprove, setShowApprove] = useState(false);
   const [showReject, setShowReject] = useState(false);
@@ -495,6 +495,20 @@ function PosCard({ order, onTap, onApprove, onReject, onMarkReady, onConfirmPaym
             )}
           </div>
           <div className="flex items-center gap-1.5">
+            <div onClick={(e) => e.stopPropagation()}>
+              <PrintTicketButton
+                order={{
+                  id: order.id,
+                  items: order.items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
+                  total: order.total,
+                  contact_number: order.contact_number ?? undefined,
+                  estimated_arrival: order.estimated_arrival ?? undefined,
+                }}
+                cafeName={cafeName}
+                compact
+                className="min-h-[36px] min-w-[36px] p-1.5"
+              />
+            </div>
             <span className="text-xs text-gray-400">{elapsed}m ago</span>
             <ChevronDown className="h-3.5 w-3.5 text-gray-300" />
           </div>
@@ -913,6 +927,7 @@ export default function PosPage() {
                           onConfirmPayment={confirmPayment}
                           posMode={posMode}
                           escalationMinutes={escalationMinutes}
+                          cafeName={cafeName}
                         />
                       ))
                     )}
@@ -939,6 +954,7 @@ export default function PosPage() {
                     onConfirmPayment={confirmPayment}
                     posMode={posMode}
                     escalationMinutes={escalationMinutes}
+                    cafeName={cafeName}
                   />
                 ))
               )}

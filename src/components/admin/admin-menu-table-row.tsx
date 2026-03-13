@@ -6,6 +6,8 @@ import type { EditableItem } from "@/hooks/useMenuTableEdit";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const DIETARY_OPTIONS = ["Spicy", "Vegetarian", "Vegan", "Gluten Free"];
+const ALLERGEN_OPTIONS = ["nuts", "shellfish", "dairy", "eggs", "gluten", "soy"];
+const ALLERGEN_EMOJI: Record<string, string> = { nuts: "🥜", shellfish: "🦐", dairy: "🥛", eggs: "🥚", gluten: "🌾", soy: "🫘" };
 
 interface AdminMenuTableRowProps {
   item: EditableItem;

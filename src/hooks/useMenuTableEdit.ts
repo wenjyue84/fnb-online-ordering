@@ -24,6 +24,7 @@ export interface UseMenuTableEditResult {
   addNewRow: () => void;
   toggleDay: (item: EditableItem, day: string) => void;
   toggleDietary: (item: EditableItem, d: string) => void;
+  toggleAllergen: (item: EditableItem, a: string) => void;
   toggleCategory: (item: EditableItem, cat: string) => void;
   suggestTranslation: (item: EditableItem, lang: "ms" | "zh") => Promise<void>;
   toggleAvailable: (id: string) => Promise<void>;
@@ -73,6 +74,7 @@ export function useMenuTableEdit(initialItems: MenuItemWithRules[]): UseMenuTabl
         updatedAt: new Date().toISOString(),
         isSignature: false,
         archived: false,
+        allergens: [],
         _new: true,
         _dirty: true,
       },
@@ -99,6 +101,7 @@ export function useMenuTableEdit(initialItems: MenuItemWithRules[]): UseMenuTabl
       timeFrom: item.timeFrom,
       timeUntil: item.timeUntil,
       specialDates: item.specialDates,
+      allergens: item.allergens,
     };
 
     try {
@@ -156,6 +159,13 @@ export function useMenuTableEdit(initialItems: MenuItemWithRules[]): UseMenuTabl
       ? item.dietary.filter((x) => x !== d)
       : [...item.dietary, d];
     updateItem(item.id, { dietary });
+  }
+
+  function toggleAllergen(item: EditableItem, a: string) {
+    const allergens = item.allergens.includes(a)
+      ? item.allergens.filter((x) => x !== a)
+      : [...item.allergens, a];
+    updateItem(item.id, { allergens });
   }
 
   function toggleCategory(item: EditableItem, cat: string) {
@@ -257,6 +267,7 @@ export function useMenuTableEdit(initialItems: MenuItemWithRules[]): UseMenuTabl
     addNewRow,
     toggleDay,
     toggleDietary,
+    toggleAllergen,
     toggleCategory,
     suggestTranslation,
     toggleAvailable,

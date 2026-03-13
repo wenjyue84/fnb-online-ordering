@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { buildAlternates } from "@/lib/seo";
 import Image from "next/image";
 import { cookies, headers } from "next/headers";
 import { notFound } from "next/navigation";
@@ -23,13 +24,17 @@ export async function generateMetadata({
 }: {
   params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
+  const { locale, slug } = await params;
   const post = await getBlogPost(slug);
   if (!post) return { title: "Not Found" };
 
   return {
     title: post.title,
     description: post.excerpt,
+    alternates: {
+      canonical: `/${locale}/blog/${slug}`,
+      ...buildAlternates(`/blog/${slug}`),
+    },
     openGraph: {
       title: post.title,
       description: post.excerpt,

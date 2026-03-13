@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { buildAlternates } from "@/lib/seo";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getSiteSettings } from "@/lib/site-settings";
 
@@ -12,6 +13,10 @@ export async function generateMetadata({
   return {
     title: t("title"),
     description: t("description"),
+    alternates: {
+      canonical: `/${locale}/privacy`,
+      ...buildAlternates("/privacy"),
+    },
   };
 }
 

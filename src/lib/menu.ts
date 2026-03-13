@@ -185,6 +185,7 @@ function rowToMenuItem(row: any, displayCatMap: Record<string, string[]> = {}, p
     updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : new Date().toISOString(),
     isSignature: row.is_signature ?? false,
     archived: row.archived ?? false,
+    allergens: row.allergens ?? [],
   };
 }
 

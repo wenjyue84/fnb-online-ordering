@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { buildAlternates } from "@/lib/seo";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { OrderHistoryClient } from "./order-history-client";
 
@@ -13,6 +14,10 @@ export async function generateMetadata({
     title: t("title"),
     description: t("description"),
     robots: { index: false, follow: false },
+    alternates: {
+      canonical: `/${locale}/orders`,
+      ...buildAlternates("/orders"),
+    },
   };
 }
 
