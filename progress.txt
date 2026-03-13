@@ -906,3 +906,9 @@ Completed: 10-Minute Auto-Escalation for Unattended Orders (ID: US-604) in 7m
 ## Iteration 3 - Fri, Mar 13, 2026 10:50:29 AM
 Completed: Staff Android PWA with Alarm Notifications (ID: US-606) in 6m
 
+## Iteration 4 - Fri, Mar 13, 2026 11:06:20 AM
+Completed: WhatsApp order notification delivery retry with exponential backoff (ID: US-607) in 14m
+
+## Iteration 5 - Fri, Mar 13, 2026 11:20:12 AM
+Incomplete: Halal-friendly badge prominence and servesCuisine structured data (ID: US-609) — attempt 1/3
+
