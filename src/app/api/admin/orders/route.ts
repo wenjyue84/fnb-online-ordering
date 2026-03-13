@@ -23,6 +23,16 @@ export async function GET() {
       ADD COLUMN IF NOT EXISTS feedme_entered BOOLEAN DEFAULT FALSE
     `;
 
+    // Ensure notification columns exist (idempotent migration)
+    await sql`
+      ALTER TABLE tray_orders
+      ADD COLUMN IF NOT EXISTS notification_status TEXT DEFAULT 'pending'
+    `;
+    await sql`
+      ALTER TABLE tray_orders
+      ADD COLUMN IF NOT EXISTS notification_attempts INT DEFAULT 0
+    `;
+
     const rows = await sql`
       SELECT
         id,

@@ -196,7 +196,10 @@
     "whatNext": "Apa yang berlaku seterusnya?",
     "whatNextDesc": "Pasukan kami akan menyemak pesanan anda dan mengesahkannya tidak lama lagi. Anda akan melihat kemas kini status dalam sejarah pesanan anda.",
     "orderNumber": "Pesanan #{id}",
-    "dataDisclosure": "Nombor telefon anda hanya digunakan untuk memaklumkan anda tentang pesanan ini. Lihat <privacyLink>Dasar Privasi</privacyLink> kami."
+    "dataDisclosure": "Nombor telefon anda hanya digunakan untuk memaklumkan anda tentang pesanan ini. Lihat <privacyLink>Dasar Privasi</privacyLink> kami.",
+    "slotFull": "Masa ketibaan ini telah penuh.",
+    "nextAvailable": "Seterusnya tersedia:",
+    "useThisTime": "Gunakan masa ini"
   },
   "paymentPage": {
     "title": "Lengkapkan Bayaran",

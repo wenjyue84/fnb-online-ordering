@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, X, Clock, Eye, AlertTriangle } from "lucide-react";
+import { Check, X, Clock, Eye, AlertTriangle, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDateTimeCompact as formatDateTime, formatTime } from "@/lib/date-utils";
 import type { AdminOrder, ActionResult } from "@/hooks/useAdminOrders";
@@ -278,6 +278,8 @@ export function AdminOrderCard({ order, posMode = "feedme_manual", escalationMin
   const [markingReady, setMarkingReady] = useState(false);
   const [feedmeEntered, setFeedmeEntered] = useState<boolean>(order.feedme_entered ?? false);
   const [feedmeLoading, setFeedmeLoading] = useState(false);
+  const [notifStatus, setNotifStatus] = useState<string | null>(order.notification_status ?? null);
+  const [resending, setResending] = useState(false);
 
   const isPending = order.status === "pending_approval" || order.status === "pending";
   const hasPaymentUploaded = order.status === "payment_uploaded";
@@ -308,6 +310,22 @@ export function AdminOrderCard({ order, posMode = "feedme_manual", escalationMin
     }
   }
 
+  async function handleResendNotification() {
+    setResending(true);
+    setNotifStatus("pending");
+    try {
+      await fetch(`/api/admin/orders/${order.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "resend_notification" }),
+      });
+    } catch {
+      setNotifStatus("failed");
+    } finally {
+      setResending(false);
+    }
+  }
+
   return (
     <>
       <div className={cn(
@@ -333,13 +351,29 @@ export function AdminOrderCard({ order, posMode = "feedme_manual", escalationMin
             )}>
               {STATUS_LABELS[order.status] ?? order.status}
             </span>
-            {order.notification_status === "failed" && (
-              <span
-                className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700"
-                title="WhatsApp notification failed after 3 retries"
-              >
-                <AlertTriangle className="h-3 w-3" />
-                WA Failed
+            {notifStatus === "failed" && (
+              <>
+                <span
+                  className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700"
+                  title="WhatsApp notification failed after 3 retries"
+                >
+                  <AlertTriangle className="h-3 w-3" />
+                  WA Failed
+                </span>
+                <button
+                  onClick={() => void handleResendNotification()}
+                  disabled={resending}
+                  title="Resend WhatsApp notification"
+                  className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-700 hover:bg-orange-200 disabled:opacity-50 transition-colors"
+                >
+                  <RefreshCw className={cn("h-3 w-3", resending && "animate-spin")} />
+                  {resending ? "Sending…" : "Resend"}
+                </button>
+              </>
+            )}
+            {notifStatus === "pending" && !resending && (
+              <span className="ml-1.5 inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-semibold text-yellow-700">
+                WA Sending…
               </span>
             )}
           </div>

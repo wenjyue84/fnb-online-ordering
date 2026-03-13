@@ -152,6 +152,22 @@ data: {json}
 - Fixed: kds/escalation-count/route.ts type error on rows.map (pre-existing build failure)
 - Escalation push deduplication: escalation_notified_at column on tray_orders, only sends once per order per escalation
 
+**US-607** — WhatsApp order notification delivery retry with exponential backoff
+- src/lib/notifications.ts already existed with withRetry() + sendOrderWhatsAppNotification() with 3 retries (1s/2s/4s backoff)
+- Added per-attempt logging: console.info `[whatsapp] Attempt N for order #ID` inside the retry closure
+- DB migration: ALTER TABLE tray_orders ADD COLUMN IF NOT EXISTS notification_status TEXT DEFAULT 'pending' (+ notification_attempts INT) in admin GET route
+- OrderPatchSchema: added "resend_notification" to action enum
+- PATCH /api/admin/orders/[id] action=resend_notification: fetches order data, resets notification_status='pending', fire-and-forget resend
+- admin-order-card.tsx: local notifStatus state (from order.notification_status); WA Failed badge + inline Resend button (RefreshCw icon, spins while resending); WA Sending… badge while pending
+
+**US-608** — Pre-order slot capacity limits to prevent kitchen overload
+- maxOrdersPerSlot: number added to SiteSettings (default: 5)
+- POST /api/orders: slot capacity check — counts non-rejected/expired orders with estimated_arrival in same 30-min window (slotStart = floor(arrivalMs/30min)*30min)
+- On slot full: loops up to 24 windows to find next available slot, returns 409 { error: "slot_full", nextAvailableSlot: ISO8601 }
+- order-form-modal.tsx: slotFullTime state; on 409 shows orange panel with "This arrival time is fully booked" + next available time + "Use this time" button that pre-fills the time input
+- Admin settings Pre-Order tab: "Max Orders Per 30-Min Slot" number input (1-50)
+- i18n: slotFull, nextAvailable, useThisTime keys added to all 3 locale files
+
 ### Key patterns from Iteration 6
 
 - POS page uses direct fetch() instead of useAdminOrders() hook for more control over auth redirect
@@ -886,4 +902,7 @@ Incomplete: 10-Minute Auto-Escalation for Unattended Orders (ID: US-604) — att
 
 ## Iteration 2 - Fri, Mar 13, 2026 10:42:47 AM
 Completed: 10-Minute Auto-Escalation for Unattended Orders (ID: US-604) in 7m
+
+## Iteration 3 - Fri, Mar 13, 2026 10:50:29 AM
+Completed: Staff Android PWA with Alarm Notifications (ID: US-606) in 6m
 

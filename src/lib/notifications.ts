@@ -119,8 +119,13 @@ export async function sendOrderWhatsAppNotification(
 
   const message = formatOrderMessage(payload);
 
+  let attemptNum = 0;
   try {
-    await withRetry(() => sendWhatsAppMessage(waiterNumber, message), {
+    await withRetry(() => {
+      attemptNum++;
+      console.info(`[whatsapp] Attempt ${attemptNum} for order #${payload.orderId}`);
+      return sendWhatsAppMessage(waiterNumber, message);
+    }, {
       maxRetries: 3,
       baseDelayMs: 1000,
     });

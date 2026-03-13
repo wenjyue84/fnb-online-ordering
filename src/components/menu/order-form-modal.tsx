@@ -37,6 +37,7 @@ export function OrderFormModal({ items, total, onSuccess, onClose }: OrderFormMo
   const [arrivalTime, setArrivalTime] = useState("");
   const [contactError, setContactError] = useState("");
   const [timeError, setTimeError] = useState("");
+  const [slotFullTime, setSlotFullTime] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [orderId, setOrderId] = useState<number | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -145,6 +146,7 @@ export function OrderFormModal({ items, total, onSuccess, onClose }: OrderFormMo
     }
 
     setSubmitting(true);
+    setSlotFullTime(null);
     try {
       const res = await fetch("/api/orders", {
         method: "POST",
@@ -156,6 +158,15 @@ export function OrderFormModal({ items, total, onSuccess, onClose }: OrderFormMo
           estimatedArrival: arrivalDate.toISOString(),
         }),
       });
+      if (res.status === 409) {
+        const data = (await res.json()) as { error: string; nextAvailableSlot?: string };
+        if (data.error === "slot_full" && data.nextAvailableSlot) {
+          setSlotFullTime(data.nextAvailableSlot);
+        } else {
+          setTimeError(t("submitError"));
+        }
+        return;
+      }
       if (!res.ok) throw new Error("Failed to submit");
       const data = (await res.json()) as { ok: boolean; id: number };
       setOrderId(data.id);
@@ -259,6 +270,28 @@ export function OrderFormModal({ items, total, onSuccess, onClose }: OrderFormMo
                   <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                   {timeError}
                 </p>
+              )}
+              {slotFullTime && (
+                <div className="rounded-xl border border-orange-300 bg-orange-50 p-3 text-sm" role="alert" aria-live="polite">
+                  <p className="font-semibold text-orange-800">{t("slotFull")}</p>
+                  <p className="text-orange-700 mt-0.5">
+                    {t("nextAvailable")}{" "}
+                    <strong>
+                      {new Date(slotFullTime).toLocaleTimeString(locale === "zh" ? "zh-MY" : locale === "ms" ? "ms-MY" : "en-MY", { hour: "2-digit", minute: "2-digit" })}
+                    </strong>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const d = new Date(slotFullTime);
+                      setArrivalTime(`${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`);
+                      setSlotFullTime(null);
+                    }}
+                    className="mt-2 w-full rounded-lg bg-orange-500 py-2 text-xs font-semibold text-white hover:bg-orange-600 transition-colors"
+                  >
+                    {t("useThisTime")}
+                  </button>
+                </div>
               )}
             </div>
 

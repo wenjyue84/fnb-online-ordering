@@ -49,6 +49,7 @@ export interface SiteSettings {
   ratingCount?: number;
   ratingProvider?: string;
   escalationMinutes: number;
+  maxOrdersPerSlot: number;
 }
 
 export const DEFAULT_SETTINGS: SiteSettings = {
@@ -101,4 +102,5 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   kitchenPin: "1234",
   posMode: "feedme_manual",
   escalationMinutes: 10,
+  maxOrdersPerSlot: 5,
 };

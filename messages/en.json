@@ -196,7 +196,10 @@
     "whatNext": "What happens next?",
     "whatNextDesc": "Our team will review your order and confirm it shortly. You’ll see the status update in your order history.",
     "orderNumber": "Order #{id}",
-    "dataDisclosure": "Your contact number is used only to notify you about this order. See our <privacyLink>Privacy Policy</privacyLink>."
+    "dataDisclosure": "Your contact number is used only to notify you about this order. See our <privacyLink>Privacy Policy</privacyLink>.",
+    "slotFull": "This arrival time is fully booked.",
+    "nextAvailable": "Next available:",
+    "useThisTime": "Use this time"
   },
   "paymentPage": {
     "title": "Complete Payment",

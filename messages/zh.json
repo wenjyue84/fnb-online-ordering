@@ -196,7 +196,10 @@
     "whatNext": "接下来会发生什么？",
     "whatNextDesc": "我们的团队将会审查您的订单并尽快确认。您可以在订单历史中查看状态更新。",
     "orderNumber": "订单 #{id}",
-    "dataDisclosure": "您的联系电话仅用于通知您有关此订单的信息。请参阅我们的<privacyLink>隐私政策</privacyLink>。"
+    "dataDisclosure": "您的联系电话仅用于通知您有关此订单的信息。请参阅我们的<privacyLink>隐私政策</privacyLink>。",
+    "slotFull": "此到达时间已满额。",
+    "nextAvailable": "下一可用时段：",
+    "useThisTime": "使用此时间"
   },
   "paymentPage": {
     "title": "完成付款",

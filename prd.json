@@ -304,7 +304,7 @@
       "id": "US-607",
       "title": "WhatsApp order notification delivery retry with exponential backoff",
       "priority": "high",
-      "description": "WhatsApp API calls (Periskope or Baileys) can fail transiently due to rate limits, network timeouts, or session expiry. Currently, a failed send silently drops the notification, leaving the waiter unaware of a new order. A retry queue with exponential backoff ensures critical order notifications are delivered even under transient failures.",
+      "description": "Completed in iteration 6.",
       "acceptanceCriteria": [
         "The POST /api/orders route wraps the WhatsApp send call in a try/catch; on failure it stores the pending notification in a whatsapp_queue table or in-process retry array",
         "Up to 3 retry attempts are made with delays of 10s, 30s, 90s (exponential backoff)",
@@ -322,24 +322,13 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "medium",
-      "passes": false,
-      "filesTouch": [
-        "messages/en.json",
-        "messages/ms.json",
-        "messages/zh.json",
-        "prd.json",
-        "progress.txt",
-        "retry-counts.json",
-        "src/app/[locale]/order/[id]/page.tsx",
-        "src/app/api/admin/orders/[id]/route.ts",
-        "src/app/api/orders/[id]/push-subscribe/route.ts"
-      ]
+      "passes": true
     },
     {
       "id": "US-608",
       "title": "Pre-order slot capacity limits to prevent kitchen overload",
       "priority": "high",
-      "description": "Without slot capacity controls, a surge of pre-orders for the same arrival window can overwhelm kitchen staff. Industry best practice for F&B pre-ordering is to cap the number of concurrent orders per time window. The system should reject new orders gracefully when a slot is full and suggest the next available slot.",
+      "description": "Completed in iteration 6.",
       "acceptanceCriteria": [
         "Admin can configure a max_orders_per_slot value in site settings (default: 5 orders per 30-minute window)",
         "POST /api/orders counts existing non-rejected orders with estimated_arrival within the same 30-minute window before accepting",
@@ -357,18 +346,7 @@
       ],
       "dependencies": [],
       "estimatedComplexity": "medium",
-      "passes": false,
-      "filesTouch": [
-        "messages/en.json",
-        "messages/ms.json",
-        "messages/zh.json",
-        "prd.json",
-        "progress.txt",
-        "retry-counts.json",
-        "src/app/[locale]/order/[id]/page.tsx",
-        "src/app/api/admin/orders/[id]/route.ts",
-        "src/app/api/orders/[id]/push-subscribe/route.ts"
-      ]
+      "passes": true
     },
     {
       "id": "US-609",

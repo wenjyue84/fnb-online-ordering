@@ -360,6 +360,25 @@ export function AdminSettingsPanel({ displayCategories }: AdminSettingsPanelProp
               </div>
 
               <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Max Orders Per 30-Min Slot</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={settings.maxOrdersPerSlot ?? 5}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    if (v >= 1 && v <= 50) setField("maxOrdersPerSlot", v);
+                  }}
+                  className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                  placeholder="5"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Maximum concurrent pre-orders per 30-minute arrival window. Customers will be redirected to the next available slot when full.
+                </p>
+              </div>
+
+              <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
                   Accepted payment methods
                 </label>

@@ -3,6 +3,7 @@ import sql from "@/lib/db";
 import webpush from "web-push";
 import { OrderPatchSchema } from "@/lib/schemas/order";
 import { getSiteSettings } from "@/lib/site-settings";
+import { sendOrderWhatsAppNotification } from "@/lib/notifications";
 
 // Configure VAPID once (same pattern as src/app/api/orders/route.ts)
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -179,8 +180,46 @@ export async function PATCH(
       return NextResponse.json(rows[0]);
     }
 
+    // Resend WhatsApp notification for failed orders
+    if (action === "resend_notification") {
+      // Fetch full order data needed to build the message
+      const orderRows = await sql<{
+        items: string;
+        total: string;
+        contact_number: string | null;
+        estimated_arrival: string | null;
+        notification_status: string | null;
+      }>`
+        SELECT items, total, contact_number, estimated_arrival, notification_status
+        FROM tray_orders
+        WHERE id = ${orderId}
+      `;
+      if (orderRows.length === 0) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+
+      const orderRow = orderRows[0];
+      const items = (typeof orderRow.items === "string" ? JSON.parse(orderRow.items) : orderRow.items) as {
+        name: string;
+        quantity: number;
+        price: number;
+      }[];
+
+      // Reset notification_status to 'pending' before retrying
+      await sql`UPDATE tray_orders SET notification_status = 'pending' WHERE id = ${orderId}`;
+
+      // Fire-and-forget resend — same pattern as initial send
+      void sendOrderWhatsAppNotification({
+        orderId,
+        items: items.map((item) => ({ name: item.name, quantity: item.quantity, price: item.price })),
+        total: parseFloat(orderRow.total),
+        contactNumber: orderRow.contact_number ?? "",
+        estimatedArrival: orderRow.estimated_arrival ?? new Date().toISOString(),
+      });
+
+      return NextResponse.json({ ok: true, notification_status: "pending" });
+    }
+
     return NextResponse.json(
-      { error: "action must be 'approve', 'reject', 'confirm_payment', 'reject_payment', 'mark_ready', or 'feedme_entered'; or status must be 'seen'" },
+      { error: "action must be 'approve', 'reject', 'confirm_payment', 'reject_payment', 'mark_ready', 'feedme_entered', or 'resend_notification'; or status must be 'seen'" },
       { status: 400 }
     );
   } catch (err) {

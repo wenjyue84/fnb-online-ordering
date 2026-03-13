@@ -94,6 +94,47 @@ export async function POST(request: NextRequest) {
     const { items, total, contactNumber: normalizedPhone, estimatedArrival } = parsed.data;
     const arrivalTime = new Date(estimatedArrival);
 
+    // Slot capacity check: count orders in the same 30-minute window
+    const settings = await getSiteSettings();
+    const maxPerSlot = settings.maxOrdersPerSlot ?? 5;
+
+    // Compute slot boundaries (floor to :00 or :30)
+    const slotStartMs = Math.floor(arrivalTime.getTime() / (30 * 60_000)) * (30 * 60_000);
+    const slotStart = new Date(slotStartMs);
+    const slotEnd = new Date(slotStartMs + 30 * 60_000);
+
+    const countRows = await sql<{ count: string }>`
+      SELECT COUNT(*) AS count
+      FROM tray_orders
+      WHERE estimated_arrival >= ${slotStart.toISOString()}
+        AND estimated_arrival < ${slotEnd.toISOString()}
+        AND status NOT IN ('rejected', 'expired')
+    `;
+    const slotCount = parseInt(countRows[0]?.count ?? "0", 10);
+
+    if (slotCount >= maxPerSlot) {
+      // Find the next available slot
+      let nextSlotStart = slotEnd;
+      let nextSlotEnd = new Date(nextSlotStart.getTime() + 30 * 60_000);
+      for (let i = 0; i < 24; i++) {
+        const checkRows = await sql<{ count: string }>`
+          SELECT COUNT(*) AS count
+          FROM tray_orders
+          WHERE estimated_arrival >= ${nextSlotStart.toISOString()}
+            AND estimated_arrival < ${nextSlotEnd.toISOString()}
+            AND status NOT IN ('rejected', 'expired')
+        `;
+        const checkCount = parseInt(checkRows[0]?.count ?? "0", 10);
+        if (checkCount < maxPerSlot) break;
+        nextSlotStart = nextSlotEnd;
+        nextSlotEnd = new Date(nextSlotStart.getTime() + 30 * 60_000);
+      }
+      return NextResponse.json(
+        { error: "slot_full", nextAvailableSlot: nextSlotStart.toISOString() },
+        { status: 409 }
+      );
+    }
+
     const rows = await sql`
       INSERT INTO tray_orders (items, total, status, contact_number, estimated_arrival)
       VALUES (

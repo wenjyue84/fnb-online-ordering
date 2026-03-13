@@ -54,6 +54,7 @@ export const OrderPatchSchema = z.object({
       "reject_payment",
       "mark_ready",
       "feedme_entered",
+      "resend_notification",
     ])
     .optional(),
   estimatedReady: z.string().datetime().optional(),
