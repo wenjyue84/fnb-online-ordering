@@ -23,6 +23,7 @@ import { ScrollingProvider } from "@/lib/scrolling-context";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { PwaInit } from "@/components/pwa/pwa-init";
 import { InstallBanner } from "@/components/pwa/install-banner";
+import { SwUpdateBanner } from "@/components/pwa/sw-update-banner";
 import { SplashOnboarding } from "@/components/home/splash-onboarding";
 import { WebVitals } from "@/components/analytics/web-vitals";
 import { SpeedInsightsWrapper } from "@/components/analytics/speed-insights-wrapper";
@@ -162,6 +163,7 @@ export default async function LocaleLayout({
               {isAdmin && <AdminFloatingToolbar locale={locale} />}
             </ScrollingProvider>
             <PwaInit />
+            <SwUpdateBanner />
             <InstallBanner />
             <SplashOnboarding />
             <WebVitals />

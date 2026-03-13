@@ -4,7 +4,7 @@
 const CACHE_NAME = "makan-moments-v2";
 const SHELL_URLS = ["/en", "/ms", "/zh", "/manifest.webmanifest", "/offline.html"];
 
-// Install: pre-cache shell URLs
+// Install: pre-cache shell URLs; wait for SKIP_WAITING message before activating
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
@@ -14,7 +14,15 @@ self.addEventListener("install", (event) => {
         // Shell caching is best-effort; don't block install on failure
       })
   );
-  self.skipWaiting();
+  // Do NOT call self.skipWaiting() here — wait for the client to send SKIP_WAITING
+  // so the app can prompt the user before updating (US-611)
+});
+
+// Message: handle SKIP_WAITING from the update banner
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 // Activate: clean up old caches

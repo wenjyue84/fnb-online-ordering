@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { getSiteSettings } from "@/lib/site-settings";
+import { SwUpdateBanner } from "@/components/pwa/sw-update-banner";
 import "../globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -20,7 +21,10 @@ export default function KdsLayout({ children }: { children: ReactNode }) {
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-title" content="MM Kitchen" />
       </head>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <SwUpdateBanner priority="high" />
+        {children}
+      </body>
     </html>
   );
 }

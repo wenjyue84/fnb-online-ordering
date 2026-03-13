@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { headers } from "next/headers";
+import { SwUpdateBanner } from "@/components/pwa/sw-update-banner";
 import "../globals.css";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
@@ -22,6 +23,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         />
       </head>
       <body className="font-sans antialiased bg-white text-gray-900">
+        <SwUpdateBanner priority="high" />
         {children}
       </body>
     </html>
