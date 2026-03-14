@@ -24,6 +24,16 @@ const sql = <T = Record<string, unknown>>(strings: TemplateStringsArray, ...valu
 
 export default sql;
 
+/** Execute a raw SQL string with positional parameters — use when building dynamic SET/IN clauses. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const sqlRaw = <T = Record<string, unknown>>(text: string, values: any[] = []): Promise<T[]> => {
+  if (!_db) {
+    _db = neon(env.DATABASE_URL);
+  }
+  // neon supports (text, params) direct-call form in addition to tagged template
+  return (_db as any)(text, values) as unknown as Promise<T[]>;
+};
+
 // ── Unpooled (migration) connection ─────────────────────────────────────────
 // DATABASE_URL_UNPOOLED is the direct Neon endpoint (no PgBouncer). Required
 // for DDL migrations (CREATE TABLE, ALTER TABLE) that may need session-level

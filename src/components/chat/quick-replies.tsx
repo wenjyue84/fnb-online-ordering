@@ -12,9 +12,9 @@ interface QuickRepliesProps {
 }
 
 const SUGGESTIONS: Record<SuggestionSet, string[]> = {
-  initial: ["What's popular?", "Show me the menu", "I want to order"],
-  ordering: ["Check order status", "Add more items", "That's all"],
-  menu: ["Any vegetarian options?", "What's under RM15?", "Recommend something"],
+  initial: ["Show me the menu", "What are today's specials?", "Place an order", "Check my order status", "What time do you open?"],
+  ordering: ["Check my order status", "Add more items", "That's all, thank you"],
+  menu: ["Any vegetarian options?", "What's under RM15?", "Place an order"],
 };
 
 function detectContext(messages: Array<{ role: string; content: string }>): SuggestionSet {

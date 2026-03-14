@@ -93,7 +93,7 @@
   "chat": {
     "title": "AI Waiter",
     "subtitle": "Ask me anything about our menu!",
-    "placeholder": "Ask about our dishes, prices, recommendations...",
+    "placeholder": "Ask about the menu or place an order...",
     "welcome": "Hi there! 👋 Welcome to Makan Moments! Today I'd especially recommend our Thai Basil Chicken Rice (RM 13.90) and Salted Egg Chicken Chop (RM 13.90) — both are customer favourites. How can I help you?",
     "nudge": "Still deciding? 😊 Our Thai Basil Chicken Rice and Salted Egg Chicken Chop are really popular today! Can I help you choose something, or answer any questions?",
     "error": "Sorry, I'm having trouble right now. Please try again.",
